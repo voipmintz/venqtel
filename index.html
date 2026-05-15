@@ -2089,9 +2089,8 @@ function renderInvRows(type) {
           placeholder="${rowLabel==='description'?'e.g. IT Consulting Services':'Employee / Resource'}"
           oninput="invRows.${type}[${i}].name=this.value;renderInvRows('${type}')"
           style="font-size:13px;font-weight:600;width:100%;margin-top:2px" />
-        <datalist id="${dlId}">${allOptions.map(n=>`<option value="${n}">`).join('')}</datalist>
-        ${r.name&&!allOptions.includes(r.name.trim())?`<span onclick="invAddToResourceList('${r.name.replace(/'/g,"\\'")}','${type}')"
-          style="font-size:9px;color:var(--g500);cursor:pointer;text-decoration:underline;display:block;margin-top:1px">+ Save to list</span>`:''}
+        <datalist id="${dlId}">${allOptions.map(n=>'<option value="'+n+'">').join('')}</datalist>
+        ${r.name&&!allOptions.includes(r.name.trim())?'<span onclick="invAddToResourceList(this)" data-name="'+r.name+'" data-type="'+type+'" style="font-size:9px;color:var(--g500);cursor:pointer;text-decoration:underline;display:block;margin-top:1px">+ Save to list</span>':''}
       </td>
       <td>
         <input type="text" value="${r.desc||''}" oninput="invRows.${type}[${i}].desc=this.value"
@@ -4003,9 +4002,9 @@ function addBankAccount() {
 }
 
 // ── Resource / Description List ────────────────────────────
-function invAddToResourceList(name, type) {
-  if (!name || !name.trim()) return;
-  name = name.trim();
+function invAddToResourceList(nameOrEl, type) {
+  const name = typeof nameOrEl === 'string' ? nameOrEl : (nameOrEl.dataset?.name||'');
+  const t    = typeof nameOrEl === 'string' ? type : (nameOrEl.dataset?.type||'day');
   if (!state.settings.resourceList) state.settings.resourceList = [];
   if (state.settings.resourceList.includes(name)) {
     showNotif(`"${name}" already in list`,'error'); return;
@@ -4013,7 +4012,7 @@ function invAddToResourceList(name, type) {
   state.settings.resourceList.push(name);
   saveState();
   showNotif(`"${name}" added to resource list ✓`);
-  if (type) renderInvRows(type);
+  if (t) renderInvRows(t);
   renderResourceList();
 }
 
