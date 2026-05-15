@@ -3075,6 +3075,8 @@ function renderClientServices(services) {
 function getClientServices() {
   return Array.from(document.querySelectorAll('#cl-services .service-chip')).map(c=>c.dataset.name).filter(Boolean);
 }
+
+function renumberEmpCards() {
   document.querySelectorAll('#cl-employees .emp-card').forEach((card, i) => {
     const avatar = card.querySelector('.emp-avatar');
     if (avatar) avatar.textContent = i + 1;
