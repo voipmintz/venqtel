@@ -482,6 +482,12 @@ textarea{resize:vertical;min-height:72px}
         <label>Notes / Service Description</label>
         <textarea id="inv-notes" placeholder="e.g. Professional services rendered for May 2026…"></textarea>
       </div>
+      <div class="form-group full">
+        <label>💳 Payment Account <span style="font-size:10px;color:var(--muted);font-weight:400">(shown on invoice)</span></label>
+        <select id="inv-bank-select" onchange="recalcInvoice()" style="width:100%">
+          <option value="">— Select Payment Account —</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -505,7 +511,7 @@ textarea{resize:vertical;min-height:72px}
         </div>
       </div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th>Resource Name</th><th>Type</th>
+        <th>#</th><th>Resource Name</th><th>Description</th><th>Type</th>
         <th>Days Worked</th><th id="day-rate-th">Day Rate (AED)</th><th>Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-day"></tbody>
@@ -528,7 +534,7 @@ textarea{resize:vertical;min-height:72px}
         </div>
       </div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th>Resource Name</th><th>Type</th>
+        <th>#</th><th>Resource Name</th><th>Description</th><th>Type</th>
         <th>Hours Worked</th><th id="hour-rate-th">Hour Rate (AED)</th><th>Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-hour"></tbody>
@@ -549,13 +555,31 @@ textarea{resize:vertical;min-height:72px}
       </div>
       <div class="info-box mb-16">Fixed monthly rate: if an employee works all days they get the full monthly salary. Partial attendance is prorated automatically.</div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th>Resource Name</th><th>Type</th>
+        <th>#</th><th>Resource Name</th><th>Description</th><th>Type</th>
         <th>Days Attended</th><th id="fixed-rate-th">Monthly Rate (AED)</th><th>Pro-rated Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-fixed"></tbody>
       <tfoot id="inv-tfoot-fixed"></tfoot></table>
     </div>
   </div>
+
+  <!-- Description datalist for autocomplete suggestions -->
+  <datalist id="inv-desc-list">
+    <option value="Software Development Services">
+    <option value="IT Consulting Services">
+    <option value="Project Management">
+    <option value="Technical Support">
+    <option value="Business Analysis">
+    <option value="System Integration">
+    <option value="Data Analysis">
+    <option value="Network Engineering">
+    <option value="Cloud Infrastructure">
+    <option value="DevOps Services">
+    <option value="UI/UX Design">
+    <option value="Quality Assurance">
+    <option value="Managed Services">
+    <option value="Professional Services">
+  </datalist>
 
   <!-- Milestone Tab -->
   <div id="inv-tab-milestone" class="tab-pane">
@@ -968,7 +992,35 @@ textarea{resize:vertical;min-height:72px}
       <div class="form-group"><label>Website</label><input type="text" id="co-website" /></div>
       <div class="form-group"><label>Tax / TRN / VAT Reg No</label><input type="text" id="co-tax" /></div>
       <div class="form-group"><label>Default VAT %</label><input type="number" id="co-default-vat" value="5" min="0" max="30" step="0.1" /></div>
-      <div class="form-group full"><label>Bank / Payment Details</label><textarea id="co-bank" placeholder="Bank: Emirates NBD&#10;IBAN: AE123456789&#10;SWIFT: EBILAEAD"></textarea></div>
+      <div class="form-group full">
+        <label>📋 Resource / Description List
+          <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">auto-suggests in invoice rows</span>
+        </label>
+        <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px">
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input type="text" id="new-resource-input" placeholder="e.g. IT Consulting, Project Management…"
+              onkeydown="if(event.key==='Enter'){invAddToResourceList(this.value);this.value='';}"
+              style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none"
+              onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
+            <button onclick="invAddToResourceList(document.getElementById('new-resource-input').value);document.getElementById('new-resource-input').value=''"
+              class="btn btn-primary btn-sm">+ Add</button>
+          </div>
+          <div id="co-resource-list"></div>
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label>Bank / Payment Accounts</label>
+        <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
+          <div style="padding:10px 14px;background:var(--g50);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;font-weight:700;color:var(--g700)">💳 Payment Accounts — add one per currency</span>
+            <button type="button" onclick="addBankAccount()" class="btn btn-primary btn-sm">+ Add Account</button>
+          </div>
+          <div id="co-bank-accounts" style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+            <!-- rendered by JS -->
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="actions-row">
@@ -1153,7 +1205,7 @@ textarea{resize:vertical;min-height:72px}
       </div>
     </div>
 
-    <!-- ── SECTION 3: Employees ── -->
+    <!-- ── SECTION 3: Employees & Resources ── -->
     <div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">👥</div>
@@ -1164,11 +1216,33 @@ textarea{resize:vertical;min-height:72px}
         </button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:9px 14px;background:var(--g50);border:1px solid var(--g100);border-radius:8px;font-size:12px;color:var(--g700)">
-        💡 All rates in <strong class="cl-cur-sym-label">AED</strong>. Each employee gets a personal timesheet link.
+        💡 All rates in <strong class="cl-cur-sym-label">AED</strong>. Each employee auto-loads in timesheets and invoices.
       </div>
       <div id="cl-employees" style="display:flex;flex-direction:column;gap:12px"></div>
       <div style="margin-top:12px;padding:10px 14px;border:1px dashed var(--border2);border-radius:8px;font-size:12px;color:var(--muted);text-align:center">
         👤 Employees auto-load in timesheets and invoices when this client is selected.
+      </div>
+    </div>
+
+    <!-- ── SECTION 4: Services / Resources ── -->
+    <div style="margin-top:24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">📋</div>
+        <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px">Services / Resources</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Add consulting services, roles or descriptions specific to this client. These appear as suggestions in invoice rows.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input type="text" id="cl-new-service" placeholder="e.g. IT Consulting, Software Development…"
+          onkeydown="if(event.key==='Enter'){addClientService();}"
+          style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none"
+          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
+        <button onclick="addClientService()" class="btn btn-primary btn-sm">+ Add</button>
+      </div>
+      <div id="cl-services" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px">
+        <!-- rendered by JS -->
       </div>
     </div>
 
@@ -1722,7 +1796,7 @@ function nav(page, e) {
   if (page==='tms') initTms();
   if (page==='clients') renderClients();
   if (page==='template') initTemplate();
-  if (page==='company-settings') loadCompanySettings();
+  if (page==='company-settings') { loadCompanySettings(); renderBankAccounts(); renderInvBankSelector(); renderResourceList(); }
 }
 
 document.querySelectorAll('.nav-item').forEach(el => {
@@ -1994,9 +2068,35 @@ function renderInvRows(type) {
       </tr>`;
     }
     const total = (r.worked||0)*(r.rate||0);
+    const clientIdx = document.getElementById('inv-client')?.value||'';
+    const clientObj = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
+    const empNames = (clientObj?.employees||[]).map(e=>e.name);
+    const clientServices = clientObj?.services||[];
+    const customResources = state.settings.resourceList||[];
+    const allOptions = [...new Set([...empNames, ...clientServices, ...customResources])];
+    const dlId = `dl-${type}-${i}`;
+    const rowLabel = r.rowLabel||'resource';
     return `<tr>
       <td>${i+1}</td>
-      <td><input type="text" value="${r.name}" oninput="invRows.${type}[${i}].name=this.value" placeholder="Resource" /></td>
+      <td>
+        <select style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:none;background:transparent;color:var(--muted);cursor:pointer;padding:0 0 2px;outline:none;display:block;width:100%"
+          title="Toggle between Resource name or Description label"
+          onchange="invRows.${type}[${i}].rowLabel=this.value;renderInvRows('${type}')">
+          <option value="resource"     ${rowLabel==='resource'?'selected':''}>👤 Resource</option>
+          <option value="description"  ${rowLabel==='description'?'selected':''}>📝 Description</option>
+        </select>
+        <input type="text" value="${r.name||''}" list="${dlId}"
+          placeholder="${rowLabel==='description'?'e.g. IT Consulting Services':'Employee / Resource'}"
+          oninput="invRows.${type}[${i}].name=this.value;renderInvRows('${type}')"
+          style="font-size:13px;font-weight:600;width:100%;margin-top:2px" />
+        <datalist id="${dlId}">${allOptions.map(n=>`<option value="${n}">`).join('')}</datalist>
+        ${r.name&&!allOptions.includes(r.name.trim())?`<span onclick="invAddToResourceList('${r.name.replace(/'/g,"\\'")}','${type}')"
+          style="font-size:9px;color:var(--g500);cursor:pointer;text-decoration:underline;display:block;margin-top:1px">+ Save to list</span>`:''}
+      </td>
+      <td>
+        <input type="text" value="${r.desc||''}" oninput="invRows.${type}[${i}].desc=this.value"
+          placeholder="Description…" list="inv-desc-list" style="font-size:12px" />
+      </td>
       <td><select onchange="invRows.${type}[${i}].type=this.value"><option ${r.type==='Offshore'?'selected':''}>Offshore</option><option ${r.type==='Onsite'?'selected':''}>Onsite</option></select></td>
       <td><input type="number" value="${r.worked}" oninput="invRows.${type}[${i}].worked=parseFloat(this.value)||0;recalcInvoice()" /></td>
       <td><input type="number" value="${r.rate}" oninput="invRows.${type}[${i}].rate=parseFloat(this.value)||0;recalcInvoice()" class="mono" /></td>
@@ -2152,6 +2252,7 @@ function getInvoiceData() {
     rows, billingType: tab,
     fixedTotalDays: fixedDays,
     notes: document.getElementById('inv-notes').value,
+    bankAccountIdx: document.getElementById('inv-bank-select')?.value||'',
     status: 'draft'
   };
 }
@@ -2262,10 +2363,10 @@ function buildInvoiceHTML(d, forPDF) {
 
   const tableHeaders = isMilestone
     ? `<th style="width:40px">#</th><th>Milestone</th><th style="width:120px">Status</th><th style="width:160px;text-align:right">Amount (${sym.trim()})</th><th style="width:160px;text-align:right">Total (${sym.trim()})</th>`
-    : `<th style="width:40px">#</th><th>Resource</th><th style="width:100px">Type</th><th style="width:120px;text-align:right">${modeLabel} Worked</th><th style="width:160px;text-align:right">${rateLabel} (${sym.trim()})</th><th style="width:160px;text-align:right">Total (${sym.trim()})</th>`;
+    : `<th style="width:36px">#</th><th>Resource</th><th>Description</th><th style="width:90px">Type</th><th style="width:100px;text-align:right">${modeLabel} Worked</th><th style="width:130px;text-align:right">${rateLabel} (${sym.trim()})</th><th style="width:130px;text-align:right">Total (${sym.trim()})</th>`;
 
   const tableRows = rows.map((r,i)=>{
-    const bg = i%2===1?`background:#f9fafb`:''
+    const bg = i%2===1?`background:#f9fafb`:'';
     const total = r.total||0;
     if (isMilestone) return `<tr style="${bg}">
       <td>${r.index||i+1}</td>
@@ -2276,7 +2377,8 @@ function buildInvoiceHTML(d, forPDF) {
     </tr>`;
     return `<tr style="${bg}">
       <td>${r.index||i+1}</td>
-      <td>${r.name||'—'}</td>
+      <td style="font-weight:600">${r.name||'—'}</td>
+      <td style="font-size:12px;color:#555">${r.desc||''}</td>
       <td>${r.type||'—'}</td>
       <td class="mono" style="text-align:right">${r.worked}</td>
       <td class="mono" style="text-align:right">${sym}${fmt(r.rate)}</td>
@@ -2296,16 +2398,31 @@ function buildInvoiceHTML(d, forPDF) {
     <strong>Amount in Words:</strong> ${numToWords(wordsAmt,wordsCur)}
   </div>`;
 
-  const bankBox = d.company.bank ? `<div class="inv-bank-box">
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;font-weight:700;margin-bottom:8px">Payment Details</div>
-    <div style="font-size:13px;color:#444;white-space:pre-line">${d.company.bank}</div>
+  // Selected bank account
+  const bankIdx = typeof document !== 'undefined' ? (document.getElementById('inv-bank-select')?.value||'') : '';
+  const bankAccounts = d.company.bankAccounts||[];
+  const selectedBank = bankIdx!=='' ? bankAccounts[parseInt(bankIdx)] : (bankAccounts[0]||null);
+  const bankDetails = selectedBank?.details || d.company.bank || '';
+
+  const bankBox = bankDetails ? `<div class="inv-bank-box" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+    <div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;font-weight:700;margin-bottom:6px">💳 Payment Details${selectedBank?.label?' — '+selectedBank.label:''}</div>
+      <div style="font-size:12px;color:#444;white-space:pre-line;font-family:monospace;line-height:1.8">${bankDetails}</div>
+    </div>
+    ${d.company.tax?`<div style="text-align:right">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;font-weight:700;margin-bottom:6px">Tax Registration</div>
+      <div style="font-size:12px;color:#444">TRN: ${d.company.tax}</div>
+    </div>`:''}
   </div>` : '';
 
-  const coDetails = `<div><div style="font-weight:700;font-size:15px;margin-bottom:4px">${d.from}</div>
-    ${d.company.address?`<div style="font-size:12px;color:#666;white-space:pre-line">${d.company.address}</div>`:''}
-    ${d.company.phone?`<div style="font-size:12px;color:#666">📞 ${d.company.phone}</div>`:''}
-    ${d.company.email?`<div style="font-size:12px;color:#666">✉ ${d.company.email}</div>`:''}
-    ${d.company.tax?`<div style="font-size:12px;color:#666">TRN: ${d.company.tax}</div>`:''}
+  const coDetails = `<div>
+    <div style="font-weight:800;font-size:15px;margin-bottom:5px;color:#111">${d.from}</div>
+    ${d.company.tagline?`<div style="font-size:11px;color:#888;margin-bottom:5px">${d.company.tagline}</div>`:''}
+    ${d.company.address?`<div style="font-size:12px;color:#555;white-space:pre-line;line-height:1.6;margin-bottom:3px">📍 ${d.company.address.replace(/\n/g,'\n    ')}</div>`:''}
+    ${d.company.phone?`<div style="font-size:12px;color:#555">📞 ${d.company.phone}</div>`:''}
+    ${d.company.email?`<div style="font-size:12px;color:#555">✉️ ${d.company.email}</div>`:''}
+    ${d.company.website?`<div style="font-size:12px;color:#555">🌐 ${d.company.website}</div>`:''}
+    ${d.company.tax?`<div style="font-size:12px;color:#555;font-weight:600">TRN: ${d.company.tax}</div>`:''}
   </div>`;
 
   return `<div class="invoice-preview" style="font-family:'${fontB}',sans-serif;font-size:${fontSize}px">
@@ -2313,9 +2430,9 @@ function buildInvoiceHTML(d, forPDF) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:24px">
       <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:6px">FROM</div>${coDetails}</div>
       <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:6px">BILL TO</div>
-        <div style="font-weight:700;font-size:15px;margin-bottom:4px">${d.clientName}</div>
-        ${d.clientAddr?`<div style="font-size:12px;color:#666">${d.clientAddr}</div>`:''}
-        ${d.clientEmail?`<div style="font-size:12px;color:#666">✉ ${d.clientEmail}</div>`:''}
+        <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:#111">${d.clientName}</div>
+        ${d.clientAddr?`<div style="font-size:12px;color:#555;line-height:1.6">📍 ${d.clientAddr}</div>`:''}
+        ${d.clientEmail?`<div style="font-size:12px;color:#555">✉️ ${d.clientEmail}</div>`:''}
       </div>
     </div>
     ${forPDF
@@ -2827,14 +2944,15 @@ function openClientModal(idx) {
     document.getElementById('cl-fixed-rate').value=c.fixedRate||'';
     document.getElementById('cl-employees').innerHTML='';
     (c.employees||[]).forEach(e=>addEmployeeRow(e));
+    renderClientServices(c.services||[]);
   } else {
     ['cl-name','cl-contact','cl-email','cl-address','cl-day-rate','cl-hour-rate','cl-fixed-rate'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('cl-currency').value='AED';
     document.getElementById('cl-conv-currency').value='';
     document.getElementById('cl-vat').value=5;
     document.getElementById('cl-employees').innerHTML='';
+    renderClientServices([]);
   }
-  updateClCurrSyms();
   openModal('modal-client');
 }
 
@@ -2925,7 +3043,39 @@ function addEmployeeRow(emp) {
   if (emp?.name) card.querySelector('.emp-label').textContent = emp.name;
 }
 
-function renumberEmpCards() {
+function addClientService() {
+  const input = document.getElementById('cl-new-service');
+  const val = input?.value?.trim();
+  if (!val) return;
+  const existing = document.querySelectorAll('#cl-services .service-chip');
+  const names = Array.from(existing).map(c=>c.dataset.name);
+  if (names.includes(val)) { showNotif('Already in list','error'); return; }
+  const chip = document.createElement('span');
+  chip.dataset.name = val;
+  chip.className = 'service-chip';
+  chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;cursor:default';
+  chip.innerHTML = `${val} <button onclick="this.closest('.service-chip').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 1px">×</button>`;
+  document.getElementById('cl-services').appendChild(chip);
+  if (input) input.value = '';
+}
+
+function renderClientServices(services) {
+  const el = document.getElementById('cl-services');
+  if (!el) return;
+  el.innerHTML = '';
+  (services||[]).forEach(s => {
+    const chip = document.createElement('span');
+    chip.dataset.name = s;
+    chip.className = 'service-chip';
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;cursor:default';
+    chip.innerHTML = `${s} <button onclick="this.closest('.service-chip').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 1px">×</button>`;
+    el.appendChild(chip);
+  });
+}
+
+function getClientServices() {
+  return Array.from(document.querySelectorAll('#cl-services .service-chip')).map(c=>c.dataset.name).filter(Boolean);
+}
   document.querySelectorAll('#cl-employees .emp-card').forEach((card, i) => {
     const avatar = card.querySelector('.emp-avatar');
     if (avatar) avatar.textContent = i + 1;
@@ -2988,7 +3138,8 @@ function saveClient() {
     dayRate:parseFloat(document.getElementById('cl-day-rate').value)||0,
     hourRate:parseFloat(document.getElementById('cl-hour-rate').value)||0,
     fixedRate:parseFloat(document.getElementById('cl-fixed-rate').value)||0,
-    employees:emps
+    employees:emps,
+    services:getClientServices()
   };
   if(editingClientIdx!==null) state.clients[editingClientIdx]=c;
   else state.clients.push(c);
@@ -3768,19 +3919,139 @@ function loadCompanySettings() {
 }
 function saveCompanySettings(){
   const co={};
-  ['name','tagline','address','phone','email','website','tax','bank'].forEach(k=>{
+  ['name','tagline','address','phone','email','website','tax'].forEach(k=>{
     co[k]=document.getElementById('co-'+k)?.value||'';
   });
   co.prefix=document.getElementById('co-prefix').value||'VTL-';
   co.nextNum=parseInt(document.getElementById('co-next-num').value)||1;
   co.defaultVat=parseFloat(document.getElementById('co-default-vat').value)||5;
+  // Save bank accounts from cards
+  co.bankAccounts = getBankAccountsFromUI();
+  // Legacy single bank field — keep for backward compat
+  co.bank = co.bankAccounts.length ? co.bankAccounts[0].details : '';
   state.settings.company=co;
   state.settings.logoWidth=parseInt(document.getElementById('co-logo-width').value)||140;
   saveState();
-  // Update bill-from in invoice
   const f=document.getElementById('inv-from');
   if(f)f.value=co.name||'Venqtel';
+  // Update bank selector in invoice form
+  renderInvBankSelector();
   showNotif('Company settings saved ✓');
+}
+
+function getBankAccountsFromUI() {
+  const cards = document.querySelectorAll('.bank-account-card');
+  return Array.from(cards).map(card => ({
+    label:   card.querySelector('.ba-label')?.value||'',
+    currency:card.querySelector('.ba-currency')?.value||'AED',
+    details: card.querySelector('.ba-details')?.value||''
+  })).filter(a=>a.details.trim());
+}
+
+function renderBankAccounts() {
+  const el = document.getElementById('co-bank-accounts');
+  if (!el) return;
+  const accounts = state.settings.company?.bankAccounts || [];
+  if (!accounts.length) {
+    el.innerHTML = `<div class="text-muted" style="font-size:13px;text-align:center;padding:8px">No accounts added yet. Click "+ Add Account" to add one.</div>`;
+    return;
+  }
+  el.innerHTML = accounts.map((a,i) => buildBankAccountCard(a, i)).join('');
+}
+
+function buildBankAccountCard(a={}, i) {
+  const color = state.settings.template?.color||'#29963a';
+  return `<div class="bank-account-card" style="border:1.5px solid var(--border);border-radius:9px;padding:12px 14px;background:var(--white)">
+    <div style="display:grid;grid-template-columns:1fr 140px auto;gap:10px;align-items:start;margin-bottom:10px">
+      <div>
+        <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.7px">Account Label</label>
+        <input type="text" class="ba-label" value="${a.label||''}" placeholder="e.g. UAE Account / UK Account"
+          style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none"
+          onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.7px">Currency</label>
+        <select class="ba-currency" style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;background:var(--white)">
+          <option ${(a.currency||'AED')==='AED'?'selected':''}>AED</option>
+          <option ${a.currency==='USD'?'selected':''}>USD</option>
+          <option ${a.currency==='GBP'?'selected':''}>GBP</option>
+          <option ${a.currency==='EUR'?'selected':''}>EUR</option>
+          <option ${a.currency==='INR'?'selected':''}>INR</option>
+          <option ${a.currency==='SAR'?'selected':''}>SAR</option>
+        </select>
+      </div>
+      <button onclick="this.closest('.bank-account-card').remove()" title="Remove"
+        style="margin-top:20px;background:#fff1f2;border:1px solid #fca5a5;color:#dc2626;border-radius:7px;padding:7px 10px;cursor:pointer;font-size:13px">🗑</button>
+    </div>
+    <div>
+      <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.7px">Bank Details</label>
+      <textarea class="ba-details" rows="4" placeholder="Bank: Emirates NBD&#10;IBAN: AE12345678901234567890&#10;Swift: EBILAEAD&#10;Branch: Bur Dubai&#10;Account Name: Venqtel Technology Services FZCO"
+        style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:12.5px;font-family:var(--font-mono);outline:none;resize:vertical"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">${a.details||''}</textarea>
+    </div>
+  </div>`;
+}
+
+function addBankAccount() {
+  const el = document.getElementById('co-bank-accounts');
+  // Remove empty state message if present
+  const emptyMsg = el.querySelector('.text-muted');
+  if (emptyMsg) emptyMsg.remove();
+  const div = document.createElement('div');
+  div.innerHTML = buildBankAccountCard({}, Date.now());
+  el.appendChild(div.firstElementChild);
+}
+
+// ── Resource / Description List ────────────────────────────
+function invAddToResourceList(name, type) {
+  if (!name || !name.trim()) return;
+  name = name.trim();
+  if (!state.settings.resourceList) state.settings.resourceList = [];
+  if (state.settings.resourceList.includes(name)) {
+    showNotif(`"${name}" already in list`,'error'); return;
+  }
+  state.settings.resourceList.push(name);
+  saveState();
+  showNotif(`"${name}" added to resource list ✓`);
+  if (type) renderInvRows(type);
+  renderResourceList();
+}
+
+function removeFromResourceList(i) {
+  state.settings.resourceList.splice(i, 1);
+  saveState();
+  renderResourceList();
+  ['day','hour','fixed'].forEach(t => renderInvRows(t));
+}
+
+function renderResourceList() {
+  const el = document.getElementById('co-resource-list');
+  if (!el) return;
+  const list = state.settings.resourceList||[];
+  if (!list.length) {
+    el.innerHTML = '<div class="text-muted" style="font-size:13px;padding:8px 0">No items yet — type a new resource name in any invoice row and click "+ Save to list".</div>';
+    return;
+  }
+  el.innerHTML = list.map((item,i) => `
+    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);
+      color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;margin:3px">
+      ${item}
+      <button onclick="removeFromResourceList(${i})"
+        style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;padding:0 2px">×</button>
+    </span>`).join('');
+}
+function renderInvBankSelector() {
+  const el = document.getElementById('inv-bank-select');
+  if (!el) return;
+  const accounts = state.settings.company?.bankAccounts||[];
+  if (!accounts.length) {
+    el.innerHTML = '<option value="">— No bank accounts configured —</option>';
+    return;
+  }
+  el.innerHTML = '<option value="">— Select Payment Account —</option>' +
+    accounts.map((a,i) =>
+      `<option value="${i}">${a.label||'Account '+(i+1)} (${a.currency})</option>`
+    ).join('');
 }
 
 // ═══════════════════════════════
@@ -3819,6 +4090,9 @@ function bootApp() {
   renderInvRows('day');renderInvRows('hour');renderInvRows('fixed');renderInvRows('milestone');
   recalcInvoice();
   applyHeadingFont(state.settings.template?.fontHeading||'Outfit');
+  renderBankAccounts();
+  renderInvBankSelector();
+  renderResourceList();
   checkHashRoute();
 } // end bootApp()
 
