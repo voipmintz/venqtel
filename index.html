@@ -511,7 +511,7 @@ textarea{resize:vertical;min-height:72px}
         </div>
       </div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th>Resource Name</th><th>Description</th><th>Type</th>
+        <th>#</th><th id="th-name-day">👤 Resource / 📝 Description</th><th>Type</th>
         <th>Days Worked</th><th id="day-rate-th">Day Rate (AED)</th><th>Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-day"></tbody>
@@ -534,7 +534,7 @@ textarea{resize:vertical;min-height:72px}
         </div>
       </div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th>Resource Name</th><th>Description</th><th>Type</th>
+        <th>#</th><th>👤 Resource / 📝 Description</th><th>Type</th>
         <th>Hours Worked</th><th id="hour-rate-th">Hour Rate (AED)</th><th>Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-hour"></tbody>
@@ -555,7 +555,7 @@ textarea{resize:vertical;min-height:72px}
       </div>
       <div class="info-box mb-16">Fixed monthly rate: if an employee works all days they get the full monthly salary. Partial attendance is prorated automatically.</div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th>Resource Name</th><th>Description</th><th>Type</th>
+        <th>#</th><th>👤 Resource / 📝 Description</th><th>Type</th>
         <th>Days Attended</th><th id="fixed-rate-th">Monthly Rate (AED)</th><th>Pro-rated Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-fixed"></tbody>
@@ -2059,7 +2059,7 @@ function renderInvRows(type) {
       const prorated = totalDays>0 ? (r.rate * r.worked / totalDays) : 0;
       return `<tr>
         <td>${i+1}</td>
-        <td><input type="text" value="${r.name}" oninput="invRows.fixed[${i}].name=this.value" placeholder="Resource" /></td>
+        <td><input type="text" value="${r.name}" oninput="invRows.fixed[${i}].name=this.value" placeholder="Resource / Description" /></td>
         <td><select onchange="invRows.fixed[${i}].type=this.value"><option ${r.type==='Offshore'?'selected':''}>Offshore</option><option ${r.type==='Onsite'?'selected':''}>Onsite</option></select></td>
         <td><input type="number" value="${r.worked}" oninput="invRows.fixed[${i}].worked=parseFloat(this.value)||0;recalcInvoice()" /></td>
         <td><input type="number" value="${r.rate}" oninput="invRows.fixed[${i}].rate=parseFloat(this.value)||0;recalcInvoice()" class="mono" /></td>
@@ -2079,22 +2079,12 @@ function renderInvRows(type) {
     return `<tr>
       <td>${i+1}</td>
       <td>
-        <select style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:none;background:transparent;color:var(--muted);cursor:pointer;padding:0 0 2px;outline:none;display:block;width:100%"
-          title="Toggle between Resource name or Description label"
-          onchange="invRows.${type}[${i}].rowLabel=this.value;renderInvRows('${type}')">
-          <option value="resource"     ${rowLabel==='resource'?'selected':''}>👤 Resource</option>
-          <option value="description"  ${rowLabel==='description'?'selected':''}>📝 Description</option>
-        </select>
         <input type="text" value="${r.name||''}" list="${dlId}"
           placeholder="${rowLabel==='description'?'e.g. IT Consulting Services':'Employee / Resource'}"
           oninput="invRows.${type}[${i}].name=this.value;renderInvRows('${type}')"
-          style="font-size:13px;font-weight:600;width:100%;margin-top:2px" />
+          style="font-size:13px;font-weight:600;width:100%" />
         <datalist id="${dlId}">${allOptions.map(n=>'<option value="'+n+'">').join('')}</datalist>
         ${r.name&&!allOptions.includes(r.name.trim())?'<span onclick="invAddToResourceList(this)" data-name="'+r.name+'" data-type="'+type+'" style="font-size:9px;color:var(--g500);cursor:pointer;text-decoration:underline;display:block;margin-top:1px">+ Save to list</span>':''}
-      </td>
-      <td>
-        <input type="text" value="${r.desc||''}" oninput="invRows.${type}[${i}].desc=this.value"
-          placeholder="Description…" list="inv-desc-list" style="font-size:12px" />
       </td>
       <td><select onchange="invRows.${type}[${i}].type=this.value"><option ${r.type==='Offshore'?'selected':''}>Offshore</option><option ${r.type==='Onsite'?'selected':''}>Onsite</option></select></td>
       <td><input type="number" value="${r.worked}" oninput="invRows.${type}[${i}].worked=parseFloat(this.value)||0;recalcInvoice()" /></td>
@@ -2362,7 +2352,7 @@ function buildInvoiceHTML(d, forPDF) {
 
   const tableHeaders = isMilestone
     ? `<th style="width:40px">#</th><th>Milestone</th><th style="width:120px">Status</th><th style="width:160px;text-align:right">Amount (${sym.trim()})</th><th style="width:160px;text-align:right">Total (${sym.trim()})</th>`
-    : `<th style="width:36px">#</th><th>Resource</th><th>Description</th><th style="width:90px">Type</th><th style="width:100px;text-align:right">${modeLabel} Worked</th><th style="width:130px;text-align:right">${rateLabel} (${sym.trim()})</th><th style="width:130px;text-align:right">Total (${sym.trim()})</th>`;
+    : `<th style="width:36px">#</th><th>Resource / Description</th><th style="width:90px">Type</th><th style="width:100px;text-align:right">${modeLabel} Worked</th><th style="width:130px;text-align:right">${rateLabel} (${sym.trim()})</th><th style="width:130px;text-align:right">Total (${sym.trim()})</th>`;
 
   const tableRows = rows.map((r,i)=>{
     const bg = i%2===1?`background:#f9fafb`:'';
@@ -2377,7 +2367,6 @@ function buildInvoiceHTML(d, forPDF) {
     return `<tr style="${bg}">
       <td>${r.index||i+1}</td>
       <td style="font-weight:600">${r.name||'—'}</td>
-      <td style="font-size:12px;color:#555">${r.desc||''}</td>
       <td>${r.type||'—'}</td>
       <td class="mono" style="text-align:right">${r.worked}</td>
       <td class="mono" style="text-align:right">${sym}${fmt(r.rate)}</td>
