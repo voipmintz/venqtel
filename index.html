@@ -511,7 +511,13 @@ textarea{resize:vertical;min-height:72px}
         </div>
       </div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th id="th-name-day">👤 Resource / 📝 Description</th><th>Type</th>
+        <th>#</th><th style="padding:0">
+          <select id="inv-col-label-day" onchange="invSetColLabel('day',this.value)"
+            style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:none;background:transparent;cursor:pointer;padding:8px 10px;outline:none;width:100%;color:inherit">
+            <option value="resource">👤 Resource</option>
+            <option value="description">📝 Description</option>
+          </select>
+        </th><th>Type</th>
         <th>Days Worked</th><th id="day-rate-th">Day Rate (AED)</th><th>Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-day"></tbody>
@@ -534,7 +540,13 @@ textarea{resize:vertical;min-height:72px}
         </div>
       </div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th>👤 Resource / 📝 Description</th><th>Type</th>
+        <th>#</th><th style="padding:0">
+          <select id="inv-col-label-hour" onchange="invSetColLabel('hour',this.value)"
+            style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:none;background:transparent;cursor:pointer;padding:8px 10px;outline:none;width:100%;color:inherit">
+            <option value="resource">👤 Resource</option>
+            <option value="description">📝 Description</option>
+          </select>
+        </th><th>Type</th>
         <th>Hours Worked</th><th id="hour-rate-th">Hour Rate (AED)</th><th>Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-hour"></tbody>
@@ -555,7 +567,13 @@ textarea{resize:vertical;min-height:72px}
       </div>
       <div class="info-box mb-16">Fixed monthly rate: if an employee works all days they get the full monthly salary. Partial attendance is prorated automatically.</div>
       <table class="data-table"><thead><tr>
-        <th>#</th><th>👤 Resource / 📝 Description</th><th>Type</th>
+        <th>#</th><th style="padding:0">
+          <select id="inv-col-label-fixed" onchange="invSetColLabel('fixed',this.value)"
+            style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:none;background:transparent;cursor:pointer;padding:8px 10px;outline:none;width:100%;color:inherit">
+            <option value="resource">👤 Resource</option>
+            <option value="description">📝 Description</option>
+          </select>
+        </th><th>Type</th>
         <th>Days Attended</th><th id="fixed-rate-th">Monthly Rate (AED)</th><th>Pro-rated Total</th><th></th>
       </tr></thead>
       <tbody id="inv-tbody-fixed"></tbody>
@@ -2075,12 +2093,12 @@ function renderInvRows(type) {
     const customResources = state.settings.resourceList||[];
     const allOptions = [...new Set([...empNames, ...clientServices, ...customResources])];
     const dlId = `dl-${type}-${i}`;
-    const rowLabel = r.rowLabel||'resource';
+    const colLabel = (window.invColLabels&&window.invColLabels[type]) || 'resource';
     return `<tr>
       <td>${i+1}</td>
       <td>
         <input type="text" value="${r.name||''}" list="${dlId}"
-          placeholder="${rowLabel==='description'?'e.g. IT Consulting Services':'Employee / Resource'}"
+          placeholder="${colLabel==='description'?'e.g. IT Consulting Services':'Employee / Resource'}"
           oninput="invRows.${type}[${i}].name=this.value;renderInvRows('${type}')"
           style="font-size:13px;font-weight:600;width:100%" />
         <datalist id="${dlId}">${allOptions.map(n=>'<option value="'+n+'">').join('')}</datalist>
@@ -2352,7 +2370,7 @@ function buildInvoiceHTML(d, forPDF) {
 
   const tableHeaders = isMilestone
     ? `<th style="width:40px">#</th><th>Milestone</th><th style="width:120px">Status</th><th style="width:160px;text-align:right">Amount (${sym.trim()})</th><th style="width:160px;text-align:right">Total (${sym.trim()})</th>`
-    : `<th style="width:36px">#</th><th>Resource / Description</th><th style="width:90px">Type</th><th style="width:100px;text-align:right">${modeLabel} Worked</th><th style="width:130px;text-align:right">${rateLabel} (${sym.trim()})</th><th style="width:130px;text-align:right">Total (${sym.trim()})</th>`;
+    : `<th style="width:36px">#</th><th>${(window.invColLabels?.day==='description'?'Description':'Resource')}</th><th style="width:90px">Type</th><th style="width:100px;text-align:right">${modeLabel} Worked</th><th style="width:130px;text-align:right">${rateLabel} (${sym.trim()})</th><th style="width:130px;text-align:right">Total (${sym.trim()})</th>`;
 
   const tableRows = rows.map((r,i)=>{
     const bg = i%2===1?`background:#f9fafb`:'';
@@ -3993,6 +4011,19 @@ function addBankAccount() {
 }
 
 // ── Resource / Description List ────────────────────────────
+function invSetColLabel(type, label) {
+  // Store label preference
+  if (!window.invColLabels) window.invColLabels = {};
+  window.invColLabels[type] = label;
+  // Update all rows' placeholders
+  renderInvRows(type);
+  // Restore dropdown selection after re-render
+  setTimeout(()=>{
+    const sel = document.getElementById('inv-col-label-'+type);
+    if (sel) sel.value = label;
+  }, 10);
+}
+
 function invAddToResourceList(nameOrEl, type) {
   const name = typeof nameOrEl === 'string' ? nameOrEl : (nameOrEl.dataset?.name||'');
   const t    = typeof nameOrEl === 'string' ? type : (nameOrEl.dataset?.type||'day');
