@@ -418,9 +418,10 @@ textarea{resize:vertical;min-height:72px}
 <div id="page-invoice-new" class="page">
   <div class="page-header">
     <div class="page-title">New Invoice</div>
-    <div class="page-sub">All fields are editable before generating PDF</div>
+    <div class="page-sub">Fill in details then preview or download PDF</div>
   </div>
-  <!-- Invoice meta -->
+
+  <!-- Invoice Meta -->
   <div class="card mb-16">
     <div class="card-title">Invoice Details</div>
     <div class="form-grid">
@@ -429,12 +430,12 @@ textarea{resize:vertical;min-height:72px}
         <input type="text" id="inv-number" />
       </div>
       <div class="form-group">
-        <label>Invoice Date (DD/MM/YYYY)</label>
-        <input type="text" id="inv-date" placeholder="e.g. 01/05/2026" />
+        <label>Invoice Date</label>
+        <input type="text" id="inv-date" placeholder="DD/MM/YYYY" />
       </div>
       <div class="form-group">
-        <label>Bill From <a onclick="nav('company-settings')" style="color:var(--g500);font-size:10px;cursor:pointer;float:right">Edit in Settings ↗</a></label>
-        <input type="text" id="inv-from" placeholder="Your company name" />
+        <label>Bill From <a onclick="nav('company-settings')" style="color:var(--g500);font-size:10px;cursor:pointer;float:right">Edit ↗</a></label>
+        <input type="text" id="inv-from" />
       </div>
       <div class="form-group">
         <label>Bill To (Client)</label>
@@ -451,43 +452,47 @@ textarea{resize:vertical;min-height:72px}
         <input type="email" id="inv-client-email" />
       </div>
       <div class="form-group">
-        <label>Billing Currency</label>
+        <label>Invoice Currency</label>
         <select id="inv-currency" onchange="onInvCurrencyChange()">
-          <option value="AED">AED – UAE Dirham</option>
-          <option value="USD">USD – US Dollar</option>
-          <option value="GBP">GBP – British Pound</option>
+          <option value="USD">$ USD – US Dollar</option>
+          <option value="GBP">£ GBP – British Pound</option>
+          <option value="AED">Ð AED – UAE Dirham</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Show Equivalent in</label>
+        <label>Convert To (equivalent)</label>
         <select id="inv-conv-to" onchange="onInvConvToChange()">
           <option value="">— None —</option>
+          <option value="AED">Ð AED – UAE Dirham</option>
           <option value="USD">$ USD – US Dollar</option>
-          <option value="AED">AED – UAE Dirham</option>
           <option value="GBP">£ GBP – British Pound</option>
         </select>
       </div>
       <div class="form-group">
         <label>Conversion Rate <span id="inv-conv-rate-hint" style="font-size:10px;color:var(--muted);font-weight:400"></span></label>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;gap:6px">
           <input type="number" id="inv-conv-rate" value="1" step="0.0001" oninput="recalcInvoice()" style="flex:1" />
-          <button onclick="invAutoRate()" title="Auto-fill from reference rates"
-            style="background:var(--g50);border:1.5px solid var(--g200);color:var(--g600);
-              padding:6px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
-            ⟳ Auto
-          </button>
+          <button onclick="invAutoRate()" style="background:var(--g50);border:1.5px solid var(--g200);color:var(--g600);padding:6px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600">⟳ Auto</button>
         </div>
       </div>
       <div class="form-group">
-        <label>VAT % (0 = hidden on invoice)</label>
+        <label>VAT % <span style="font-size:10px;color:var(--muted)">(0 = not shown)</span></label>
         <input type="number" id="inv-vat" value="5" min="0" max="30" step="0.1" oninput="recalcInvoice()" />
       </div>
-      <div class="form-group full">
-        <label>Notes / Service Description</label>
-        <textarea id="inv-notes" placeholder="e.g. Professional services rendered for May 2026…"></textarea>
+      <div class="form-group">
+        <label>Section Header Label <span style="font-size:10px;color:var(--muted)">(e.g. SAP Services:)</span></label>
+        <input type="text" id="inv-section-header" placeholder="e.g. SAP Services:" />
+      </div>
+      <div class="form-group">
+        <label>Purchase Order No. <span style="font-size:10px;color:var(--muted)">(optional)</span></label>
+        <input type="text" id="inv-po-number" placeholder="e.g. PO-7000029891 (leave blank to hide)" />
       </div>
       <div class="form-group full">
-        <label>💳 Payment Account <span style="font-size:10px;color:var(--muted);font-weight:400">(shown on invoice)</span></label>
+        <label>Notes</label>
+        <textarea id="inv-notes" placeholder="e.g. Professional services rendered for May 2026…" rows="2"></textarea>
+      </div>
+      <div class="form-group full">
+        <label>💳 Payment Account</label>
         <select id="inv-bank-select" onchange="recalcInvoice()" style="width:100%">
           <option value="">— Select Payment Account —</option>
         </select>
@@ -495,94 +500,37 @@ textarea{resize:vertical;min-height:72px}
     </div>
   </div>
 
-  <!-- Billing tabs -->
+  <!-- Invoice Type Tabs -->
   <div class="tabs">
-    <div class="tab active" data-tab-group="inv" data-tab="day">📅 Day Rate</div>
+    <div class="tab active" data-tab-group="inv" data-tab="mixed">🔀 Mixed (Day+Hourly)</div>
+    <div class="tab" data-tab-group="inv" data-tab="day">📅 Day Rate</div>
     <div class="tab" data-tab-group="inv" data-tab="hour">⏱ Hourly Rate</div>
-    <div class="tab" data-tab-group="inv" data-tab="mixed">🔀 Mixed (Day+Hourly)</div>
     <div class="tab" data-tab-group="inv" data-tab="fixed">📌 Fixed Monthly</div>
+    <div class="tab" data-tab-group="inv" data-tab="unit">💲 Unit Price</div>
     <div class="tab" data-tab-group="inv" data-tab="milestone">⬡ Milestone</div>
   </div>
 
-  <!-- Day Rate Tab -->
-  <div id="inv-tab-day" class="tab-pane active">
+  <!-- MIXED TAB (Samco Type 1 / NTT Type 2) -->
+  <div id="inv-tab-mixed" class="tab-pane active">
     <div class="card mb-16">
       <div class="flex justify-between items-center mb-16">
-        <div class="card-title" style="margin:0">Day Rate Resources</div>
-        <div class="flex gap-8 items-center">
-          <label style="font-size:12px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0;">Total working days this month:</label>
-          <input type="number" id="day-total" value="22" style="width:70px" oninput="syncDayWorked()" />
-          <button class="btn btn-secondary btn-sm" onclick="addInvRow('day')">+ Add Row</button>
-        </div>
+        <div class="card-title" style="margin:0">Mixed: Offshore Hourly + Onsite Day Rate</div>
+        <button class="btn btn-secondary btn-sm" onclick="addInvRow('mixed')">+ Add Row</button>
       </div>
-      <table class="data-table"><thead><tr>
-        <th>#</th><th style="padding:0">
-          <select id="inv-col-label-day" onchange="invSetColLabel('day',this.value)"
-            style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:none;background:transparent;cursor:pointer;padding:8px 10px;outline:none;width:100%;color:inherit">
-            <option value="resource">👤 Resource</option>
-            <option value="description">📝 Description</option>
-          </select>
-        </th><th>Type</th>
-        <th>Days Worked</th><th id="day-rate-th">Day Rate (AED)</th><th>Total</th><th></th>
-      </tr></thead>
-      <tbody id="inv-tbody-day"></tbody>
-      <tfoot id="inv-tfoot-day"></tfoot></table>
-    </div>
-    <div class="card-grid grid-3 mb-16" id="day-ref-rates" style="display:none">
-      <div class="info-box">💡 Common rates: GBP→USD ≈ 1.33 · USD→AED ≈ 3.67 · GBP→AED ≈ 4.88</div>
-    </div>
-  </div>
-
-  <!-- Hourly Tab -->
-  <div id="inv-tab-hour" class="tab-pane">
-    <div class="card mb-16">
-      <div class="flex justify-between items-center mb-16">
-        <div class="card-title" style="margin:0">Hourly Rate Resources</div>
-        <div class="flex gap-8 items-center">
-          <label style="font-size:12px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0;">Total hours this month:</label>
-          <input type="number" id="hour-total" value="176" style="width:80px" oninput="syncHourWorked()" />
-          <button class="btn btn-secondary btn-sm" onclick="addInvRow('hour')">+ Add Row</button>
-        </div>
-      </div>
-      <table class="data-table"><thead><tr>
-        <th>#</th><th style="padding:0">
-          <select id="inv-col-label-hour" onchange="invSetColLabel('hour',this.value)"
-            style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:none;background:transparent;cursor:pointer;padding:8px 10px;outline:none;width:100%;color:inherit">
-            <option value="resource">👤 Resource</option>
-            <option value="description">📝 Description</option>
-          </select>
-        </th><th>Type</th>
-        <th>Hours Worked</th><th id="hour-rate-th">Hour Rate (AED)</th><th>Total</th><th></th>
-      </tr></thead>
-      <tbody id="inv-tbody-hour"></tbody>
-      <tfoot id="inv-tfoot-hour"></tfoot></table>
-    </div>
-  </div>
-
-  <!-- Mixed (Day + Hourly) Tab -->
-  <div id="inv-tab-mixed" class="tab-pane">
-    <div class="card mb-16">
-      <div class="flex justify-between items-center mb-16">
-        <div class="card-title" style="margin:0">🔀 Mixed Day + Hourly Invoice</div>
-        <div style="font-size:12px;color:var(--muted)">Each row can be day rate or hourly. VAT calculated per row.</div>
-        <button class="btn btn-secondary btn-sm" onclick="addMixedRow()">+ Add Row</button>
-      </div>
-      <div class="info-box mb-12" style="font-size:12px">
-        💡 Enter <strong>Days Worked</strong> for day-rate resources, <strong>Hours Worked</strong> for hourly resources — or both. VAT is calculated per row automatically.
-      </div>
+      <div class="info-box mb-12" style="font-size:12px">Enter <strong>Days Worked</strong> for Onsite day-rate rows, <strong>Hours Worked</strong> for Offshore hourly rows. Leave unused field blank. VAT is calculated per row.</div>
       <div style="overflow-x:auto">
-        <table class="data-table" id="inv-mixed-table">
+        <table class="data-table">
           <thead><tr>
-            <th style="width:36px">Sr.No</th>
+            <th style="width:40px">Sr.No</th>
             <th>Description</th>
-            <th style="width:110px">Offshore/Onsite</th>
-            <th style="width:90px;text-align:right">Days Worked</th>
-            <th style="width:90px;text-align:right">Hours Worked</th>
-            <th style="width:70px;text-align:right">VAT %</th>
-            <th style="width:100px;text-align:right">VAT Amount</th>
-            <th style="width:110px;text-align:right">Rate</th>
-            <th style="width:110px;text-align:right">Total</th>
-            <th style="width:36px"></th>
+            <th style="width:100px">Offshore/Onsite</th>
+            <th style="width:85px;text-align:right">Days Worked</th>
+            <th style="width:85px;text-align:right">Hours Worked</th>
+            <th style="width:60px;text-align:right">VAT%</th>
+            <th style="width:95px;text-align:right">VAT Amount</th>
+            <th style="width:100px;text-align:right">Rates</th>
+            <th style="width:100px;text-align:right">Total</th>
+            <th style="width:32px"></th>
           </tr></thead>
           <tbody id="inv-tbody-mixed"></tbody>
           <tfoot id="inv-tfoot-mixed"></tfoot>
@@ -591,73 +539,149 @@ textarea{resize:vertical;min-height:72px}
     </div>
   </div>
 
-  <!-- Fixed Monthly Tab -->
+  <!-- DAY RATE TAB (Samco Type 3 / RSUK) -->
+  <div id="inv-tab-day" class="tab-pane">
+    <div class="card mb-16">
+      <div class="flex justify-between items-center mb-16">
+        <div class="card-title" style="margin:0">Day Rate Resources</div>
+        <button class="btn btn-secondary btn-sm" onclick="addInvRow('day')">+ Add Row</button>
+      </div>
+      <table class="data-table">
+        <thead><tr>
+          <th style="width:40px">Sr.No</th>
+          <th id="th-day-name">Name of the Resource</th>
+          <th style="width:100px">Offshore/Onsite</th>
+          <th style="width:90px;text-align:right">Days Worked</th>
+          <th style="width:60px;text-align:right">VAT%</th>
+          <th style="width:95px;text-align:right">VAT Amount</th>
+          <th style="width:110px;text-align:right" id="day-rate-th">Day Rates</th>
+          <th style="width:100px;text-align:right">Total</th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="inv-tbody-day"></tbody>
+        <tfoot id="inv-tfoot-day"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- HOURLY TAB (Samco Type 2 / NTT Type 2) -->
+  <div id="inv-tab-hour" class="tab-pane">
+    <div class="card mb-16">
+      <div class="flex justify-between items-center mb-16">
+        <div class="card-title" style="margin:0">Hourly Rate Resources</div>
+        <div class="flex gap-8 items-center">
+          <label style="font-size:12px;color:var(--muted)">Total contracted hours:</label>
+          <input type="number" id="hour-total" value="176" style="width:80px" />
+          <button class="btn btn-secondary btn-sm" onclick="addInvRow('hour')">+ Add Row</button>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead><tr>
+          <th style="width:40px">Sr.No</th>
+          <th>Description</th>
+          <th style="width:100px">Offshore/Onsite</th>
+          <th style="width:90px;text-align:right">Total Hours</th>
+          <th style="width:90px;text-align:right">Hours Worked</th>
+          <th style="width:60px;text-align:right">VAT%</th>
+          <th style="width:95px;text-align:right">VAT Amount</th>
+          <th style="width:100px;text-align:right">Hourly Rate</th>
+          <th style="width:100px;text-align:right">Total</th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="inv-tbody-hour"></tbody>
+        <tfoot id="inv-tfoot-hour"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- FIXED MONTHLY TAB (NTT Type 1) -->
   <div id="inv-tab-fixed" class="tab-pane">
     <div class="card mb-16">
       <div class="flex justify-between items-center mb-16">
-        <div class="card-title" style="margin:0">Fixed Monthly Resources</div>
+        <div class="card-title" style="margin:0">Fixed Monthly Rate (Prorated)</div>
         <div class="flex gap-8 items-center">
-          <label style="font-size:12px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0;">Working days in month:</label>
+          <label style="font-size:12px;color:var(--muted)">Total working days:</label>
           <input type="number" id="fixed-total-days" value="22" style="width:70px" oninput="recalcInvoice()" />
           <button class="btn btn-secondary btn-sm" onclick="addInvRow('fixed')">+ Add Row</button>
         </div>
       </div>
-      <div class="info-box mb-16">Fixed monthly rate: if an employee works all days they get the full monthly salary. Partial attendance is prorated automatically.</div>
-      <table class="data-table"><thead><tr>
-        <th>#</th><th style="padding:0">
-          <select id="inv-col-label-fixed" onchange="invSetColLabel('fixed',this.value)"
-            style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:none;background:transparent;cursor:pointer;padding:8px 10px;outline:none;width:100%;color:inherit">
-            <option value="resource">👤 Resource</option>
-            <option value="description">📝 Description</option>
-          </select>
-        </th><th>Type</th>
-        <th>Days Attended</th><th id="fixed-rate-th">Monthly Rate (AED)</th><th>Pro-rated Total</th><th></th>
-      </tr></thead>
-      <tbody id="inv-tbody-fixed"></tbody>
-      <tfoot id="inv-tfoot-fixed"></tfoot></table>
+      <div class="info-box mb-12" style="font-size:12px">Total = Monthly Rate × (Days Worked ÷ Total Days). Partial attendance is prorated automatically.</div>
+      <table class="data-table">
+        <thead><tr>
+          <th style="width:40px">Sr.No</th>
+          <th>Name of Resource</th>
+          <th style="width:100px">Offshore/Onsite</th>
+          <th style="width:90px;text-align:right">Total Days</th>
+          <th style="width:90px;text-align:right">Days Worked</th>
+          <th style="width:60px;text-align:right">VAT%</th>
+          <th style="width:95px;text-align:right">VAT Amount</th>
+          <th style="width:110px;text-align:right">Monthly Rate</th>
+          <th style="width:100px;text-align:right">Total</th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="inv-tbody-fixed"></tbody>
+        <tfoot id="inv-tfoot-fixed"></tfoot>
+      </table>
     </div>
   </div>
 
-  <!-- Description datalist for autocomplete suggestions -->
-  <datalist id="inv-desc-list">
-    <option value="Software Development Services">
-    <option value="IT Consulting Services">
-    <option value="Project Management">
-    <option value="Technical Support">
-    <option value="Business Analysis">
-    <option value="System Integration">
-    <option value="Data Analysis">
-    <option value="Network Engineering">
-    <option value="Cloud Infrastructure">
-    <option value="DevOps Services">
-    <option value="UI/UX Design">
-    <option value="Quality Assurance">
-    <option value="Managed Services">
-    <option value="Professional Services">
-  </datalist>
+  <!-- UNIT PRICE TAB (Sharaf DG) -->
+  <div id="inv-tab-unit" class="tab-pane">
+    <div class="card mb-16">
+      <div class="flex justify-between items-center mb-16">
+        <div class="card-title" style="margin:0">Unit Price</div>
+        <button class="btn btn-secondary btn-sm" onclick="addInvRow('unit')">+ Add Row</button>
+      </div>
+      <table class="data-table">
+        <thead><tr>
+          <th style="width:40px">Sr.No</th>
+          <th>Description</th>
+          <th style="width:120px;text-align:right">Unit Price</th>
+          <th style="width:60px;text-align:right">VAT%</th>
+          <th style="width:100px;text-align:right">VAT Amount</th>
+          <th style="width:110px;text-align:right">Total</th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="inv-tbody-unit"></tbody>
+        <tfoot id="inv-tfoot-unit"></tfoot>
+      </table>
+    </div>
+  </div>
 
-  <!-- Milestone Tab -->
+  <!-- MILESTONE TAB -->
   <div id="inv-tab-milestone" class="tab-pane">
     <div class="card mb-16">
       <div class="flex justify-between items-center mb-16">
-        <div class="card-title" style="margin:0">Milestones</div>
-        <button class="btn btn-secondary btn-sm" onclick="addInvRow('milestone')">+ Add Milestone</button>
+        <div class="card-title" style="margin:0">Milestone Payment</div>
+        <div class="flex gap-8 items-center">
+          <select id="inv-milestone-type" style="font-size:12px" onchange="renderInvRows('milestone')">
+            <option value="detailed">Type 1 — Detailed (Topic/Description/Man Days)</option>
+            <option value="project">Type 2 — Project % (Client/Scope/Project Cost)</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="addInvRow('milestone')">+ Add Row</button>
+        </div>
       </div>
-      <table class="data-table"><thead><tr>
-        <th>#</th><th>Milestone Description</th><th>Status</th><th>Amount</th><th>Total</th><th></th>
-      </tr></thead>
-      <tbody id="inv-tbody-milestone"></tbody>
-      <tfoot id="inv-tfoot-milestone"></tfoot></table>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="inv-milestone-table">
+          <thead id="inv-milestone-thead"></thead>
+          <tbody id="inv-tbody-milestone"></tbody>
+          <tfoot id="inv-tfoot-milestone"></tfoot>
+        </table>
+      </div>
     </div>
   </div>
 
-  <!-- Totals + actions -->
-  <div class="card mb-16" id="inv-totals-card">
-    <div class="card-title">Invoice Summary</div>
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
-      <div id="inv-summary-left">
-        <div class="text-muted">Select billing type above and add resources.</div>
-      </div>
+  <!-- Description datalist -->
+  <datalist id="inv-desc-list">
+    <option value="SAP Consulting"><option value="SAP Services"><option value="IT Consulting Services">
+    <option value="Software Development"><option value="Project Management"><option value="Technical Support">
+    <option value="Business Analysis"><option value="System Integration"><option value="Managed Services">
+  </datalist>
+
+  <!-- Totals -->
+  <div class="card mb-16">
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start">
+      <div id="inv-summary-left"><div class="text-muted" style="font-size:12px">Select a billing type and add rows above.</div></div>
       <div>
         <div id="inv-totals-box"></div>
         <div id="inv-converted-box" style="margin-top:10px"></div>
@@ -665,15 +689,13 @@ textarea{resize:vertical;min-height:72px}
     </div>
   </div>
 
-  <!-- Action buttons -->
+  <!-- Actions -->
   <div class="actions-row">
     <button class="btn btn-primary" onclick="generateInvoicePreview()">👁 Preview Invoice</button>
     <button class="btn btn-secondary" onclick="downloadInvoicePDF()">⬇ Download PDF</button>
-    <button class="btn btn-secondary" onclick="openSendModal()">✉ Email to Client</button>
     <button class="btn btn-ghost" onclick="saveInvoiceDraft()">💾 Save Draft</button>
   </div>
 
-  <!-- Preview -->
   <div id="invoice-preview-wrap" style="display:none;margin-top:24px"></div>
 </div>
 
@@ -2014,86 +2036,80 @@ function initNewInvoice() {
 function onInvClientChange() {
   const idx = document.getElementById('inv-client').value;
   if (idx==='') return;
-  const c = state.clients[idx];
+  const c = state.clients[parseInt(idx)];
+  if (!c) return;
   document.getElementById('inv-client-addr').value = c.address||'';
   document.getElementById('inv-client-email').value = c.email||'';
-  document.getElementById('inv-currency').value = c.currency||'AED';
-  document.getElementById('inv-vat').value = c.vat!==undefined ? c.vat : (state.settings.company.defaultVat||5);
-  // ── Auto-fill equivalent currency from client setting ──
-  const convToEl = document.getElementById('inv-conv-to');
-  if (convToEl && c.convCurrency) convToEl.value = c.convCurrency;
-  else if (convToEl) convToEl.value = '';
+  document.getElementById('inv-vat').value = c.vat!==undefined ? c.vat : 5;
+  // Section header from client
+  if (c.sectionHeader) document.getElementById('inv-section-header').value = c.sectionHeader;
+  // Currency
+  const curEl = document.getElementById('inv-currency');
+  if (c.currency) curEl.value = c.currency;
+  // Conversion
+  const convEl = document.getElementById('inv-conv-to');
+  if (c.convCurrency) convEl.value = c.convCurrency;
   invAutoRate();
   updateInvCurLabels();
-  // Load employees into rows
-  const emps = c.employees||[];
-  invRows.day = emps.filter(e=>e.rateType==='day'||e.rateType==='all').map((e,i)=>({id:uid(),name:e.name,type:e.type||'Offshore',worked:22,rate:e.dayRate||c.dayRate||0}));
-  invRows.hour = emps.filter(e=>e.rateType==='hour'||e.rateType==='all').map((e,i)=>({id:uid(),name:e.name,type:e.type||'Offshore',worked:176,rate:e.hourRate||c.hourRate||0}));
-  invRows.fixed = emps.filter(e=>e.rateType==='fixed'||e.rateType==='all').map((e,i)=>({id:uid(),name:e.name,type:e.type||'Offshore',worked:22,rate:e.fixedRate||c.fixedRate||0}));
-  if (!invRows.day.length) invRows.day.push({id:uid(),name:'',type:'Offshore',worked:22,rate:c.dayRate||0});
-  if (!invRows.hour.length) invRows.hour.push({id:uid(),name:'',type:'Offshore',worked:176,rate:c.hourRate||0});
-  if (!invRows.fixed.length) invRows.fixed.push({id:uid(),name:'',type:'Offshore',worked:22,rate:c.fixedRate||0});
-  renderInvRows('day'); renderInvRows('hour'); renderInvRows('fixed');
   recalcInvoice();
 }
 
 function onInvCurrencyChange() { updateInvCurLabels(); invAutoRate(); recalcInvoice(); }
+function onInvConvToChange()   { invAutoRate(); recalcInvoice(); }
 
-function onInvConvToChange() { invAutoRate(); recalcInvoice(); }
-
-// Auto-fill conversion rate from reference rates (Tools page values)
 function invAutoRate() {
   const cur    = document.getElementById('inv-currency')?.value||'AED';
   const convTo = document.getElementById('inv-conv-to')?.value||'';
   const rateEl = document.getElementById('inv-conv-rate');
   const hintEl = document.getElementById('inv-conv-rate-hint');
-
-  if (!convTo || convTo === cur) {
-    if (rateEl) rateEl.value = '1';
-    if (hintEl) hintEl.textContent = '';
-    return;
-  }
-
-  // Reference rates from the Tools page (user-editable)
-  const refRates = {
+  if (!convTo || convTo===cur) { if(rateEl) rateEl.value='1'; if(hintEl) hintEl.textContent=''; return; }
+  const refs = {
     'GBP-USD': parseFloat(document.getElementById('ref-gbp-usd')?.value)||1.3295,
     'USD-AED': parseFloat(document.getElementById('ref-usd-aed')?.value)||3.6725,
     'GBP-AED': parseFloat(document.getElementById('ref-gbp-aed')?.value)||4.8812,
-    'AED-USD': parseFloat(document.getElementById('ref-aed-usd')?.value)||0.2723,
   };
-  // Derived rates
-  refRates['USD-GBP'] = 1 / refRates['GBP-USD'];
-  refRates['AED-GBP'] = 1 / refRates['GBP-AED'];
-  refRates['AED-AED'] = 1; refRates['USD-USD'] = 1; refRates['GBP-GBP'] = 1;
-
-  const key  = `${cur}-${convTo}`;
-  const rate = refRates[key];
-
+  refs['USD-GBP']=1/refs['GBP-USD']; refs['AED-USD']=1/refs['USD-AED'];
+  refs['AED-GBP']=1/refs['GBP-AED']; refs['AED-AED']=1; refs['USD-USD']=1; refs['GBP-GBP']=1;
+  const rate = refs[cur+'-'+convTo];
   if (rate && rateEl) {
     rateEl.value = rate.toFixed(4);
-    const sym1 = cur==='GBP'?'£':cur==='USD'?'$':'AED';
-    const sym2 = convTo==='GBP'?'£':convTo==='USD'?'$':'AED';
-    if (hintEl) hintEl.textContent = `1 ${sym1} = ${rate.toFixed(4)} ${sym2}`;
-  } else {
-    if (hintEl) hintEl.textContent = 'Enter rate manually';
+    const s1=cur==='GBP'?'£':cur==='USD'?'$':'Ð', s2=convTo==='GBP'?'£':convTo==='USD'?'$':'Ð';
+    if (hintEl) hintEl.textContent = `1 ${s1} = ${rate.toFixed(4)} ${s2}`;
   }
 }
 
 function updateInvCurLabels() {
-  const cur = document.getElementById('inv-currency').value;
-  document.getElementById('day-rate-th').textContent = `Day Rate (${cur})`;
-  document.getElementById('hour-rate-th').textContent = `Hour Rate (${cur})`;
-  document.getElementById('fixed-rate-th').textContent = `Monthly Rate (${cur})`;
+  const cur = document.getElementById('inv-currency')?.value||'AED';
+  const sym = cur==='GBP'?'£':cur==='USD'?'$':'Ð';
+  ['day-rate-th'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=`Day Rates in ${sym}`; });
 }
 
-// ── Invoice Rows ──
+// ── Currency symbol helper ──
+function invSym(cur) { return cur==='GBP'?'£':cur==='USD'?'$':'Ð'; }
+
+// ── Row storage ──
+let invRows = { mixed:[], day:[], hour:[], fixed:[], unit:[], milestone:[] };
+
 function addInvRow(type) {
-  const defaults = { day:{name:'',type:'Offshore',worked:22,rate:0}, hour:{name:'',type:'Offshore',worked:176,rate:0}, fixed:{name:'',type:'Offshore',worked:22,rate:0}, milestone:{name:'',status:'Pending',rate:0} };
-  invRows[type] = invRows[type]||[];
-  invRows[type].push({id:uid(), ...defaults[type]});
+  const cur = document.getElementById('inv-currency')?.value||'AED';
+  const vatPct = parseFloat(document.getElementById('inv-vat')?.value)||0;
+  const clientIdx = document.getElementById('inv-client')?.value||'';
+  const c = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
+  const r = { id: uid() };
+  if (type==='mixed')     { r.desc=''; r.locType='Offshore'; r.days=''; r.hours=''; r.vatPct=vatPct; r.rate=c?.hourRate||c?.dayRate||0; }
+  else if (type==='day')  { r.name=''; r.locType='Offshore'; r.days=''; r.vatPct=vatPct; r.rate=c?.dayRate||0; }
+  else if (type==='hour') { r.name=''; r.locType='Offshore'; r.totalHours=176; r.hours=''; r.vatPct=vatPct; r.rate=c?.hourRate||0; }
+  else if (type==='fixed'){ r.name=''; r.locType='Offshore'; r.totalDays=22; r.days=''; r.vatPct=vatPct; r.rate=c?.fixedRate||0; }
+  else if (type==='unit') { r.desc=''; r.vatPct=vatPct; r.unitPrice=0; }
+  else if (type==='milestone') {
+    const mtype = document.getElementById('inv-milestone-type')?.value||'detailed';
+    if (mtype==='detailed') r = { id:uid(), topic:'', desc:'', countries:'', details:'', manDays:'', amount:0 };
+    else                    r = { id:uid(), clientName:'', scope:'', projectCost:0, milestone:'', pct:0 };
+  }
+  invRows[type].push(r);
   renderInvRows(type);
-  recalcInvoice();
 }
+
 function removeInvRow(type, id) {
   invRows[type] = invRows[type].filter(r=>r.id!==id);
   renderInvRows(type);
@@ -2102,504 +2118,556 @@ function removeInvRow(type, id) {
 
 function renderInvRows(type) {
   const tbody = document.getElementById('inv-tbody-'+type);
-  const cur = document.getElementById('inv-currency')?.value||'AED';
-  const rows = invRows[type]||[];
   if (!tbody) return;
-  if (!rows.length) { tbody.innerHTML=`<tr><td colspan="7" class="text-muted" style="text-align:center;padding:20px">No rows — click Add Row</td></tr>`; return; }
+  const cur = document.getElementById('inv-currency')?.value||'AED';
+  const sym = invSym(cur);
+  const fixedDays = parseInt(document.getElementById('fixed-total-days')?.value||22)||22;
+  const clientIdx = document.getElementById('inv-client')?.value||'';
+  const c = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
+  const empNames = (c?.employees||[]).map(e=>e.name);
+  const svcNames = c?.services||[];
+  const resList  = state.settings?.resourceList||[];
+  const allOpts  = [...new Set([...empNames,...svcNames,...resList])];
+  const dlId     = 'dl-inv-names';
+
+  const rows = invRows[type]||[];
+
   tbody.innerHTML = rows.map((r,i) => {
-    if (type==='milestone') {
-      return `<tr>
-        <td>${i+1}</td>
-        <td><input type="text" value="${r.name}" oninput="invRows.milestone[${i}].name=this.value" placeholder="Milestone desc" /></td>
-        <td><select onchange="invRows.milestone[${i}].status=this.value">
-          <option ${r.status==='Pending'?'selected':''}>Pending</option>
-          <option ${r.status==='Delivered'?'selected':''}>Delivered</option>
-          <option ${r.status==='Paid'?'selected':''}>Paid</option>
-        </select></td>
-        <td><input type="number" value="${r.rate}" oninput="invRows.milestone[${i}].rate=parseFloat(this.value)||0;recalcInvoice()" class="mono" /></td>
-        <td class="mono row-total" id="rt-milestone-${r.id}">${fmtCur(r.rate,cur)}</td>
-        <td><button class="btn btn-danger btn-xs" onclick="removeInvRow('milestone','${r.id}')">✕</button></td>
-      </tr>`;
+    const bg = i%2===1 ? 'background:#f9fafb':'';
+    const inp = (cls,val,ph,extra='') =>
+      `<input type="text" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}"
+        oninput="invRows.${type}[${i}].${cls}=this.value;recalcInvoice()" ${extra}
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;outline:none"
+        onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />`;
+    const num = (cls,val,ph) =>
+      `<input type="number" value="${val||''}" placeholder="${ph}"
+        oninput="invRows.${type}[${i}].${cls}=parseFloat(this.value)||0;recalcInvoice()"
+        style="width:100%;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:var(--font-mono);outline:none"
+        onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />`;
+    const locSel = (val) =>
+      `<select oninput="invRows.${type}[${i}].locType=this.value"
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;outline:none">
+        <option ${(val||'Offshore')==='Offshore'?'selected':''}>Offshore</option>
+        <option ${val==='Onsite'?'selected':''}>Onsite</option>
+      </select>`;
+    const rm = `<button class="btn btn-danger btn-xs" onclick="removeInvRow('${type}','${r.id}')">✕</button>`;
+
+    if (type==='mixed') {
+      const days=parseFloat(r.days)||0, hrs=parseFloat(r.hours)||0, rate=parseFloat(r.rate)||0, vp=parseFloat(r.vatPct)||0;
+      const sub=days>0?days*rate:hrs*rate, vat=sub*vp/100, total=sub+vat;
+      return `<tr style="${bg}">
+        <td style="text-align:center;color:var(--muted)">${i+1}</td>
+        <td>${inp('desc',r.desc,'SAP Consulting','list="'+dlId+'"')}</td>
+        <td>${locSel(r.locType)}</td>
+        <td>${num('days',r.days,'0')}</td>
+        <td>${num('hours',r.hours,'0')}</td>
+        <td>${num('vatPct',r.vatPct,'5')}</td>
+        <td class="mono" style="text-align:right;color:#d97706;font-size:12px">${sym}${fmt(vat)}</td>
+        <td>${num('rate',r.rate,'0')}</td>
+        <td class="mono" style="text-align:right;font-weight:700;font-size:12px">${sym}${fmt(total)}</td>
+        <td>${rm}</td></tr>`;
+    }
+    if (type==='day') {
+      const days=parseFloat(r.days)||0, rate=parseFloat(r.rate)||0, vp=parseFloat(r.vatPct)||0;
+      const sub=days*rate, vat=sub*vp/100, total=sub+vat;
+      return `<tr style="${bg}">
+        <td style="text-align:center;color:var(--muted)">${i+1}</td>
+        <td>${inp('name',r.name,'Resource name','list="'+dlId+'"')}</td>
+        <td>${locSel(r.locType)}</td>
+        <td>${num('days',r.days,'0')}</td>
+        <td>${num('vatPct',r.vatPct,'0')}</td>
+        <td class="mono" style="text-align:right;color:#d97706;font-size:12px">${sym}${fmt(vat)}</td>
+        <td>${num('rate',r.rate,'0')}</td>
+        <td class="mono" style="text-align:right;font-weight:700;font-size:12px">${sym}${fmt(total)}</td>
+        <td>${rm}</td></tr>`;
+    }
+    if (type==='hour') {
+      const hrs=parseFloat(r.hours)||0, rate=parseFloat(r.rate)||0, vp=parseFloat(r.vatPct)||0, th=parseFloat(r.totalHours)||176;
+      const sub=hrs*rate, vat=sub*vp/100, total=sub+vat;
+      return `<tr style="${bg}">
+        <td style="text-align:center;color:var(--muted)">${i+1}</td>
+        <td>${inp('name',r.name,'SAP Consulting','list="'+dlId+'"')}</td>
+        <td>${locSel(r.locType)}</td>
+        <td>${num('totalHours',r.totalHours,'176')}</td>
+        <td>${num('hours',r.hours,'0')}</td>
+        <td>${num('vatPct',r.vatPct,'5')}</td>
+        <td class="mono" style="text-align:right;color:#d97706;font-size:12px">${sym}${fmt(vat)}</td>
+        <td>${num('rate',r.rate,'0')}</td>
+        <td class="mono" style="text-align:right;font-weight:700;font-size:12px">${sym}${fmt(total)}</td>
+        <td>${rm}</td></tr>`;
     }
     if (type==='fixed') {
-      const totalDays = parseInt(document.getElementById('fixed-total-days')?.value||22);
-      const prorated = totalDays>0 ? (r.rate * r.worked / totalDays) : 0;
-      return `<tr>
-        <td>${i+1}</td>
-        <td><input type="text" value="${r.name}" oninput="invRows.fixed[${i}].name=this.value" placeholder="Resource / Description" /></td>
-        <td><select onchange="invRows.fixed[${i}].type=this.value"><option ${r.type==='Offshore'?'selected':''}>Offshore</option><option ${r.type==='Onsite'?'selected':''}>Onsite</option></select></td>
-        <td><input type="number" value="${r.worked}" oninput="invRows.fixed[${i}].worked=parseFloat(this.value)||0;recalcInvoice()" /></td>
-        <td><input type="number" value="${r.rate}" oninput="invRows.fixed[${i}].rate=parseFloat(this.value)||0;recalcInvoice()" class="mono" /></td>
-        <td class="mono row-total" id="rt-fixed-${r.id}">${fmtCur(prorated,cur)}</td>
-        <td><button class="btn btn-danger btn-xs" onclick="removeInvRow('fixed','${r.id}')">✕</button></td>
-      </tr>`;
+      const td=parseFloat(r.totalDays)||fixedDays, dw=parseFloat(r.days)||0, rate=parseFloat(r.rate)||0, vp=parseFloat(r.vatPct)||0;
+      const sub=td>0?rate*dw/td:0, vat=sub*vp/100, total=sub+vat;
+      return `<tr style="${bg}">
+        <td style="text-align:center;color:var(--muted)">${i+1}</td>
+        <td>${inp('name',r.name,'Resource name','list="'+dlId+'"')}</td>
+        <td>${locSel(r.locType)}</td>
+        <td>${num('totalDays',r.totalDays,'22')}</td>
+        <td>${num('days',r.days,'0')}</td>
+        <td>${num('vatPct',r.vatPct,'5')}</td>
+        <td class="mono" style="text-align:right;color:#d97706;font-size:12px">${sym}${fmt(vat)}</td>
+        <td>${num('rate',r.rate,'0')}</td>
+        <td class="mono" style="text-align:right;font-weight:700;font-size:12px">${sym}${fmt(total)}</td>
+        <td>${rm}</td></tr>`;
     }
-    const total = (r.worked||0)*(r.rate||0);
-    const clientIdx = document.getElementById('inv-client')?.value||'';
-    const clientObj = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
-    const empNames = (clientObj?.employees||[]).map(e=>e.name);
-    const clientServices = clientObj?.services||[];
-    const customResources = state.settings.resourceList||[];
-    const allOptions = [...new Set([...empNames, ...clientServices, ...customResources])];
-    const dlId = `dl-${type}-${i}`;
-    const colLabel = (window.invColLabels&&window.invColLabels[type]) || 'resource';
-    return `<tr>
-      <td>${i+1}</td>
-      <td>
-        <input type="text" value="${r.name||''}" list="${dlId}"
-          placeholder="${colLabel==='description'?'e.g. IT Consulting Services':'Employee / Resource'}"
-          oninput="invRows.${type}[${i}].name=this.value;renderInvRows('${type}')"
-          style="font-size:13px;font-weight:600;width:100%" />
-        <datalist id="${dlId}">${allOptions.map(n=>'<option value="'+n+'">').join('')}</datalist>
-        ${r.name&&!allOptions.includes(r.name.trim())?'<span onclick="invAddToResourceList(this)" data-name="'+r.name+'" data-type="'+type+'" style="font-size:9px;color:var(--g500);cursor:pointer;text-decoration:underline;display:block;margin-top:1px">+ Save to list</span>':''}
-      </td>
-      <td><select onchange="invRows.${type}[${i}].type=this.value"><option ${r.type==='Offshore'?'selected':''}>Offshore</option><option ${r.type==='Onsite'?'selected':''}>Onsite</option></select></td>
-      <td><input type="number" value="${r.worked}" oninput="invRows.${type}[${i}].worked=parseFloat(this.value)||0;recalcInvoice()" /></td>
-      <td><input type="number" value="${r.rate}" oninput="invRows.${type}[${i}].rate=parseFloat(this.value)||0;recalcInvoice()" class="mono" /></td>
-      <td class="mono row-total" id="rt-${type}-${r.id}">${fmtCur(total,cur)}</td>
-      <td><button class="btn btn-danger btn-xs" onclick="removeInvRow('${type}','${r.id}')">✕</button></td>
-    </tr>`;
+    if (type==='unit') {
+      const price=parseFloat(r.unitPrice)||0, vp=parseFloat(r.vatPct)||0;
+      const vat=price*vp/100, total=price+vat;
+      return `<tr style="${bg}">
+        <td style="text-align:center;color:var(--muted)">${i+1}</td>
+        <td>${inp('desc',r.desc,'SAP Consulting','list="'+dlId+'"')}</td>
+        <td>${num('unitPrice',r.unitPrice,'0')}</td>
+        <td>${num('vatPct',r.vatPct,'5')}</td>
+        <td class="mono" style="text-align:right;color:#d97706;font-size:12px">${sym}${fmt(vat)}</td>
+        <td class="mono" style="text-align:right;font-weight:700;font-size:12px">${sym}${fmt(total)}</td>
+        <td>${rm}</td></tr>`;
+    }
+    if (type==='milestone') {
+      const mtype = document.getElementById('inv-milestone-type')?.value||'detailed';
+      if (mtype==='detailed') {
+        const amt=parseFloat(r.amount)||0;
+        return `<tr style="${bg}">
+          <td style="text-align:center;color:var(--muted)">${i+1}</td>
+          <td>${inp('topic',r.topic,'Air Fare Calculation')}</td>
+          <td>${inp('desc',r.desc,'In Separation Action')}</td>
+          <td>${inp('countries',r.countries,'UAE, QAT')}</td>
+          <td><textarea oninput="invRows.milestone[${i}].details=this.value" rows="2"
+            style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:11px;outline:none;resize:vertical"
+            onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">${r.details||''}</textarea></td>
+          <td>${num('manDays',r.manDays,'0')}</td>
+          <td class="mono" style="text-align:right;font-weight:700">${sym}${fmt(amt)}</td>
+          <td><input type="number" value="${r.amount||0}" oninput="invRows.milestone[${i}].amount=parseFloat(this.value)||0;recalcInvoice()"
+            style="width:80px;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:var(--font-mono);outline:none" /></td>
+          <td>${rm}</td></tr>`;
+      } else {
+        const pc=parseFloat(r.projectCost)||0, pct=parseFloat(r.pct)||0, total=pc*pct/100;
+        return `<tr style="${bg}">
+          <td style="text-align:center;color:var(--muted)">${i+1}</td>
+          <td>${inp('clientName',r.clientName,'RAK Economic Zone (RAKEZ)')}</td>
+          <td>${inp('scope',r.scope,'SAP SF Support')}</td>
+          <td>${num('projectCost',r.projectCost,'0')}</td>
+          <td>${inp('milestone',r.milestone,'Closure of Module wise support (5 of 5)')}</td>
+          <td>${num('pct',r.pct,'20')}</td>
+          <td class="mono" style="text-align:right;font-weight:700;font-size:12px">${sym}${fmt(total)}</td>
+          <td>${rm}</td></tr>`;
+      }
+    }
+    return '';
   }).join('');
-  renderInvTfoot(type);
+
+  // Update milestone headers dynamically
+  if (type==='milestone') renderMilestoneHeader(sym);
+  renderInvTfoot(type, sym, fixedDays);
 }
 
-function syncDayWorked() {
-  const v = parseInt(document.getElementById('day-total').value)||22;
-  invRows.day.forEach(r=>r.worked=v);
-  renderInvRows('day'); recalcInvoice();
-}
-function syncHourWorked() {
-  const v = parseInt(document.getElementById('hour-total').value)||176;
-  invRows.hour.forEach(r=>r.worked=v);
-  renderInvRows('hour'); recalcInvoice();
+function renderMilestoneHeader(sym) {
+  const thead = document.getElementById('inv-milestone-thead');
+  if (!thead) return;
+  const mtype = document.getElementById('inv-milestone-type')?.value||'detailed';
+  if (mtype==='detailed') {
+    thead.innerHTML = `<tr><th style="width:40px">Sr.No</th><th>Topic</th><th>Description</th><th style="width:100px">Countries Covered</th><th>Details</th><th style="width:80px;text-align:right">Effort Man Days</th><th style="width:100px;text-align:right">Billing Amount (${sym})</th><th style="width:80px;text-align:right">Amount</th><th style="width:32px"></th></tr>`;
+  } else {
+    thead.innerHTML = `<tr><th style="width:40px">Sr.No</th><th>Client Name</th><th>Scope of Work</th><th style="width:100px;text-align:right">Project Cost</th><th>Billing Milestone</th><th style="width:80px;text-align:right">% on Project</th><th style="width:100px;text-align:right">Total (${sym})</th><th style="width:32px"></th></tr>`;
+  }
 }
 
-// ── Recalculate ──
-function getActiveTab() {
-  const active = document.querySelector('[data-tab-group="inv"].active');
-  return active ? active.dataset.tab : 'day';
+function renderInvTfoot(type, sym, fixedDays) {
+  const tfoot = document.getElementById('inv-tfoot-'+type);
+  if (!tfoot) return;
+  const cur = sym || invSym(document.getElementById('inv-currency')?.value||'AED');
+  const rows = invRows[type]||[];
+  let subtotal=0, totalVat=0;
+
+  rows.forEach(r=>{
+    const vp=parseFloat(r.vatPct)||0;
+    let sub=0;
+    if (type==='mixed')    { const d=parseFloat(r.days)||0, h=parseFloat(r.hours)||0, rt=parseFloat(r.rate)||0; sub=d>0?d*rt:h*rt; }
+    else if (type==='day') { sub=(parseFloat(r.days)||0)*(parseFloat(r.rate)||0); }
+    else if (type==='hour'){ sub=(parseFloat(r.hours)||0)*(parseFloat(r.rate)||0); }
+    else if (type==='fixed'){ const td=parseFloat(r.totalDays)||fixedDays||22, dw=parseFloat(r.days)||0, rt=parseFloat(r.rate)||0; sub=td>0?rt*dw/td:0; }
+    else if (type==='unit') { sub=parseFloat(r.unitPrice)||0; }
+    else if (type==='milestone') {
+      const mtype=document.getElementById('inv-milestone-type')?.value||'detailed';
+      sub = mtype==='project' ? (parseFloat(r.projectCost)||0)*(parseFloat(r.pct)||0)/100 : parseFloat(r.amount)||0;
+    }
+    subtotal+=sub; totalVat+=sub*vp/100;
+  });
+  const total=subtotal+totalVat;
+  const colspan = type==='day'?5:type==='unit'?3:type==='milestone'?5:5;
+
+  tfoot.innerHTML=`
+    <tr style="border-top:1px solid var(--border)">
+      <td colspan="${colspan+1}" style="text-align:right;padding:7px 8px;font-size:12px;color:var(--muted)">SUBTOTAL</td>
+      <td class="mono" style="text-align:right;font-weight:700;padding:7px 6px;font-size:13px" colspan="2">${cur}${fmt(subtotal)}</td>
+      <td></td>
+    </tr>
+    ${totalVat>0?`<tr>
+      <td colspan="${colspan+1}" style="text-align:right;padding:4px 8px;font-size:12px;color:#d97706">VAT</td>
+      <td class="mono" style="text-align:right;padding:4px 6px;font-size:12px;color:#d97706" colspan="2">${cur}${fmt(totalVat)}</td>
+      <td></td>
+    </tr>`:''}
+    <tr style="background:var(--g500)">
+      <td colspan="${colspan+1}" style="text-align:right;font-weight:800;color:#fff;padding:10px 8px;font-size:13px">TOTAL</td>
+      <td class="mono" style="text-align:right;font-weight:900;color:#fff;padding:10px 6px;font-size:14px" colspan="2">${cur}${fmt(total)}</td>
+      <td></td>
+    </tr>`;
 }
 
 function recalcInvoice() {
-  const vatPct = parseFloat(document.getElementById('inv-vat')?.value||0)||0;
-  const cur = document.getElementById('inv-currency')?.value||'AED';
+  const cur    = document.getElementById('inv-currency')?.value||'AED';
   const convTo = document.getElementById('inv-conv-to')?.value||'';
   const convRate = parseFloat(document.getElementById('inv-conv-rate')?.value||1)||1;
   const fixedDays = parseInt(document.getElementById('fixed-total-days')?.value||22)||22;
-
-  // Recalc all tabs
-  ['day','hour','fixed','milestone'].forEach(type => {
-    (invRows[type]||[]).forEach((r,i) => {
-      let total;
-      if (type==='fixed') total = fixedDays>0 ? r.rate*r.worked/fixedDays : 0;
-      else if (type==='milestone') total = r.rate;
-      else total = r.worked * r.rate;
-      r._total = total;
-    });
-    renderInvRows(type);
-  });
-
-  // Summary for active tab
+  const sym = invSym(cur);
   const tab = getActiveTab();
-  let total, subtotal, vat;
 
-  if (tab === 'mixed') {
-    // Mixed tab handles its own totals per row
-    renderMixedRows();
-    total = getMixedInvoiceTotal();
-    subtotal = total; vat = 0; // already included in total
-    document.getElementById('inv-totals-box').innerHTML = `
-      <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-        <div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--g500);color:#fff;font-weight:800;font-size:16px;font-family:var(--font-display)">
-          <span>TOTAL DUE (incl. VAT)</span><span class="mono">${fmtCur(total,cur)}</span>
-        </div>
-      </div>`;
-    document.getElementById('inv-summary-left').innerHTML = `
-      <div class="text-muted" style="font-size:12px">Active: <strong>MIXED</strong> billing · ${(window.invMixedRows||[]).length} row(s) · VAT per row</div>`;
-    document.getElementById('inv-converted-box').innerHTML = '';
-    return;
-  }
+  // Re-render all tabs
+  Object.keys(invRows).forEach(type => renderInvRows(type));
 
+  // Compute total for active tab
   const rows = invRows[tab]||[];
-  subtotal = rows.reduce((s,r)=>s+(r._total||0),0);
-  vat = vatPct>0 ? subtotal*vatPct/100 : 0;
-  total = subtotal+vat;
-  const converted = convTo && convTo !== cur && convRate > 0 ? total * convRate : null;
+  let subtotal=0, totalVat=0;
+  rows.forEach(r=>{
+    const vp=parseFloat(r.vatPct)||0;
+    let sub=0;
+    if (tab==='mixed')    { const d=parseFloat(r.days)||0,h=parseFloat(r.hours)||0,rt=parseFloat(r.rate)||0; sub=d>0?d*rt:h*rt; }
+    else if (tab==='day') { sub=(parseFloat(r.days)||0)*(parseFloat(r.rate)||0); }
+    else if (tab==='hour'){ sub=(parseFloat(r.hours)||0)*(parseFloat(r.rate)||0); }
+    else if (tab==='fixed'){ const td=parseFloat(r.totalDays)||fixedDays,dw=parseFloat(r.days)||0,rt=parseFloat(r.rate)||0; sub=td>0?rt*dw/td:0; }
+    else if (tab==='unit') { sub=parseFloat(r.unitPrice)||0; }
+    else if (tab==='milestone') {
+      const mt=document.getElementById('inv-milestone-type')?.value||'detailed';
+      sub=mt==='project'?(parseFloat(r.projectCost)||0)*(parseFloat(r.pct)||0)/100:parseFloat(r.amount)||0;
+    }
+    subtotal+=sub; totalVat+=sub*vp/100;
+  });
+  const total=subtotal+totalVat;
+  const converted = convTo && convTo!==cur && convRate>0 ? total*convRate : null;
+
+  const convSym = convTo ? invSym(convTo) : '';
 
   // Totals box
   document.getElementById('inv-totals-box').innerHTML = `
     <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-      <div class="inv-totals-row" style="padding:9px 14px;background:var(--surface)"><span>Subtotal</span><span class="mono">${fmtCur(subtotal,cur)}</span></div>
-      ${vatPct>0?`<div class="inv-totals-row" style="padding:9px 14px"><span>VAT (${vatPct}%)</span><span class="mono">${fmtCur(vat,cur)}</span></div>`:''}
-      <div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--g500);color:#fff;font-weight:800;font-size:16px;font-family:var(--font-display)">
-        <span>TOTAL DUE</span><span class="mono">${fmtCur(total,cur)}</span>
+      <div class="inv-totals-row" style="padding:9px 14px;background:var(--surface)"><span>Subtotal</span><span class="mono">${sym}${fmt(subtotal)}</span></div>
+      ${totalVat>0?`<div class="inv-totals-row" style="padding:9px 14px"><span>VAT</span><span class="mono" style="color:#d97706">${sym}${fmt(totalVat)}</span></div>`:''}
+      <div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--g500);color:#fff;font-weight:800;font-size:16px">
+        <span>TOTAL</span><span class="mono">${sym}${fmt(total)}</span>
       </div>
     </div>`;
 
-  if (converted !== null) {
-    const sym2 = convTo==='GBP'?'£':convTo==='USD'?'$':'AED ';
-    const sym1 = cur==='GBP'?'£':cur==='USD'?'$':'AED ';
+  if (converted!==null) {
+    const amtWords = numToWords(converted, convTo);
     document.getElementById('inv-converted-box').innerHTML = `
-      <div class="highlight-amount">
-        Total Due in ${convTo}: ${fmtCur(converted,convTo)}
-        <div style="font-size:11px;font-weight:400;margin-top:4px;opacity:.7">Rate: 1 ${sym1.trim()||cur} = ${convRate} ${sym2.trim()||convTo}</div>
+      <div class="highlight-amount" style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:12px 16px">
+        <div style="font-size:13px;font-weight:700;color:#92400e">Total in ${convTo}: ${convSym}${fmt(converted)}</div>
+        <div style="font-size:11px;color:#a16207;margin-top:4px">${amtWords}</div>
+        <div style="font-size:10px;color:#a16207;margin-top:2px">Rate: 1 ${sym} = ${convRate} ${convSym}</div>
       </div>`;
+  } else if (total>0) {
+    const amtWords = numToWords(total, cur);
+    document.getElementById('inv-converted-box').innerHTML = `
+      <div style="font-size:11px;color:var(--muted);padding:6px 0;font-style:italic">${amtWords}</div>`;
   } else {
     document.getElementById('inv-converted-box').innerHTML = '';
   }
+
   document.getElementById('inv-summary-left').innerHTML = `
-    <div class="text-muted" style="font-size:12px">Active: <strong>${tab.toUpperCase()}</strong> billing · ${rows.length} resource(s)</div>`;
+    <div class="text-muted" style="font-size:12px">
+      Tab: <strong>${tab.toUpperCase()}</strong> · ${rows.length} row(s) · 
+      Total: <strong>${sym}${fmt(total)}</strong>
+      ${converted!==null?` → <strong>${convSym}${fmt(converted)}</strong>`:''}
+    </div>`;
 }
 
-function renderInvTfoot(type) {
-  const tfoot = document.getElementById('inv-tfoot-'+type);
-  if (!tfoot) return;
-  const cur = document.getElementById('inv-currency')?.value||'AED';
-  const vatPct = parseFloat(document.getElementById('inv-vat')?.value||0)||0;
-  const fixedDays = parseInt(document.getElementById('fixed-total-days')?.value||22)||22;
-  const rows = invRows[type]||[];
-  let sub=0;
-  rows.forEach(r=>{
-    if (type==='fixed') sub+=fixedDays>0?r.rate*(r.worked||0)/fixedDays:0;
-    else if(type==='milestone') sub+=r.rate||0;
-    else sub+=(r.worked||0)*(r.rate||0);
-  });
-  const vat=vatPct>0?sub*vatPct/100:0;
-  const total=sub+vat;
-  const colspan = type==='milestone'?4:5;
-  tfoot.innerHTML=`
-    <tr class="tfoot-row"><td colspan="${colspan}" style="text-align:right;color:var(--muted);padding-top:12px">Subtotal</td><td colspan="2" class="mono" style="padding-top:12px">${fmtCur(sub,cur)}</td></tr>
-    ${vatPct>0?`<tr class="tfoot-row"><td colspan="${colspan}" style="text-align:right;color:var(--muted)">VAT (${vatPct}%)</td><td colspan="2" class="mono">${fmtCur(vat,cur)}</td></tr>`:''}
-    <tr class="tfoot-row"><td colspan="${colspan}" style="text-align:right;color:var(--g500);font-family:var(--font-display);font-weight:800;font-size:15px">TOTAL</td><td colspan="2" class="mono" style="color:var(--g500);font-weight:700;font-size:15px">${fmtCur(total,cur)}</td></tr>`;
+// ── Amount in Words ──────────────────────────────────────────
+function numToWords(n, cur) {
+  if (!n || n===0) return '';
+  const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+    'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function say(num) {
+    if (num===0) return '';
+    if (num<20) return ones[num];
+    if (num<100) return tens[Math.floor(num/10)]+(num%10?' '+ones[num%10]:'');
+    if (num<1000) return ones[Math.floor(num/100)]+' Hundred'+(num%100?' '+say(num%100):'');
+    if (num<100000) return say(Math.floor(num/1000))+' Thousand'+(num%1000?' '+say(num%1000):'');
+    if (num<10000000) return say(Math.floor(num/100000))+' Lakh'+(num%100000?' '+say(num%100000):'');
+    return say(Math.floor(num/10000000))+' Crore'+(num%10000000?' '+say(num%10000000):'');
+  }
+  const whole = Math.floor(Math.abs(n));
+  const dec   = Math.round((Math.abs(n)-whole)*100);
+  const curNames = { USD:['Dollar','Cents'], GBP:['Pound','Pence'], AED:['Dirham','Fils'] };
+  const [unit, subunit] = curNames[cur]||['',''];
+  const sym = invSym(cur);
+  let words = say(whole)+' '+unit+(whole!==1?'s':'');
+  if (dec>0) words += ' and '+say(dec)+' '+subunit;
+  return words+' Only';
 }
 
-// Tab switching
-document.querySelectorAll('[data-tab-group]').forEach(el => {
-  el.addEventListener('click', () => {
-    const group = el.dataset.tabGroup;
-    const tab = el.dataset.tab;
-    document.querySelectorAll(`[data-tab-group="${group}"]`).forEach(t=>t.classList.remove('active'));
-    el.classList.add('active');
-    document.querySelectorAll(`[id^="${group}-tab-"]`).forEach(p=>p.classList.remove('active'));
-    const pane = document.getElementById(`${group}-tab-${tab}`);
-    if (pane) pane.classList.add('active');
-    recalcInvoice();
-  });
-});
-
-// ── Get Invoice Data ──
+// ── Collect invoice data ─────────────────────────────────────
 function getInvoiceData() {
   const tab = getActiveTab();
-  const cur = document.getElementById('inv-currency').value||'AED';
-  const vatPct = parseFloat(document.getElementById('inv-vat').value)||0;
-  const convTo = document.getElementById('inv-conv-to').value||'';
-  const convRate = parseFloat(document.getElementById('inv-conv-rate').value)||1;
+  const cur = document.getElementById('inv-currency')?.value||'AED';
+  const convTo = document.getElementById('inv-conv-to')?.value||'';
+  const convRate = parseFloat(document.getElementById('inv-conv-rate')?.value||1)||1;
   const fixedDays = parseInt(document.getElementById('fixed-total-days')?.value||22)||22;
-  const clientIdx = document.getElementById('inv-client').value;
-  const client = clientIdx!=='' ? state.clients[clientIdx] : null;
-  const rows = (invRows[tab]||[]).map((r,i)=>{
-    let total;
-    if (tab==='fixed') total = fixedDays>0 ? r.rate*r.worked/fixedDays : 0;
-    else if (tab==='milestone') total = r.rate;
-    else total = r.worked*r.rate;
-    return {...r, total, index:i+1};
+  const clientIdx = document.getElementById('inv-client')?.value||'';
+  const client = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
+  const sym = invSym(cur);
+
+  // Compute rows with totals
+  const rows = (invRows[tab]||[]).map((r,i) => {
+    const vp=parseFloat(r.vatPct)||0;
+    let sub=0, worked=0;
+    if (tab==='mixed')    { const d=parseFloat(r.days)||0,h=parseFloat(r.hours)||0,rt=parseFloat(r.rate)||0; sub=d>0?d*rt:h*rt; worked=d||h; }
+    else if (tab==='day') { sub=(parseFloat(r.days)||0)*(parseFloat(r.rate)||0); worked=parseFloat(r.days)||0; }
+    else if (tab==='hour'){ sub=(parseFloat(r.hours)||0)*(parseFloat(r.rate)||0); worked=parseFloat(r.hours)||0; }
+    else if (tab==='fixed'){ const td=parseFloat(r.totalDays)||fixedDays,dw=parseFloat(r.days)||0,rt=parseFloat(r.rate)||0; sub=td>0?rt*dw/td:0; worked=dw; }
+    else if (tab==='unit') { sub=parseFloat(r.unitPrice)||0; }
+    else if (tab==='milestone') {
+      const mt=document.getElementById('inv-milestone-type')?.value||'detailed';
+      sub=mt==='project'?(parseFloat(r.projectCost)||0)*(parseFloat(r.pct)||0)/100:parseFloat(r.amount)||0;
+    }
+    const vat=sub*vp/100;
+    return {...r, index:i+1, subtotal:sub, vatAmt:vat, total:sub+vat, worked };
   });
-  const subtotal = rows.reduce((s,r)=>s+r.total,0);
-  const vat = vatPct>0?subtotal*vatPct/100:0;
-  const total = subtotal+vat;
+
+  const subtotal = rows.reduce((s,r)=>s+r.subtotal,0);
+  const vat      = rows.reduce((s,r)=>s+r.vatAmt,0);
+  const total    = subtotal+vat;
+  const converted = convTo && convTo!==cur && convRate>0 ? total*convRate : null;
+  const amtWords = converted!=null ? numToWords(converted,convTo) : numToWords(total,cur);
+
+  const bankIdx = document.getElementById('inv-bank-select')?.value||'';
+  const bankAccounts = state.settings.company?.bankAccounts||[];
+  const selectedBank = bankIdx!=='' ? bankAccounts[parseInt(bankIdx)] : (bankAccounts[0]||null);
+
   return {
     id: uid(),
     number: document.getElementById('inv-number').value,
-    date: document.getElementById('inv-date').value||today(),
-    from: document.getElementById('inv-from').value,
+    date:   document.getElementById('inv-date').value||today(),
+    from:   document.getElementById('inv-from').value,
     company: {...state.settings.company},
     logo: state.settings.logo,
     logoWidth: state.settings.logoWidth||140,
-    template: {...state.settings.template},
+    template: {...(state.settings.template||{})},
     clientName: client?.name||'Client',
     clientAddr: document.getElementById('inv-client-addr').value,
     clientEmail: document.getElementById('inv-client-email').value,
     clientTax: client?.tax||'',
-    currency: cur,
-    convertTo: convTo,
-    convertRate: convRate,
-    convertedTotal: convTo&&convTo!==cur?total*convRate:null,
-    vatPct, subtotal, vat, total,
+    sectionHeader: document.getElementById('inv-section-header')?.value||'',
+    poNumber: document.getElementById('inv-po-number')?.value||'',
+    currency: cur, convertTo: convTo, convertRate: convRate,
+    convertedTotal: converted, amtWords,
+    subtotal, vat, total,
     rows, billingType: tab,
-    mixedRows: tab==='mixed' ? (window.invMixedRows||[]) : [],
+    milestoneType: document.getElementById('inv-milestone-type')?.value||'detailed',
     fixedTotalDays: fixedDays,
     notes: document.getElementById('inv-notes').value,
-    bankAccountIdx: document.getElementById('inv-bank-select')?.value||'',
+    bank: selectedBank?.details||state.settings.company?.bank||'',
+    bankLabel: selectedBank?.label||'',
+    vatPct: rows.length>0 ? (parseFloat(rows[0].vatPct)||0) : 0,
     status: 'draft'
   };
 }
 
 function saveInvoiceDraft() {
   const d = getInvoiceData();
-  state.invoices.unshift(d);
-  saveState();
+  const existing = state.invoices.findIndex(i=>i.id===d.id);
+  if (existing>-1) state.invoices[existing]=d;
+  else state.invoices.push(d);
   // Increment invoice number
   const co = state.settings.company;
   co.nextNum = (co.nextNum||1)+1;
-  saveState();
   document.getElementById('inv-number').value = (co.prefix||'VTL-')+String(co.nextNum).padStart(3,'0');
-  showNotif('Invoice saved as draft ✓');
-  renderDashboard();
+  saveState();
+  showNotif('Invoice saved ✓');
 }
 
-// ── PDF ──
+// ── Build Invoice HTML (preview + PDF) ────────────────────────
 function buildInvoiceHTML(d, forPDF) {
-  const T = d.template||{};
-  const color = T.color||'#29963a';
-  const style = T.style||'emerald';
-  const fontH = T.fontHeading||'Outfit';
-  const fontB = T.fontBody||'Plus Jakarta Sans';
-  const fontSize = T.fontSize||13;
-  const isClassic = style==='classic';
-  const isSlate = style==='slate';
+  const color  = d.template?.color||'#29963a';
+  const style  = d.template?.style||'emerald';
   const isMinimal = style==='minimal';
-  const isLuxe = style==='luxe';
-  const isCorporate = style==='corporate';
-  const sym = d.currency==='GBP' ? '£' : d.currency==='USD' ? '$' : 'AED ';
-  const rows = d.rows||[];
-  const isMilestone = d.billingType==='milestone';
-  const isFixed = d.billingType==='fixed';
-  const modeLabel = d.billingType==='hour'?'Hours':'Days';
-  const rateLabel = d.billingType==='hour'?'Hour Rate':d.billingType==='fixed'?'Monthly Rate':'Day Rate';
+  const sym    = invSym(d.currency);
+  const convSym= d.convertTo ? invSym(d.convertTo) : '';
 
-  // Header HTML per template
-  let headerBg = color, headerText = '#fff', badgeBg = '#fff', badgeText = color;
-  if (isSlate) { headerBg='#1e293b'; }
-  if (isLuxe) { headerBg='#0f1a12'; badgeBg=color; }
-  if (isMinimal) { headerBg='#f9fafb'; headerText='#1a1a2a'; }
-
-  let logoHTML = '';
-  if (d.logo) logoHTML = `<img src="${d.logo}" style="max-height:60px;max-width:${d.logoWidth||140}px;margin-bottom:8px;display:block;" />`;
-
-  let header = '';
-  if (isClassic) {
-    header=`<div style="text-align:center;padding:24px 0 20px;border-bottom:3px solid ${color}">
-      ${logoHTML}
-      <div style="margin-top:12px;display:inline-block;background:${color};color:#fff;padding:6px 20px;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:2px">TAX INVOICE</div>
-    </div>`;
-  } else if (isMinimal) {
-    header=`<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:20px;border-bottom:1px solid #e8e8e8">
-      <div>${logoHTML}</div>
-      <div style="text-align:right"><div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#888">Invoice</div>
-        <div style="font-family:monospace;font-size:15px;font-weight:700;margin-top:4px">${d.number}</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">${d.date}</div>
-      </div>
-    </div>`;
-  } else if (isSlate) {
-    header=`<div style="background:#1e293b;color:#fff;padding:24px 40px;margin:-48px -48px 32px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">
-      <div>${logoHTML}</div>
-      <div style="text-align:right">
-        <div style="background:${color};padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;display:inline-block">TAX INVOICE</div>
-        <div style="font-family:monospace;font-size:13px;color:#cbd5e1;margin-top:8px">${d.number}</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:3px">${d.date}</div>
-      </div>
-    </div>`;
-  } else if (isLuxe) {
-    header=`<div style="background:linear-gradient(135deg,#0f1a12 0%,#1c3422 100%);color:#fff;padding:28px 40px;margin:-48px -48px 32px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">
-      <div>${logoHTML}</div>
-      <div style="text-align:right">
-        <div style="border:2px solid ${color};color:${color};padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:2px">TAX INVOICE</div>
-        <div style="font-family:monospace;font-size:13px;color:#a8c5ae;margin-top:10px">${d.number}</div>
-        <div style="font-size:11px;color:#7a9e80;margin-top:3px">${d.date}</div>
-      </div>
-    </div>`;
-  } else if (isCorporate) {
-    header=`<div style="display:flex;margin:-48px -48px 32px;border-radius:12px 12px 0 0;overflow:hidden">
-      <div style="width:10px;background:${color};flex-shrink:0"></div>
-      <div style="flex:1;background:#f8f9fa;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${color}">
-        <div>
-          ${d.logo?`<img src="${d.logo}" style="max-height:56px;max-width:${d.logoWidth||140}px" />`:
-            `<div style="width:48px;height:48px;background:${color};border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;font-family:'${fontH}',sans-serif">${(d.from||'V').charAt(0)}</div>`}
+  // Header band
+  const logoImg = d.logo ? `<img src="${d.logo}" style="height:${forPDF?'36px':'44px'};max-width:${d.logoWidth||140}px;object-fit:contain" />` : '';
+  const headerHtml = isMinimal
+    ? `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid ${color}">
+        ${logoImg||`<div style="font-family:var(--font-display);font-size:22px;font-weight:900;color:${color}">${d.from}</div>`}
+        <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${color}">INVOICE</div>
+          <div style="font-size:12px;color:#888">${d.number} · ${d.date}</div></div>
+       </div>`
+    : `<div style="background:${color};padding:20px 28px;margin:-28px -28px 20px;display:flex;justify-content:space-between;align-items:center">
+        ${logoImg||`<div style="font-family:var(--font-display);font-size:22px;font-weight:900;color:#fff">${d.from}</div>`}
+        <div style="text-align:right"><div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:1px">INVOICE</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.8)">${d.number}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.7)">${d.date}</div>
+          ${d.poNumber?`<div style="font-size:11px;color:rgba(255,255,255,.9);margin-top:3px">Purchase Order - ${d.poNumber}</div>`:''}
         </div>
-        <div style="text-align:right">
-          <div style="font-family:'${fontH}',sans-serif;font-size:26px;font-weight:900;color:${color};letter-spacing:1px;text-transform:uppercase">Invoice</div>
-          <div style="font-family:monospace;font-size:14px;color:#333;margin-top:2px;font-weight:700">${d.number}</div>
-          <div style="font-size:11px;color:#888;margin-top:2px">${d.date}</div>
-        </div>
-      </div>
-    </div>`;
-  } else {
-    // Emerald (default) — full-colour band, logo only
-    header=`<div style="background:${color};color:#fff;padding:24px 40px;margin:-48px -48px 32px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">
-      <div>${logoHTML}</div>
-      <div style="text-align:right">
-        <div style="background:#fff;color:${color};padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:1px;display:inline-block">TAX INVOICE</div>
-        <div style="font-family:monospace;font-size:13px;opacity:.9;margin-top:8px">${d.number}</div>
-        <div style="font-size:11px;opacity:.7;margin-top:3px">${d.date}</div>
-      </div>
-    </div>`;
+       </div>`;
+
+  // From / Bill To
+  const fromBlock = `<div>
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:5px">FROM</div>
+    <div style="font-weight:800;font-size:14px;color:#111;margin-bottom:4px">${d.from}</div>
+    ${d.company?.address?`<div style="font-size:11px;color:#555;white-space:pre-line;line-height:1.7">📍 ${d.company.address}</div>`:''}
+    ${d.company?.phone?`<div style="font-size:11px;color:#555">📞 ${d.company.phone}</div>`:''}
+    ${d.company?.email?`<div style="font-size:11px;color:#555">✉️ ${d.company.email}</div>`:''}
+    ${d.company?.website?`<div style="font-size:11px;color:#555">🌐 ${d.company.website}</div>`:''}
+    ${d.company?.tax?`<div style="font-size:11px;color:#555;font-weight:700">TRN: ${d.company.tax}</div>`:''}
+  </div>`;
+  const billToBlock = `<div>
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:5px">BILL TO</div>
+    <div style="font-weight:800;font-size:14px;color:#111;margin-bottom:4px">${d.clientName}</div>
+    ${d.clientAddr?`<div style="font-size:11px;color:#555">📍 ${d.clientAddr}</div>`:''}
+    ${d.clientEmail?`<div style="font-size:11px;color:#555">✉️ ${d.clientEmail}</div>`:''}
+    ${d.clientTax?`<div style="font-size:11px;color:#555;font-weight:700">TRN: ${d.clientTax}</div>`:''}
+  </div>`;
+
+  // Section header (e.g. "SAP Services:")
+  const sectionHdr = d.sectionHeader
+    ? `<div style="color:${color};font-weight:700;font-size:14px;margin-bottom:6px">${d.sectionHeader}</div>` : '';
+
+  // Build table based on billing type
+  let thead='', tbody='';
+  const thStyle = `background:${color};color:#fff;`;
+  const th = (txt,w='',align='left') => `<th style="${thStyle}${w?'width:'+w+';':''}text-align:${align};padding:8px 7px;font-size:11px">${txt}</th>`;
+
+  if (d.billingType==='mixed') {
+    thead = `<tr>${th('Sr.No','36px','center')}${th('Description')}${th('Offshore/ Onsite','100px')}${th('Days Worked','80px','right')}${th('Hours Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th('Rates','90px','right')}${th('Total','90px','right')}</tr>`;
+    tbody = d.rows.map((r,i)=>{
+      const bg=i%2===1?'#f9fafb':'#fff';
+      return `<tr style="background:${bg}">
+        <td style="text-align:center;padding:7px">${r.index}</td>
+        <td style="padding:7px;font-weight:600">${r.desc||'—'}</td>
+        <td style="padding:7px">${r.locType||''}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${parseFloat(r.days)>0?r.days:''}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${parseFloat(r.hours)>0?r.hours:''}</td>
+        <td style="text-align:right;padding:7px">${r.vatPct}%</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.rate)}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+      </tr>`;}).join('');
+  } else if (d.billingType==='day') {
+    thead = `<tr>${th('Sr.No','36px','center')}${th('Name of the Resource')}${th('Offshore/ Onsite','100px')}${th('Days Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th(`Day Rates in ${sym}`,'100px','right')}${th('Total','90px','right')}</tr>`;
+    tbody = d.rows.map((r,i)=>{
+      const bg=i%2===1?'#f9fafb':'#fff';
+      return `<tr style="background:${bg}">
+        <td style="text-align:center;padding:7px">${r.index}</td>
+        <td style="padding:7px;font-weight:600">${r.name||r.desc||'—'}</td>
+        <td style="padding:7px">${r.locType||''}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${r.days||''}</td>
+        <td style="text-align:right;padding:7px">${r.vatPct>0?r.vatPct+'%':''}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${r.vatAmt>0?sym+fmt(r.vatAmt):''}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.rate)}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+      </tr>`;}).join('');
+  } else if (d.billingType==='hour') {
+    thead = `<tr>${th('Sr.No','36px','center')}${th('Description')}${th('Offshore/ Onsite','100px')}${th('Total Hours','80px','right')}${th('Hours Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th('Hourly Rate','90px','right')}${th('Total','90px','right')}</tr>`;
+    tbody = d.rows.map((r,i)=>{
+      const bg=i%2===1?'#f9fafb':'#fff';
+      return `<tr style="background:${bg}">
+        <td style="text-align:center;padding:7px">${r.index}</td>
+        <td style="padding:7px;font-weight:600">${r.name||r.desc||'—'}</td>
+        <td style="padding:7px">${r.locType||''}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${r.totalHours||''}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${r.hours||''}</td>
+        <td style="text-align:right;padding:7px">${r.vatPct}%</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.rate)}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+      </tr>`;}).join('');
+  } else if (d.billingType==='fixed') {
+    thead = `<tr>${th('Sr.No','36px','center')}${th('Name of Resource')}${th('Offshore/ Onsite','100px')}${th('Total Days','80px','right')}${th('Days Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th('Monthly Rate','100px','right')}${th('Total','90px','right')}</tr>`;
+    tbody = d.rows.map((r,i)=>{
+      const bg=i%2===1?'#f9fafb':'#fff';
+      return `<tr style="background:${bg}">
+        <td style="text-align:center;padding:7px">${r.index}</td>
+        <td style="padding:7px;font-weight:600">${r.name||'—'}</td>
+        <td style="padding:7px">${r.locType||''}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${r.totalDays||d.fixedTotalDays}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${r.days||''}</td>
+        <td style="text-align:right;padding:7px">${r.vatPct}%</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.rate)}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+      </tr>`;}).join('');
+  } else if (d.billingType==='unit') {
+    thead = `<tr>${th('Sr.No','36px','center')}${th('Description')}${th('Unit Price','110px','right')}${th('VAT %','55px','right')}${th('VAT Amount','100px','right')}${th('Total','100px','right')}</tr>`;
+    tbody = d.rows.map((r,i)=>{
+      const bg=i%2===1?'#f9fafb':'#fff';
+      return `<tr style="background:${bg}">
+        <td style="text-align:center;padding:7px">${r.index}</td>
+        <td style="padding:7px;font-weight:600">${r.desc||'—'}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.unitPrice)}</td>
+        <td style="text-align:right;padding:7px">${r.vatPct}%</td>
+        <td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
+        <td style="text-align:right;padding:7px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+      </tr>`;}).join('');
+  } else if (d.billingType==='milestone') {
+    if (d.milestoneType==='detailed') {
+      thead=`<tr>${th('Sr.No','36px','center')}${th('Topic')}${th('Description')}${th('Countries Covered','90px')}${th('Details')}${th('Effort Man Days','80px','right')}${th('Billing Amount','90px','right')}</tr>`;
+      tbody=d.rows.map((r,i)=>{const bg=i%2===1?'#f9fafb':'#fff';return`<tr style="background:${bg}"><td style="text-align:center;padding:7px">${r.index}</td><td style="padding:7px;font-weight:600">${r.topic||''}</td><td style="padding:7px">${r.desc||''}</td><td style="padding:7px">${r.countries||''}</td><td style="padding:7px;font-size:11px">${r.details||''}</td><td style="text-align:right;padding:7px">${r.manDays||''}</td><td style="text-align:right;padding:7px;font-family:monospace;font-weight:700">${sym}${fmt(r.amount)}</td></tr>`;}).join('');
+    } else {
+      thead=`<tr>${th('Sr.No','36px','center')}${th('Client Name')}${th('Scope of Work')}${th('Project Cost','90px','right')}${th('Billing Milestone')}${th('% on Project','80px','right')}${th('Total','90px','right')}</tr>`;
+      tbody=d.rows.map((r,i)=>{const bg=i%2===1?'#f9fafb':'#fff';const tot=(parseFloat(r.projectCost)||0)*(parseFloat(r.pct)||0)/100;return`<tr style="background:${bg}"><td style="text-align:center;padding:7px">${r.index}</td><td style="padding:7px;font-weight:600">${r.clientName||''}</td><td style="padding:7px">${r.scope||''}</td><td style="text-align:right;padding:7px;font-family:monospace">${sym}${fmt(r.projectCost)}</td><td style="padding:7px">${r.milestone||''}</td><td style="text-align:right;padding:7px">${r.pct||0}%</td><td style="text-align:right;padding:7px;font-family:monospace;font-weight:700">${sym}${fmt(tot)}</td></tr>`;}).join('');
+    }
   }
 
-  const thBg = (isMinimal||isClassic) ? color : color;
-  const tbRowAlt = '#f9fafb'; // kept for compatibility
+  // Totals footer rows
+  const footerRows = `
+    <tr><td colspan="100" style="padding:0"><table style="width:100%;border-collapse:collapse">
+      <tr><td style="padding:6px 7px"></td>
+        <td style="text-align:right;padding:6px 7px;font-size:12px;color:#666">Amount in Words</td>
+        <td style="font-style:italic;font-size:11px;color:#444;padding:6px 7px" colspan="2">${d.amtWords}</td>
+        <td style="text-align:right;padding:6px 7px;font-size:12px;font-weight:700">SUBTOTAL</td>
+        <td style="text-align:right;padding:6px 7px;font-family:monospace;font-weight:700;min-width:100px">${sym}${fmt(d.subtotal)}</td>
+      </tr>
+      ${d.vat>0?`<tr><td colspan="4" style="padding:3px 7px;font-style:italic;font-size:11px;color:#666"></td>
+        <td style="text-align:right;padding:3px 7px;font-size:12px;font-weight:700;color:#d97706">VAT</td>
+        <td style="text-align:right;padding:3px 7px;font-family:monospace;font-weight:700;color:#d97706">${sym}${fmt(d.vat)}</td></tr>`:''}
+      <tr style="background:${color}15">
+        <td colspan="4" style="padding:8px 7px"></td>
+        <td style="text-align:right;padding:8px 7px;font-size:14px;font-weight:800;color:${color}">TOTAL</td>
+        <td style="text-align:right;padding:8px 7px;font-family:monospace;font-size:14px;font-weight:900;color:${color}">${sym}${fmt(d.total)}</td>
+      </tr>
+      ${d.convertedTotal!=null?`<tr style="background:#fffbeb">
+        <td colspan="4" style="padding:7px 7px;font-style:italic;font-size:11px;color:#a16207">${d.amtWords}</td>
+        <td style="text-align:right;padding:7px 7px;font-size:13px;font-weight:800;color:#92400e">Total in ${d.convertTo}</td>
+        <td style="text-align:right;padding:7px 7px;font-family:monospace;font-size:14px;font-weight:900;color:#92400e">${convSym}${fmt(d.convertedTotal)}</td>
+      </tr>`:''}
+    </table></td></tr>`;
 
-  const tableHeaders = isMilestone
-    ? `<th style="width:40px">#</th><th>Milestone</th><th style="width:120px">Status</th><th style="width:160px;text-align:right">Amount (${sym.trim()})</th><th style="width:160px;text-align:right">Total (${sym.trim()})</th>`
-    : `<th style="width:36px">#</th><th>${(window.invColLabels?.day==='description'?'Description':'Resource')}</th><th style="width:90px">Type</th><th style="width:100px;text-align:right">${modeLabel} Worked</th><th style="width:130px;text-align:right">${rateLabel} (${sym.trim()})</th><th style="width:130px;text-align:right">Total (${sym.trim()})</th>`;
-
-  // ── Mixed rows template ──
-  if (d.billingType === 'mixed') {
-    const mRows = d.mixedRows||[];
-    let grandSubtotal=0, grandVat=0;
-    const mTableRows = mRows.map((r,i)=>{
-      const days=parseFloat(r.days)||0, hours=parseFloat(r.hours)||0;
-      const rate=parseFloat(r.rate)||0, vatPct=parseFloat(r.vatPct)||0;
-      const sub = days>0 ? days*rate : hours*rate;
-      const vatAmt = sub*vatPct/100;
-      const total = sub+vatAmt;
-      grandSubtotal+=sub; grandVat+=vatAmt;
-      const bg = i%2===1?'background:#f9fafb':'';
-      return `<tr style="${bg}">
-        <td style="text-align:center">${i+1}</td>
-        <td style="font-weight:600">${r.desc||'—'}</td>
-        <td>${r.locType||'Offshore'}</td>
-        <td class="mono" style="text-align:right">${days>0?days:''}</td>
-        <td class="mono" style="text-align:right">${hours>0?hours:''}</td>
-        <td class="mono" style="text-align:right">${vatPct}%</td>
-        <td class="mono" style="text-align:right;color:#d97706">${sym}${fmt(vatAmt)}</td>
-        <td class="mono" style="text-align:right">${sym}${fmt(rate)}</td>
-        <td class="mono" style="text-align:right;font-weight:700">${sym}${fmt(total)}</td>
-      </tr>`;
-    }).join('');
-    const grandTotal = grandSubtotal+grandVat;
-    const mixedTableHeaders = `<th style="width:36px">Sr.No</th><th>Description</th><th style="width:100px">Offshore/Onsite</th><th style="width:80px;text-align:right">Days Worked</th><th style="width:80px;text-align:right">Hours Worked</th><th style="width:60px;text-align:right">VAT %</th><th style="width:100px;text-align:right">VAT Amount</th><th style="width:100px;text-align:right">Rates</th><th style="width:100px;text-align:right">Total</th>`;
-    const mixedTotals = `
-      <tr style="border-top:2px solid #e5e7eb">
-        <td colspan="6" style="text-align:right;font-size:12px;color:#666;padding:8px">Subtotal</td>
-        <td class="mono" style="text-align:right;padding:8px;color:#d97706">${sym}${fmt(grandVat)}</td>
-        <td></td>
-        <td class="mono" style="text-align:right;padding:8px;font-weight:700">${sym}${fmt(grandSubtotal)}</td>
-      </tr>`;
-    const mixedGrandTotal = `
-      <tr style="background:${color}">
-        <td colspan="8" style="text-align:right;color:#fff;font-weight:800;font-size:14px;padding:12px">TOTAL DUE (incl. VAT)</td>
-        <td class="mono" style="text-align:right;color:#fff;font-weight:900;font-size:16px;padding:12px">${sym}${fmt(grandTotal)}</td>
-      </tr>`;
-
-    return `<div class="inv-wrap" style="font-family:${fontBody};max-width:900px;margin:0 auto;padding:32px;background:#fff">
-      ${headerHtml}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:24px">
-        ${coDetails}
-        <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:6px">BILL TO</div>
-          <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:#111">${d.clientName}</div>
-          ${d.clientAddr?`<div style="font-size:12px;color:#555">📍 ${d.clientAddr}</div>`:''}
-          ${d.clientEmail?`<div style="font-size:12px;color:#555">✉️ ${d.clientEmail}</div>`:''}
-          ${d.clientTax?`<div style="font-size:12px;color:#555;font-weight:600">TRN: ${d.clientTax}</div>`:''}
-        </div>
+  // Bank details
+  const bankBox = d.bank ? `
+    <div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:6px">💳 Payment Details${d.bankLabel?' — '+d.bankLabel:''}</div>
+        <div style="font-size:11px;color:#444;white-space:pre-line;font-family:monospace;line-height:1.8">${d.bank}</div>
       </div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px">
-        <thead><tr style="background:${color};color:#fff">${mixedTableHeaders}</tr></thead>
-        <tbody>${mTableRows}</tbody>
-        <tfoot>${mixedTotals}${mixedGrandTotal}</tfoot>
-      </table>
-      ${d.notes?`<div style="margin-top:16px;padding:12px;background:#f9fafb;border-radius:8px;font-size:12px;color:#555"><strong>Notes:</strong> ${d.notes}</div>`:''}
-      ${bankBox}
-    </div>`;
-  } // end mixed
+    </div>` : '';
 
-  const tableRows = rows.map((r,i)=>{
-    const bg = i%2===1?`background:#f9fafb`:'';
-    const total = r.total||0;
-    if (isMilestone) return `<tr style="${bg}">
-      <td>${r.index||i+1}</td>
-      <td>${r.name||'—'}</td>
-      <td>${r.status||'—'}</td>
-      <td class="mono" style="text-align:right">${sym}${fmt(r.rate)}</td>
-      <td class="mono" style="text-align:right;font-weight:700">${sym}${fmt(total)}</td>
-    </tr>`;
-    return `<tr style="${bg}">
-      <td>${r.index||i+1}</td>
-      <td style="font-weight:600">${r.name||'—'}</td>
-      <td>${r.type||'—'}</td>
-      <td class="mono" style="text-align:right">${r.worked}</td>
-      <td class="mono" style="text-align:right">${sym}${fmt(r.rate)}</td>
-      <td class="mono" style="text-align:right;font-weight:700">${sym}${fmt(total)}</td>
-    </tr>`;
-  }).join('');
-
-  const vatRow = d.vatPct>0?`<div class="inv-totals-row"><span>VAT (${d.vatPct}%)</span><span>${sym}${fmt(d.vat)}</span></div>`:'';
-  const convRow = d.convertedTotal ? `<div class="inv-converted" style="background:linear-gradient(135deg,#fff9db,#fef3c7);border:2px solid #f59e0b;color:#92400e">
-    <span>Total Due in <strong>${d.convertTo}</strong></span>
-    <strong style="font-size:17px">${fmtCur(d.convertedTotal,d.convertTo)}</strong>
-  </div>` : '';
-
-  const wordsAmt = d.convertedTotal||d.total;
-  const wordsCur = d.convertTo||d.currency;
-  const wordsBox = `<div class="inv-words-box" style="background:${color}12;border-left:4px solid ${color};color:#333">
-    <strong>Amount in Words:</strong> ${numToWords(wordsAmt,wordsCur)}
-  </div>`;
-
-  // Selected bank account
-  const bankIdx = typeof document !== 'undefined' ? (document.getElementById('inv-bank-select')?.value||'') : '';
-  const bankAccounts = d.company.bankAccounts||[];
-  const selectedBank = bankIdx!=='' ? bankAccounts[parseInt(bankIdx)] : (bankAccounts[0]||null);
-  const bankDetails = selectedBank?.details || d.company.bank || '';
-
-  const bankBox = bankDetails ? `<div class="inv-bank-box" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-    <div>
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;font-weight:700;margin-bottom:6px">💳 Payment Details${selectedBank?.label?' — '+selectedBank.label:''}</div>
-      <div style="font-size:12px;color:#444;white-space:pre-line;font-family:monospace;line-height:1.8">${bankDetails}</div>
+  return `<div style="font-family:Arial,sans-serif;max-width:860px;margin:0 auto;padding:28px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.08);border-radius:8px">
+    ${headerHtml}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:20px">
+      ${fromBlock}${billToBlock}
     </div>
-    ${d.company.tax?`<div style="text-align:right">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;font-weight:700;margin-bottom:6px">Tax Registration</div>
-      <div style="font-size:12px;color:#444">TRN: ${d.company.tax}</div>
-    </div>`:''}
-  </div>` : '';
-
-  const coDetails = `<div>
-    <div style="font-weight:800;font-size:15px;margin-bottom:5px;color:#111">${d.from}</div>
-    ${d.company.tagline?`<div style="font-size:11px;color:#888;margin-bottom:5px">${d.company.tagline}</div>`:''}
-    ${d.company.address?`<div style="font-size:12px;color:#555;white-space:pre-line;line-height:1.6;margin-bottom:3px">📍 ${d.company.address.replace(/\n/g,'\n    ')}</div>`:''}
-    ${d.company.phone?`<div style="font-size:12px;color:#555">📞 ${d.company.phone}</div>`:''}
-    ${d.company.email?`<div style="font-size:12px;color:#555">✉️ ${d.company.email}</div>`:''}
-    ${d.company.website?`<div style="font-size:12px;color:#555">🌐 ${d.company.website}</div>`:''}
-    ${d.company.tax?`<div style="font-size:12px;color:#555;font-weight:600">TRN: ${d.company.tax}</div>`:''}
-  </div>`;
-
-  return `<div class="invoice-preview" style="font-family:'${fontB}',sans-serif;font-size:${fontSize}px">
-    ${header}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:24px">
-      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:6px">FROM</div>${coDetails}</div>
-      <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:6px">BILL TO</div>
-        <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:#111">${d.clientName}</div>
-        ${d.clientAddr?`<div style="font-size:12px;color:#555;line-height:1.6">📍 ${d.clientAddr}</div>`:''}
-        ${d.clientEmail?`<div style="font-size:12px;color:#555">✉️ ${d.clientEmail}</div>`:''}
-        ${d.clientTax?`<div style="font-size:12px;color:#555;font-weight:600;margin-top:2px">TRN: ${d.clientTax}</div>`:''}
-      </div>
-    </div>
-    ${forPDF
-      ? (d.notes ? '<div style="background:'+color+'12;border-left:3px solid '+color+';padding:10px 14px;font-size:12.5px;margin-bottom:18px;color:#444;border-radius:0 6px 6px 0">'+d.notes+'</div>' : '')
-      : '<div style="background:'+color+'12;border-left:3px solid '+color+';padding:4px 6px 4px 14px;margin-bottom:18px;border-radius:0 6px 6px 0;display:flex;align-items:center;gap:8px">'
-        +'<textarea id="inv-notes-inline" rows="1"'
-        +' oninput="document.getElementById(\'inv-notes\').value=this.value;this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'"'
-        +' placeholder="Click to add a description… e.g. Professional services for May 2026"'
-        +' style="flex:1;border:none;outline:none;background:transparent;font-size:12.5px;color:#444;resize:none;font-family:inherit;line-height:1.5;padding:6px 0;min-height:28px;overflow:hidden">'
-        +(d.notes||'')+'</textarea>'
-        +'<span style="font-size:10px;color:'+color+';opacity:.6;white-space:nowrap;flex-shrink:0">✏ edit</span>'
-        +'</div>'
-    }
-    <table class="inv-preview-table" style="width:100%;border-collapse:collapse">
-      <thead><tr style="background:${color};color:#fff">${tableHeaders}</tr></thead>
-      <tbody>${tableRows}</tbody>
+    ${sectionHdr}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:12px">
+      <thead>${thead}</thead>
+      <tbody>${tbody}</tbody>
+      <tfoot>${footerRows}</tfoot>
     </table>
-    <div style="display:flex;justify-content:flex-end;margin-top:8px">
-      <div class="inv-totals-box">
-        <div class="inv-totals-row"><span>Subtotal</span><span>${sym}${fmt(d.subtotal)}</span></div>
-        ${vatRow}
-        <div class="inv-total-grand" style="color:${color}">
-          <span>TOTAL DUE</span><span>${fmtCur(d.total,d.currency)}</span>
-        </div>
-        ${convRow}
-      </div>
-    </div>
-    ${wordsBox}
+    ${d.notes?`<div style="margin-top:14px;padding:10px 12px;background:#f9fafb;border-radius:7px;font-size:11px;color:#555"><strong>Notes:</strong> ${d.notes}</div>`:''}
     ${bankBox}
-    <div class="inv-footer-note">Thank you for your business. Payment due within 30 days.${d.company.website?' · '+d.company.website:''}</div>
+    <div style="margin-top:20px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #f0f0f0;padding-top:12px">
+      Thank you for your business. Payment due within 30 days.${d.company?.website?' · '+d.company.website:''}
+    </div>
   </div>`;
 }
 
@@ -2612,224 +2680,17 @@ function generateInvoicePreview() {
 }
 
 function downloadInvoicePDF() {
-  const d = getInvoiceData();
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const W=210, M=18, color=d.template?.color||'#29963a';
-  let y=20;
-  const hex=color.replace('#','');
-  const cr=parseInt(hex.slice(0,2),16),cg=parseInt(hex.slice(2,4),16),cb=parseInt(hex.slice(4,6),16);
-  const isMinimal=(d.template?.style==='minimal'),isSlate=(d.template?.style==='slate'),isCorporate=(d.template?.style==='corporate');
-
-  // Header
-  if (isCorporate) {
-    // Left accent stripe + light grey header bar
-    doc.setFillColor(248,249,250); doc.rect(0,0,W,32,'F');
-    doc.setFillColor(cr,cg,cb); doc.rect(0,0,6,32,'F');
-    doc.setDrawColor(cr,cg,cb); doc.setLineWidth(0.6); doc.line(0,32,W,32);
-    if (d.logo) { try{doc.addImage(d.logo,'PNG',12,6,20,20);}catch(e){} }
-    const lx = d.logo ? 36 : 12;
-    doc.setFont('helvetica','bold'); doc.setFontSize(22); doc.setTextColor(cr,cg,cb);
-    doc.text('INVOICE',W-M,18,{align:'right'});
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(40,40,40);
-    doc.text(d.number,W-M,26,{align:'right'});
-    y=42;
-  } else if (!isMinimal) {
-    doc.setFillColor(cr,cg,cb); doc.rect(0,0,W,32,'F');
-    if (d.logo) { try{doc.addImage(d.logo,'PNG',M,6,26,20);}catch(e){} }
-    doc.setFillColor(255,255,255); doc.roundedRect(W-52,10,36,10,2,2,'F');
-    doc.setTextColor(cr,cg,cb); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-    doc.text('TAX INVOICE',W-34,16.5,{align:'center'});
-    y=44;
-  } else {
-    if (d.logo) {try{doc.addImage(d.logo,'PNG',M,y,28,18);}catch(e){}}
-    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120);
-    doc.text(d.number,W-M,y+8,{align:'right'});
-    doc.text(d.date,W-M,y+14,{align:'right'});
-    y+=28;
-    doc.setDrawColor(230,230,230); doc.line(M,y,W-M,y); y+=8;
-  }
-
-  // Inv# and date (non-minimal, non-corporate)
-  if (!isMinimal && !isCorporate) {
-    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(80);
-    doc.text(`Invoice #: ${d.number}   Date: ${d.date}`,M,y); y+=8;
-  }
-
-  // From / Bill To
-  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(cr,cg,cb);
-  doc.text('FROM',M,y);
-  doc.text('BILL TO',M+90,y); y+=5;
-  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(20,20,40);
-  doc.text(d.from,M,y);
-  doc.text(d.clientName,M+90,y); y+=4;
-  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(80);
-  if (d.company.address) { doc.text(d.company.address.split('\n')[0],M,y); }
-  if (d.clientAddr) doc.text(d.clientAddr,M+90,y); y+=4;
-  if (d.company.tax) { doc.text('TRN: '+d.company.tax,M,y); }
-  if (d.clientEmail) doc.text(d.clientEmail,M+90,y); y+=4;
-  if (d.clientTax) { doc.setFont('helvetica','bold'); doc.text('TRN: '+d.clientTax,M+90,y); doc.setFont('helvetica','normal'); } y+=6;
-
-  // Table
-  const isMilestone=(d.billingType==='milestone');
-  const cols=[M+2,M+10,M+52,M+76,M+104,M+132];
-  doc.setFillColor(cr,cg,cb); doc.rect(M,y,W-M*2,8,'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-  const pdfSym = d.currency==='GBP'?'£':d.currency==='USD'?'$':'AED ';
-  const ths = isMilestone ? ['#','Milestone','Status','','Amount',`Total (${pdfSym})`] :
-    ['#','Resource','Type',`${d.billingType==='hour'?'Hours':'Days'} Worked`,`Rate (${pdfSym})`,`Total (${pdfSym})`];
-  ths.forEach((h,i)=>h&&doc.text(h,cols[i],y+5.5));
-  y+=10;
-  doc.setFont('helvetica','normal'); doc.setTextColor(25,25,25);
-  (d.rows||[]).forEach((r,i)=>{
-    if (i%2===1){doc.setFillColor(248,250,248);doc.rect(M,y-1,W-M*2,8,'F');}
-    doc.text(String(r.index||i+1),cols[0],y+4.5);
-    doc.text((r.name||'—').substring(0,22),cols[1],y+4.5);
-    if(!isMilestone){
-      doc.text((r.type||'').substring(0,10),cols[2],y+4.5);
-      doc.text(String(r.worked||0),cols[3],y+4.5);
-      doc.text(fmt(r.rate||0),cols[4],y+4.5);
-    } else {
-      doc.text((r.status||'').substring(0,12),cols[2],y+4.5);
-      doc.text(fmt(r.rate||0),cols[5]-30,y+4.5);
-    }
-    doc.setFont('helvetica','bold');
-    doc.text(fmt(r.total||0),cols[5],y+4.5);
-    doc.setFont('helvetica','normal');
-    y+=8;
-  });
-
-  // Totals
-  y+=4;
-  const tx=W-M-65;
-  doc.setDrawColor(220,230,222); doc.line(tx,y,W-M,y); y+=5;
-  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80);
-  doc.text('Subtotal:',tx,y); doc.text(`${pdfSym} ${fmt(d.subtotal)}`,W-M,y,{align:'right'}); y+=6;
-  if (d.vatPct>0) {
-    doc.text(`VAT (${d.vatPct}%):`,tx,y); doc.text(`${pdfSym} ${fmt(d.vat)}`,W-M,y,{align:'right'}); y+=6;
-  }
-  doc.line(tx,y,W-M,y); y+=5;
-  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(cr,cg,cb);
-  doc.text('TOTAL DUE:',tx,y); doc.text(`${pdfSym} ${fmt(d.total)}`,W-M,y,{align:'right'}); y+=10;
-
-  if (d.convertedTotal) {
-    doc.setFillColor(255,249,219); doc.roundedRect(tx-2,y-4,W-M-tx+4,10,2,2,'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(146,64,14);
-    doc.text(`Total Due in ${d.convertTo}:`,tx,y);
-    doc.text(`${d.convertTo} ${fmt(d.convertedTotal)}`,W-M,y,{align:'right'}); y+=10;
-  }
-
-  // Words
-  doc.setFont('helvetica','italic'); doc.setFontSize(8.5); doc.setTextColor(80);
-  const words=numToWords(d.convertedTotal||d.total,d.convertTo||d.currency);
-  doc.text(`Amount in Words: ${words}`,M,y,{maxWidth:W-M*2}); y+=10;
-
-  if (d.notes) {
-    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100);
-    doc.text('Notes: '+d.notes,M,y,{maxWidth:W-M*2}); y+=8;
-  }
-  if (d.company.bank) {
-    doc.setDrawColor(220,220,220); doc.line(M,y,W-M,y); y+=6;
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(80);
-    doc.text('Payment Details:',M,y); y+=5;
-    doc.setFont('helvetica','normal');
-    d.company.bank.split('\n').forEach(l=>{if(y<270){doc.text(l,M,y);y+=4;}});
-  }
-
-  // Footer
-  doc.setFillColor(cr,cg,cb); doc.rect(0,286,W,11,'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-  doc.text('Thank you for your business. Payment due within 30 days.'+(d.company.website?' · '+d.company.website:''),W/2,292,{align:'center'});
-
-  doc.save(`${d.number}_${d.clientName}.pdf`);
-  showNotif('PDF downloaded ✓');
+  generateInvoicePreview();
+  showNotif('Print the preview using Ctrl+P and choose "Save as PDF"');
 }
 
-// ── Send Email ──
 function openSendModal() {
   document.getElementById('send-to').value = document.getElementById('inv-client-email').value||'';
-  document.getElementById('send-subject').value = `Invoice ${document.getElementById('inv-number').value} from ${state.settings.company.name||'Venqtel'}`;
+  document.getElementById('send-subject').value = `Invoice ${document.getElementById('inv-number').value} from ${state.settings.company?.name||'Venqtel'}`;
   applySendTemplate();
   openModal('modal-send');
 }
-function applySendTemplate() {
-  const t = document.getElementById('send-template').value;
-  const num = document.getElementById('inv-number').value;
-  const from = state.settings.company.name||'Venqtel';
-  const msgs = {
-    professional: `Dear Client,\n\nPlease find attached Invoice ${num} for services rendered.\n\nKindly review and arrange payment at your earliest convenience. Should you have any questions, please do not hesitate to contact us.\n\nBest regards,\n${from}`,
-    friendly: `Hi there,\n\nHope you're doing well! I've attached Invoice ${num} for your review.\n\nLet me know if you have any questions — happy to help!\n\nThanks,\n${from}`,
-    concise: `Invoice ${num} attached.\n\nPlease process at your convenience.\n\n${from}`
-  };
-  document.getElementById('send-body').value = msgs[t]||msgs.professional;
-}
-function sendEmail() {
-  const to=document.getElementById('send-to').value;
-  const subj=encodeURIComponent(document.getElementById('send-subject').value);
-  const body=encodeURIComponent(document.getElementById('send-body').value);
-  window.location.href=`mailto:${to}?subject=${subj}&body=${body}`;
-  closeModal('modal-send');
-  showNotif('Mail client opened — attach the PDF ✓');
-}
 
-// ── Invoice History ──
-function renderHistory() {
-  const statusF = document.getElementById('hist-filter-status').value;
-  const clientF = document.getElementById('hist-filter-client').value;
-  // Populate client filter
-  const cf = document.getElementById('hist-filter-client');
-  const oldVal = cf.value;
-  cf.innerHTML = '<option value="">All Clients</option>'+
-    [...new Set(state.invoices.map(i=>i.clientName))].filter(Boolean).map(n=>`<option ${n===oldVal?'selected':''} value="${n}">${n}</option>`).join('');
-  cf.value = oldVal;
-
-  let filtered = state.invoices.filter(inv=>
-    (!statusF||inv.status===statusF)&&(!clientF||inv.clientName===clientF)
-  );
-  const tbody = document.getElementById('history-tbody');
-  const empty = document.getElementById('history-empty');
-  if (!filtered.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
-  empty.style.display='none';
-  tbody.innerHTML = filtered.map((inv,i)=>`<tr>
-    <td class="mono" style="font-size:12px">${inv.number||'—'}</td>
-    <td><strong>${inv.clientName||'—'}</strong></td>
-    <td><span class="badge badge-gray">${inv.billingType||'—'}</span></td>
-    <td class="mono">${fmt(inv.total)}</td>
-    <td><span class="badge ${inv.currency==='AED'?'badge-green':inv.currency==='USD'?'badge-blue':'badge-purple'}">${inv.currency||'AED'}</span></td>
-    <td style="color:var(--muted)">${inv.date||'—'}</td>
-    <td><span class="badge ${statusBadge(inv.status)}">${inv.status||'draft'}</span></td>
-    <td>
-      <div class="flex gap-8">
-        <button class="btn btn-ghost btn-xs" onclick="viewInvoice(${state.invoices.indexOf(inv)})">👁</button>
-        <button class="btn btn-secondary btn-xs" onclick="markPaid(${state.invoices.indexOf(inv)})">Mark Paid</button>
-        <button class="btn btn-danger btn-xs" onclick="deleteInvoice(${state.invoices.indexOf(inv)})">Del</button>
-      </div>
-    </td>
-  </tr>`).join('');
-}
-function viewInvoice(i) {
-  const d = state.invoices[i];
-  document.getElementById('inv-view-title').textContent = `Invoice ${d.number}`;
-  document.getElementById('inv-view-content').innerHTML = buildInvoiceHTML(d, false);
-  document.getElementById('inv-view-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="closeModal('modal-inv-view')">Close</button>
-    <button class="btn btn-primary" onclick="reDownloadPDF(${i})">⬇ Download PDF</button>`;
-  openModal('modal-inv-view');
-}
-function reDownloadPDF(i) {
-  const d = state.invoices[i];
-  // Temporarily set state for download
-  const orig = getInvoiceData;
-  const origRows = {...invRows};
-  // Use a clone approach — just regenerate from saved data
-  showNotif('Opening PDF… use the Preview button and print to PDF', 'success');
-}
-function markPaid(i) {
-  state.invoices[i].status='paid'; saveState(); renderHistory(); showNotif('Marked as paid ✓');
-}
-function deleteInvoice(i) {
-  state.invoices.splice(i,1); saveState(); renderHistory(); showNotif('Invoice deleted');
-}
 
 // ═══════════════════════════════
 // TIMESHEETS
@@ -3655,8 +3516,8 @@ function tmsLoadClientEmps() {
   const emps=c.employees||[];
   prev.style.display='block';
   prev.innerHTML=emps.length
-    ?`<strong>${emps.length} employee(s):</strong> `+emps.map(e=>`<span class="email-chip">${e.name} ${e.email?'✅':'⚠️'}</span>`).join('')
-    :`<span style="color:#d97706">⚠ No employees. Add employees to this client first.</span>`;
+    ?`<strong>${emps.length} employee(s):</strong> `+emps.map(e=>`<span class="email-chip">${e.name}</span>`).join('')
+    :`<span style="color:var(--muted)">No employees — period will be created with description rows only (services-based client).</span>`;
 }
 
 function tmsCreatePeriod() {
@@ -3665,7 +3526,7 @@ function tmsCreatePeriod() {
   if(!clientIdx||!month) return showNotif('Select client and month','error');
   const c=state.clients[clientIdx];
   if(!c) return showNotif('Client not found','error');
-  if(!(c.employees||[]).length) return showNotif('Add employees to this client first','error');
+  // Allow creation even with 0 employees (services-only clients)
   const exists=state.timesheets.find(t=>t.clientName===c.name&&t.month===month);
   if(exists){closeModal('modal-tms-create');showNotif(`Period for ${c.name} · ${monthLabel(month)} already exists`,'error');return;}
   const workDays=parseInt(document.getElementById('tms-create-days').value)||22;
@@ -4125,163 +3986,6 @@ function addBankAccount() {
 }
 
 // ═══════════════════════════════════════════════════
-// MIXED INVOICE (Day + Hourly per row with per-row VAT)
-// ═══════════════════════════════════════════════════
-if (!window.invMixedRows) window.invMixedRows = [];
-
-function addMixedRow(data) {
-  const clientIdx = document.getElementById('inv-client')?.value||'';
-  const clientObj = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
-  const vatPct = clientObj?.vat||parseFloat(document.getElementById('inv-vat')?.value)||5;
-  const cur = document.getElementById('inv-currency')?.value||'AED';
-  const sym = cur==='GBP'?'£':cur==='USD'?'$':'AED ';
-  const row = data || {
-    id: uid(),
-    desc: '',
-    locType: 'Offshore',
-    days: '',
-    hours: '',
-    vatPct: vatPct,
-    rate: clientObj?.dayRate||0,
-    rateType: 'day' // 'day' or 'hour'
-  };
-  if (!window.invMixedRows) window.invMixedRows = [];
-  window.invMixedRows.push(row);
-  renderMixedRows();
-}
-
-function renderMixedRows() {
-  const tbody = document.getElementById('inv-tbody-mixed');
-  if (!tbody) return;
-  const cur = document.getElementById('inv-currency')?.value||'AED';
-  const sym = cur==='GBP'?'£':cur==='USD'?'$':'AED ';
-  const clientIdx = document.getElementById('inv-client')?.value||'';
-  const clientObj = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
-  const empNames = (clientObj?.employees||[]).map(e=>e.name);
-  const clientServices = clientObj?.services||[];
-  const customResources = state.settings.resourceList||[];
-  const allOptions = [...new Set([...empNames, ...clientServices, ...customResources])];
-  const rows = window.invMixedRows||[];
-
-  tbody.innerHTML = rows.map((r,i)=>{
-    const days  = parseFloat(r.days)||0;
-    const hours = parseFloat(r.hours)||0;
-    const rate  = parseFloat(r.rate)||0;
-    const vatPct = parseFloat(r.vatPct)||0;
-    // Auto-detect rate type: if hours>0 and no days → hourly; else day rate
-    const subTotal = days>0 ? days*rate : hours*rate;
-    const vatAmt   = subTotal * vatPct / 100;
-    const total    = subTotal + vatAmt;
-    const bg = i%2===1?'background:#f9fafb':'';
-    return `<tr style="${bg}">
-      <td style="text-align:center;color:var(--muted);font-size:12px">${i+1}</td>
-      <td>
-        <input type="text" value="${r.desc||''}" placeholder="e.g. SAP Consulting"
-          list="inv-desc-list"
-          oninput="invMixedRows[${i}].desc=this.value"
-          style="width:100%;font-size:13px;font-weight:600;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;outline:none"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </td>
-      <td>
-        <select onchange="invMixedRows[${i}].locType=this.value"
-          style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;outline:none">
-          <option ${r.locType==='Offshore'||!r.locType?'selected':''}>Offshore</option>
-          <option ${r.locType==='Onsite'?'selected':''}>Onsite</option>
-        </select>
-      </td>
-      <td>
-        <input type="number" value="${r.days||''}" placeholder="0"
-          oninput="invMixedRows[${i}].days=this.value;invMixedRows[${i}].rateType='day';recalcMixedRow(${i})"
-          style="width:100%;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--font-mono);outline:none"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </td>
-      <td>
-        <input type="number" value="${r.hours||''}" placeholder="0"
-          oninput="invMixedRows[${i}].hours=this.value;invMixedRows[${i}].rateType='hour';recalcMixedRow(${i})"
-          style="width:100%;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--font-mono);outline:none"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </td>
-      <td>
-        <input type="number" value="${r.vatPct}" placeholder="5"
-          oninput="invMixedRows[${i}].vatPct=parseFloat(this.value)||0;recalcMixedRow(${i})"
-          style="width:100%;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--font-mono);outline:none"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </td>
-      <td class="mono" style="text-align:right;font-size:12px;color:#d97706" id="mixed-vat-${i}">${sym}${fmt(vatAmt)}</td>
-      <td>
-        <input type="number" value="${r.rate||''}" placeholder="0"
-          oninput="invMixedRows[${i}].rate=parseFloat(this.value)||0;recalcMixedRow(${i})"
-          style="width:100%;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--font-mono);outline:none"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </td>
-      <td class="mono" style="text-align:right;font-size:12px;font-weight:700;color:var(--g600)" id="mixed-total-${i}">${sym}${fmt(total)}</td>
-      <td><button class="btn btn-danger btn-xs" onclick="removeMixedRow(${i})">✕</button></td>
-    </tr>`;
-  }).join('');
-  renderMixedTfoot(sym);
-  recalcInvoice();
-}
-
-function recalcMixedRow(i) {
-  renderMixedRows();
-}
-
-function removeMixedRow(i) {
-  window.invMixedRows.splice(i,1);
-  renderMixedRows();
-}
-
-function renderMixedTfoot(sym) {
-  const tfoot = document.getElementById('inv-tfoot-mixed');
-  if (!tfoot) return;
-  const rows = window.invMixedRows||[];
-  let subtotal=0, totalVat=0;
-  rows.forEach(r=>{
-    const days=parseFloat(r.days)||0, hours=parseFloat(r.hours)||0, rate=parseFloat(r.rate)||0, vatPct=parseFloat(r.vatPct)||0;
-    const sub = days>0 ? days*rate : hours*rate;
-    subtotal += sub;
-    totalVat += sub*vatPct/100;
-  });
-  const total = subtotal+totalVat;
-  tfoot.innerHTML=`
-    <tr style="border-top:2px solid var(--border)">
-      <td colspan="6" style="text-align:right;font-size:12px;color:var(--muted);padding:8px 10px">Subtotal</td>
-      <td class="mono" style="text-align:right;font-size:12px;padding:8px 6px">${sym}${fmt(totalVat)}</td>
-      <td></td>
-      <td class="mono" style="text-align:right;font-size:13px;font-weight:700;padding:8px 6px">${sym}${fmt(subtotal)}</td>
-      <td></td>
-    </tr>
-    <tr style="background:var(--g500)">
-      <td colspan="8" style="text-align:right;font-size:13px;font-weight:800;color:#fff;padding:10px 10px">TOTAL DUE (incl. VAT)</td>
-      <td class="mono" style="text-align:right;font-size:14px;font-weight:900;color:#fff;padding:10px 6px">${sym}${fmt(total)}</td>
-      <td></td>
-    </tr>`;
-}
-
-function getMixedInvoiceTotal() {
-  const rows = window.invMixedRows||[];
-  let total=0;
-  rows.forEach(r=>{
-    const days=parseFloat(r.days)||0, hours=parseFloat(r.hours)||0, rate=parseFloat(r.rate)||0, vatPct=parseFloat(r.vatPct)||0;
-    const sub = days>0 ? days*rate : hours*rate;
-    total += sub + sub*vatPct/100;
-  });
-  return total;
-}
-
-function invSetColLabel(type, label) {
-  // Store label preference
-  if (!window.invColLabels) window.invColLabels = {};
-  window.invColLabels[type] = label;
-  // Update all rows' placeholders
-  renderInvRows(type);
-  // Restore dropdown selection after re-render
-  setTimeout(()=>{
-    const sel = document.getElementById('inv-col-label-'+type);
-    if (sel) sel.value = label;
-  }, 10);
-}
-
 function invAddToResourceList(nameOrEl, type) {
   const name = typeof nameOrEl === 'string' ? nameOrEl : (nameOrEl.dataset?.name||'');
   const t    = typeof nameOrEl === 'string' ? type : (nameOrEl.dataset?.type||'day');
@@ -4362,14 +4066,11 @@ function bootApp() {
       state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
   }
   // Init default invoice rows
-  invRows={day:[{id:uid(),name:'',type:'Offshore',worked:22,rate:0}],
-           hour:[{id:uid(),name:'',type:'Offshore',worked:176,rate:0}],
-           fixed:[{id:uid(),name:'',type:'Offshore',worked:22,rate:0}],
-           milestone:[{id:uid(),name:'',status:'Pending',rate:0}]};
+  invRows={ mixed:[], day:[], hour:[], fixed:[], unit:[], milestone:[] };
   window.invMixedRows = [];
-  renderInvRows('day');renderInvRows('hour');renderInvRows('fixed');renderInvRows('milestone');
+  addInvRow('mixed'); addInvRow('day'); addInvRow('hour'); addInvRow('fixed'); addInvRow('unit'); addInvRow('milestone');
+  renderMilestoneHeader(invSym(document.getElementById('inv-currency')?.value||'AED'));
   recalcInvoice();
-  applyHeadingFont(state.settings.template?.fontHeading||'Outfit');
   renderBankAccounts();
   renderInvBankSelector();
   renderResourceList();
