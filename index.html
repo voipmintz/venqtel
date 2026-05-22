@@ -240,9 +240,13 @@ textarea{resize:vertical;min-height:72px}
 .tms-tab:hover{color:var(--g600);background:var(--g50)}
 .tms-tab.active{color:var(--g500);border-bottom-color:var(--g500);font-weight:700;background:var(--g50)}
 .tms-pane{display:none}.tms-pane.active{display:block}
-.emp-row{display:grid;grid-template-columns:36px 1fr 90px 90px 90px 140px 110px 110px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;font-size:13px}
+.emp-row{display:grid;grid-template-columns:36px 1fr 90px 110px 120px 80px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;font-size:13px}
 .emp-row:hover{background:var(--g50)}
 .emp-row-head{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;background:var(--surface)}
+.client-ts-block{background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.client-ts-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;transition:background .15s}
+.client-ts-header:hover{background:var(--g50)}
+.client-ts-body{display:block}
 .client-ts-block{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-lg);margin-bottom:20px;overflow:hidden}
 .client-ts-header{padding:16px 20px;background:var(--g50);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer}
 .client-ts-body{padding:0}
@@ -1182,7 +1186,7 @@ textarea{resize:vertical;min-height:72px}
       <!-- VAT + Rates -->
       <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:18px 20px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:14px">Default Rates &amp; Tax</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:14px">
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">VAT %</label>
             <div style="position:relative">
@@ -1191,6 +1195,12 @@ textarea{resize:vertical;min-height:72px}
                 onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
               <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);pointer-events:none">%</span>
             </div>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">VAT / TRN No</label>
+            <input type="text" id="cl-tax" placeholder="e.g. 104348335100003"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:var(--font-mono);background:var(--white);transition:border-color .15s"
+              onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Day Rate <span class="cl-cur-sym" style="color:var(--g500)">(AED)</span></label>
@@ -2251,6 +2261,7 @@ function getInvoiceData() {
     clientName: client?.name||'Client',
     clientAddr: document.getElementById('inv-client-addr').value,
     clientEmail: document.getElementById('inv-client-email').value,
+    clientTax: client?.tax||'',
     currency: cur,
     convertTo: convTo,
     convertRate: convRate,
@@ -2439,6 +2450,7 @@ function buildInvoiceHTML(d, forPDF) {
         <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:#111">${d.clientName}</div>
         ${d.clientAddr?`<div style="font-size:12px;color:#555;line-height:1.6">📍 ${d.clientAddr}</div>`:''}
         ${d.clientEmail?`<div style="font-size:12px;color:#555">✉️ ${d.clientEmail}</div>`:''}
+        ${d.clientTax?`<div style="font-size:12px;color:#555;font-weight:600;margin-top:2px">TRN: ${d.clientTax}</div>`:''}
       </div>
     </div>
     ${forPDF
@@ -2536,7 +2548,8 @@ function downloadInvoicePDF() {
   if (d.company.address) { doc.text(d.company.address.split('\n')[0],M,y); }
   if (d.clientAddr) doc.text(d.clientAddr,M+90,y); y+=4;
   if (d.company.tax) { doc.text('TRN: '+d.company.tax,M,y); }
-  if (d.clientEmail) doc.text(d.clientEmail,M+90,y); y+=8;
+  if (d.clientEmail) doc.text(d.clientEmail,M+90,y); y+=4;
+  if (d.clientTax) { doc.setFont('helvetica','bold'); doc.text('TRN: '+d.clientTax,M+90,y); doc.setFont('helvetica','normal'); } y+=6;
 
   // Table
   const isMilestone=(d.billingType==='milestone');
@@ -2945,6 +2958,7 @@ function openClientModal(idx) {
     document.getElementById('cl-currency').value=c.currency||'AED';
     document.getElementById('cl-conv-currency').value=c.convCurrency||'';
     document.getElementById('cl-vat').value=c.vat!==undefined?c.vat:5;
+    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value=c.tax||'';
     document.getElementById('cl-day-rate').value=c.dayRate||'';
     document.getElementById('cl-hour-rate').value=c.hourRate||'';
     document.getElementById('cl-fixed-rate').value=c.fixedRate||'';
@@ -2956,6 +2970,7 @@ function openClientModal(idx) {
     document.getElementById('cl-currency').value='AED';
     document.getElementById('cl-conv-currency').value='';
     document.getElementById('cl-vat').value=5;
+    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value='';
     document.getElementById('cl-employees').innerHTML='';
     renderClientServices([]);
   }
@@ -3143,6 +3158,7 @@ function saveClient() {
     currency:document.getElementById('cl-currency').value,
     convCurrency:document.getElementById('cl-conv-currency').value||'',
     vat:parseFloat(document.getElementById('cl-vat').value)||0,
+    tax:document.getElementById('cl-tax')?.value||'',
     dayRate:parseFloat(document.getElementById('cl-day-rate').value)||0,
     hourRate:parseFloat(document.getElementById('cl-hour-rate').value)||0,
     fixedRate:parseFloat(document.getElementById('cl-fixed-rate').value)||0,
