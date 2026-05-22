@@ -734,23 +734,66 @@ textarea{resize:vertical;min-height:72px}
 
 <!-- ─── TIMESHEETS ─── -->
 <div id="page-timesheets" class="page">
-  <div class="page-header">
-    <div class="page-title">Timesheet Console</div>
-    <div class="page-sub">Create and manage monthly timesheets per client</div>
+  <div class="page-header flex justify-between items-center">
+    <div>
+      <div class="page-title">Timesheets</div>
+      <div class="page-sub">Fill monthly timesheets → generate invoices</div>
+    </div>
+    <button class="btn btn-primary" onclick="openCreateTimesheet()">+ New Timesheet</button>
   </div>
-  <div class="card mb-16">
-    <div class="card-title">Create Monthly Timesheet</div>
-    <div class="form-grid mb-16">
-      <div class="form-group">
-        <label>Select Client</label>
-        <select id="ts-client" onchange="onTsClientChange()">
+
+  <!-- Filter bar -->
+  <div class="flex gap-8 mb-16" style="flex-wrap:wrap">
+    <select id="ts-filter-client" onchange="renderTimesheets()" style="width:auto;min-width:180px">
+      <option value="">All Clients</option>
+    </select>
+    <select id="ts-filter-month" onchange="renderTimesheets()" style="width:auto">
+      <option value="">All Months</option>
+      <option value="2026-04">April 2026</option>
+      <option value="2026-05">May 2026</option>
+      <option value="2026-06">June 2026</option>
+      <option value="2026-07">July 2026</option>
+      <option value="2026-08">August 2026</option>
+      <option value="2026-09">September 2026</option>
+      <option value="2026-10">October 2026</option>
+      <option value="2026-11">November 2026</option>
+      <option value="2026-12">December 2026</option>
+    </select>
+    <select id="ts-filter-status" onchange="renderTimesheets()" style="width:auto">
+      <option value="">All Status</option>
+      <option value="draft">Draft</option>
+      <option value="ready">Ready for Invoice</option>
+      <option value="invoiced">Invoiced</option>
+    </select>
+  </div>
+
+  <!-- Timesheet list -->
+  <div id="ts-list"></div>
+</div>
+
+<!-- ─── CREATE / EDIT TIMESHEET MODAL ─── -->
+<div class="modal-overlay" id="modal-timesheet">
+<div class="modal" style="max-width:1000px;width:96vw;max-height:90vh;overflow-y:auto">
+  <div class="modal-header" style="position:sticky;top:0;z-index:10;background:var(--g500);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-family:var(--font-display);font-size:17px;font-weight:800" id="ts-modal-title">New Timesheet</div>
+      <div style="font-size:12px;opacity:.8" id="ts-modal-subtitle">Fill in hours worked for this month</div>
+    </div>
+    <button class="modal-close" onclick="closeModal('modal-timesheet')" style="color:#fff;background:rgba(255,255,255,.2);border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px">✕</button>
+  </div>
+  <div style="padding:24px">
+    <!-- Header row: client/month/days -->
+    <div class="form-grid mb-16" id="ts-modal-meta" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px">
+      <div class="form-group" style="margin:0">
+        <label>Client</label>
+        <select id="ts-modal-client" onchange="onTsModalClientChange()" style="width:100%">
           <option value="">— Select Client —</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Month / Year</label>
-        <select id="ts-month">
-          <option value="">— Select Month —</option>
+      <div class="form-group" style="margin:0">
+        <label>Month</label>
+        <select id="ts-modal-month" style="width:100%">
+          <option value="">— Month —</option>
           <option value="2026-04">April 2026</option>
           <option value="2026-05">May 2026</option>
           <option value="2026-06">June 2026</option>
@@ -762,126 +805,82 @@ textarea{resize:vertical;min-height:72px}
           <option value="2026-12">December 2026</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Working Days in Month</label>
-        <input type="number" id="ts-working-days" value="22" />
+      <div class="form-group" style="margin:0">
+        <label>Total Working Days</label>
+        <input type="number" id="ts-modal-total-days" value="22" />
       </div>
-      <div class="form-group">
-        <label>Working Hours in Month</label>
-        <input type="number" id="ts-working-hours" value="176" />
+      <div class="form-group" style="margin:0">
+        <label>Total Working Hours</label>
+        <input type="number" id="ts-modal-total-hours" value="176" />
       </div>
     </div>
-    <div id="ts-employee-wrap" style="display:none">
-      <div class="card-title">Employees (auto-loaded from client)</div>
-      <div id="ts-employees-list"></div>
-      <div class="divider"></div>
-      <div class="flex gap-12">
-        <button class="btn btn-primary" onclick="createTimesheet()">✦ Create Timesheet</button>
-        <button class="btn btn-secondary" onclick="generateShareLink()">🔗 Generate Share Link</button>
+
+    <!-- Client info banner -->
+    <div id="ts-modal-client-info" style="display:none" class="info-box mb-16" style="font-size:12px"></div>
+
+    <!-- Simple entry table -->
+    <div id="ts-modal-simple">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-weight:700;font-size:14px" id="ts-modal-table-title">Resource Entries</div>
+        <button class="btn btn-secondary btn-sm" onclick="addTsModalRow()">+ Add Row</button>
       </div>
-      <div id="ts-share-link" class="info-box mt-12" style="display:none"></div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="ts-modal-table">
+          <thead id="ts-modal-thead"></thead>
+          <tbody id="ts-modal-tbody"></tbody>
+          <tfoot id="ts-modal-tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Calendar entry (for calendar mode) -->
+    <div id="ts-modal-calendar" style="display:none">
+      <div id="ts-modal-calendar-grid"></div>
     </div>
   </div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div class="card-title" style="margin:0">Timesheet Records</div>
-      <select id="ts-filter-client" onchange="renderTimesheets()" style="width:auto">
-        <option value="">All Clients</option>
-      </select>
+  <div style="padding:16px 24px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:10px;justify-content:space-between;position:sticky;bottom:0">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="saveTsModal('draft')">💾 Save Draft</button>
+      <button class="btn btn-primary" onclick="saveTsModal('ready')">✅ Mark Ready for Invoice</button>
     </div>
-    <div id="ts-list"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="color:#16a34a;border-color:#86efac" onclick="tsModalToInvoice()">→ Generate Invoice</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-timesheet')">Cancel</button>
+    </div>
   </div>
+</div>
 </div>
 
 <!-- ─── TMS PAGE ─── -->
 <div id="page-tms" class="page">
   <div class="page-header flex justify-between items-center">
     <div>
-      <div class="page-title">Timesheet Management System</div>
-      <div class="page-sub">Client-based tracking · Email sharing · Submission monitoring · Invoice readiness</div>
+      <div class="page-title">Invoice Readiness</div>
+      <div class="page-sub">Monthly overview · Mark timesheets ready · Generate invoices</div>
     </div>
     <div class="flex gap-8">
-      <button class="btn btn-secondary" onclick="tmsRefresh()">↻ Refresh</button>
-      <button class="btn btn-secondary" onclick="purgeSampleData()" style="color:#d97706;border-color:#fcd34d" title="Remove ABC and other sample/test data">🧹 Clear Sample Data</button>
-      <button class="btn btn-primary" onclick="openTmsCreate()">+ New Period</button>
+      <select id="tms-month-filter" onchange="renderTmsClients()" style="width:auto;min-width:160px">
+        <option value="">All Months</option>
+        <option value="2026-04">April 2026</option>
+        <option value="2026-05">May 2026</option>
+        <option value="2026-06">June 2026</option>
+        <option value="2026-07">July 2026</option>
+        <option value="2026-08">August 2026</option>
+        <option value="2026-09">September 2026</option>
+        <option value="2026-10">October 2026</option>
+        <option value="2026-11">November 2026</option>
+        <option value="2026-12">December 2026</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" onclick="tmsRefresh()">↻ Refresh</button>
     </div>
   </div>
 
-  <!-- TMS KPIs -->
+  <!-- KPI Cards -->
   <div class="card-grid grid-4 mb-16" id="tms-kpis"></div>
 
-  <!-- TMS Tabs -->
-  <div class="tms-tabs">
-    <div class="tms-tab active" data-tms-tab="overview">📊 Overview</div>
-    <div class="tms-tab" data-tms-tab="clients">🏢 Client Timesheets</div>
-  <div class="tms-tab" data-tms-tab="export">⬇ Export</div>
-  </div>
-
-  <!-- Overview Tab -->
-  <div class="tms-pane active" id="tms-tab-overview">
-    <div class="card-grid grid-2 mb-16">
-      <div class="card">
-        <div class="card-title">Submission Progress</div>
-        <canvas id="tms-chart-progress" height="180"></canvas>
-      </div>
-      <div class="card">
-        <div class="card-title">Monthly Activity</div>
-        <canvas id="tms-chart-monthly" height="180"></canvas>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Recent Activity</div>
-      <div id="tms-activity-feed"></div>
-    </div>
-  </div>
-
-  <!-- Client Timesheets Tab -->
-  <div class="tms-pane" id="tms-tab-clients">
-    <div class="flex gap-8 mb-16">
-      <select id="tms-filter-month" onchange="renderTmsClients()" style="width:auto">
-        <option value="">All Months</option>
-      </select>
-      <input type="text" id="tms-search" placeholder="Search client or employee…" oninput="renderTmsClients()" style="max-width:240px" />
-    </div>
-    <div id="tms-clients-list"></div>
-  </div>
-
-  <!-- Export Tab -->
-  <div class="tms-pane" id="tms-tab-export">
-    <div class="card-grid grid-2 mb-16">
-      <div class="card">
-        <div class="card-title">Export Options</div>
-        <div class="form-group mb-12">
-          <label>Select Client</label>
-          <select id="export-client" style="width:100%">
-            <option value="">All Clients</option>
-          </select>
-        </div>
-        <div class="form-group mb-12">
-          <label>Select Month</label>
-          <select id="export-month" style="width:100%">
-            <option value="">All Months</option>
-          </select>
-        </div>
-        <div class="form-group mb-16">
-          <label>Format</label>
-          <select id="export-format" style="width:100%">
-            <option value="csv">CSV (Excel-compatible)</option>
-            <option value="pdf-summary">PDF Summary</option>
-            <option value="pdf-detail">PDF Detailed</option>
-            <option value="json">JSON (raw data)</option>
-          </select>
-        </div>
-        <button class="btn btn-primary w-full" onclick="exportTimesheets()">⬇ Export Now</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Invoice Readiness</div>
-        <div id="tms-invoice-ready"></div>
-      </div>
-    </div>
-  </div>
+  <!-- Readiness List -->
+  <div id="tms-clients-list"></div>
 </div>
-
 <!-- ─── CLIENTS ─── -->
 <div id="page-clients" class="page">
   <div class="page-header">
@@ -1292,47 +1291,81 @@ textarea{resize:vertical;min-height:72px}
           </div>
         </div>
       </div>
+
+      <!-- Smart Settings Row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Client Type</label>
+          <select id="cl-client-type" onchange="onClientTypeChange()"
+            style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:var(--white)"
+            onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">
+            <option value="resource">👤 Resource-based (has employees)</option>
+            <option value="description">📝 Description-based (services only)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Invoice Type</label>
+          <select id="cl-invoice-type"
+            style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:var(--white)"
+            onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">
+            <option value="mixed">🔀 Mixed (Offshore Hourly + Onsite Day)</option>
+            <option value="day">📅 Day Rate</option>
+            <option value="hour">⏱ Hourly Rate</option>
+            <option value="fixed">📌 Fixed Monthly (Prorated)</option>
+            <option value="unit">💲 Unit Price</option>
+            <option value="milestone">⬡ Milestone</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Entry Mode</label>
+          <select id="cl-entry-mode"
+            style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:var(--white)"
+            onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">
+            <option value="simple">📋 Simple (total entry per person)</option>
+            <option value="calendar">📆 Calendar (fill day by day)</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Invoice Section Header <span style="font-weight:400">(e.g. "SAP Services:" or "Onsite & Offshore Resources:")</span></label>
+        <input type="text" id="cl-section-header" placeholder="e.g. SAP Services:"
+          style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:var(--white)"
+          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
     </div>
 
-    <!-- ── SECTION 3: Employees & Resources ── -->
-    <div>
+    <!-- ── SECTION 3: Resources / Employees ── -->
+    <div id="cl-section-resources">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">👥</div>
-        <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px">Associated Employees</span>
+        <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px" id="cl-section3-label">Employees / Resources</span>
         <div style="flex:1;height:1px;background:var(--border)"></div>
-        <button class="btn btn-primary btn-sm" onclick="addEmployeeRow()" style="flex-shrink:0">
-          + Add Employee
-        </button>
+        <button class="btn btn-primary btn-sm" onclick="addEmployeeRow()" style="flex-shrink:0">+ Add Employee</button>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:9px 14px;background:var(--g50);border:1px solid var(--g100);border-radius:8px;font-size:12px;color:var(--g700)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:9px 14px;background:var(--g50);border:1px solid var(--g100);border-radius:8px">
         💡 All rates in <strong class="cl-cur-sym-label">AED</strong>. Each employee auto-loads in timesheets and invoices.
       </div>
-      <div id="cl-employees" style="display:flex;flex-direction:column;gap:12px"></div>
-      <div style="margin-top:12px;padding:10px 14px;border:1px dashed var(--border2);border-radius:8px;font-size:12px;color:var(--muted);text-align:center">
-        👤 Employees auto-load in timesheets and invoices when this client is selected.
-      </div>
+      <div id="cl-employees" style="display:flex;flex-direction:column;gap:10px"></div>
     </div>
 
-    <!-- ── SECTION 4: Services / Resources ── -->
-    <div style="margin-top:24px">
+    <!-- ── SECTION 4: Services (Description-based clients) ── -->
+    <div id="cl-section-services" style="display:none">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">📋</div>
-        <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px">Services / Resources</span>
+        <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px">Service Descriptions</span>
         <div style="flex:1;height:1px;background:var(--border)"></div>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
-        Add consulting services, roles or descriptions specific to this client. These appear as suggestions in invoice rows.
+        Add the service descriptions for this client. These appear as rows in the timesheet and invoice.
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
-        <input type="text" id="cl-new-service" placeholder="e.g. IT Consulting, Software Development…"
-          onkeydown="if(event.key==='Enter'){addClientService();}"
+        <input type="text" id="cl-new-service" placeholder="e.g. SAP Consulting, IT Support…"
+          onkeydown="if(event.key==='Enter')addClientService()"
           style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none"
           onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
         <button onclick="addClientService()" class="btn btn-primary btn-sm">+ Add</button>
       </div>
-      <div id="cl-services" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px">
-        <!-- rendered by JS -->
-      </div>
+      <div id="cl-services" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px"></div>
     </div>
 
   </div><!-- end scroll area -->
@@ -1808,6 +1841,296 @@ function confirmClearAll() {
   renderHistory();
   renderDashboard();
   showNotif('All data cleared ✓');
+}
+
+
+function onClientTypeChange() {
+  const type = document.getElementById('cl-client-type')?.value||'resource';
+  const empSection = document.getElementById('cl-section-resources');
+  const svcSection = document.getElementById('cl-section-services');
+  const label      = document.getElementById('cl-section3-label');
+  if (type === 'description') {
+    if (empSection) empSection.style.display = 'none';
+    if (svcSection) svcSection.style.display = 'block';
+    if (label) label.textContent = 'Service Descriptions';
+  } else {
+    if (empSection) empSection.style.display = 'block';
+    if (svcSection) svcSection.style.display = 'none';
+    if (label) label.textContent = 'Employees / Resources';
+  }
+}
+
+function renderClients() {
+  const grid = document.getElementById('client-grid');
+  if (!grid) return;
+  if (!state.clients.length) {
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏢</div>
+      <div class="empty-text">No clients yet</div>
+      <div class="text-muted">Add your first client to get started</div></div>`;
+    return;
+  }
+  const color = state.settings.template?.color||'#29963a';
+  const invTypeLabels = {mixed:'🔀 Mixed',day:'📅 Day Rate',hour:'⏱ Hourly',fixed:'📌 Fixed Monthly',unit:'💲 Unit Price',milestone:'⬡ Milestone'};
+  grid.innerHTML = state.clients.map((c,i) => {
+    const sym = invSym(c.currency||'AED');
+    const empCount = (c.employees||[]).length;
+    const svcCount = (c.services||[]).length;
+    return `<div class="client-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div class="client-name">${c.name}</div>
+        <span class="badge ${c.currency==='AED'?'badge-green':c.currency==='USD'?'badge-blue':'badge-purple'}">${c.currency||'AED'}</span>
+      </div>
+      ${c.contact?`<div class="client-detail">👤 ${c.contact}</div>`:''}
+      ${c.email?`<div class="client-detail">✉️ ${c.email}</div>`:''}
+      <div class="client-detail" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        ${invTypeLabels[c.invoiceType]||'🔀 Mixed'} &nbsp;·&nbsp;
+        ${c.clientType==='description'?'📝 Desc-based':'👤 Resource-based'} &nbsp;·&nbsp;
+        ${c.entryMode==='calendar'?'📆 Calendar':'📋 Simple'}
+      </div>
+      ${c.sectionHeader?`<div class="client-detail" style="color:${color};font-weight:600;font-style:italic">"${c.sectionHeader}"</div>`:''}
+      <div class="client-detail">
+        ${c.dayRate?`📅 ${sym}${fmt(c.dayRate)}/day`:''}
+        ${c.hourRate?` &nbsp; ⏱ ${sym}${fmt(c.hourRate)}/hr`:''}
+        ${c.fixedRate?` &nbsp; 📌 ${sym}${fmt(c.fixedRate)}/mo`:''}
+      </div>
+      <div class="client-detail">VAT: ${c.vat||0}% · ${empCount?`${empCount} employee(s)`:svcCount?`${svcCount} service(s)`:'No entries'}</div>
+      ${c.convCurrency?`<div class="client-detail">💱 → ${c.convCurrency}</div>`:''}
+      <div class="flex gap-8 mt-12">
+        <button class="btn btn-secondary btn-xs" onclick="openClientModal(${i})">✏️ Edit</button>
+        <button class="btn btn-primary btn-xs" onclick="quickCreateTs(${i})">+ Timesheet</button>
+        <button class="btn btn-danger btn-xs" onclick="showConfirmDelete(${i},'${c.name.replace(/'/g,"\\'")}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function quickCreateTs(clientIdx) {
+  nav('timesheets');
+  setTimeout(()=>{
+    openCreateTimesheet();
+    const sel = document.getElementById('ts-modal-client');
+    if (sel) { sel.value=String(clientIdx); onTsModalClientChange(); }
+  }, 200);
+}
+
+
+function openClientModal(idx) {
+  editingClientIdx = idx!==undefined?idx:null;
+  const isEdit = idx!==undefined;
+  document.getElementById('client-modal-title').textContent = isEdit?'Edit Client':'Add Client';
+  if (isEdit) {
+    const c=state.clients[idx];
+    document.getElementById('cl-name').value=c.name||'';
+    document.getElementById('cl-contact').value=c.contact||'';
+    document.getElementById('cl-email').value=c.email||'';
+    document.getElementById('cl-address').value=c.address||'';
+    document.getElementById('cl-currency').value=c.currency||'AED';
+    document.getElementById('cl-conv-currency').value=c.convCurrency||'';
+    document.getElementById('cl-vat').value=c.vat!==undefined?c.vat:5;
+    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value=c.tax||'';
+    if(document.getElementById('cl-client-type')){ document.getElementById('cl-client-type').value=c.clientType||'resource'; }
+    if(document.getElementById('cl-invoice-type')){ document.getElementById('cl-invoice-type').value=c.invoiceType||'mixed'; }
+    if(document.getElementById('cl-entry-mode')){ document.getElementById('cl-entry-mode').value=c.entryMode||'simple'; }
+    if(document.getElementById('cl-section-header')){ document.getElementById('cl-section-header').value=c.sectionHeader||''; }
+    onClientTypeChange();
+    document.getElementById('cl-day-rate').value=c.dayRate||'';
+    document.getElementById('cl-hour-rate').value=c.hourRate||'';
+    document.getElementById('cl-fixed-rate').value=c.fixedRate||'';
+    document.getElementById('cl-employees').innerHTML='';
+    (c.employees||[]).forEach(e=>addEmployeeRow(e));
+    renderClientServices(c.services||[]);
+  } else {
+    ['cl-name','cl-contact','cl-email','cl-address','cl-day-rate','cl-hour-rate','cl-fixed-rate'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('cl-currency').value='AED';
+    document.getElementById('cl-conv-currency').value='';
+    document.getElementById('cl-vat').value=5;
+    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value='';
+    if(document.getElementById('cl-client-type')) document.getElementById('cl-client-type').value='resource';
+    if(document.getElementById('cl-invoice-type')) document.getElementById('cl-invoice-type').value='mixed';
+    if(document.getElementById('cl-entry-mode')) document.getElementById('cl-entry-mode').value='simple';
+    if(document.getElementById('cl-section-header')) document.getElementById('cl-section-header').value='';
+    onClientTypeChange();
+    document.getElementById('cl-employees').innerHTML='';
+    renderClientServices([]);
+  }
+  openModal('modal-client');
+}
+
+function addEmployeeRow(emp) {
+  const container = document.getElementById('cl-employees');
+  const n = container.querySelectorAll('.emp-card').length + 1;
+  const cur = document.getElementById('cl-currency')?.value || 'AED';
+  const sym = cur === 'USD' ? '$' : cur === 'GBP' ? '£' : 'AED';
+  const card = document.createElement('div');
+  card.className = 'emp-card';
+  card.style.cssText = 'background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;position:relative;transition:border-color .2s';
+  card.innerHTML = `
+    <div style="display:grid;grid-template-columns:36px 1fr 140px 120px 120px 120px auto;gap:10px;align-items:center">
+      <!-- # -->
+      <div class="emp-avatar" style="width:30px;height:30px;background:var(--g50);border:2px solid var(--g100);border-radius:7px;
+        display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:13px;color:var(--g600)">${n}</div>
+
+      <!-- Name -->
+      <div>
+        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Resource Name</label>
+        <input type="text" class="emp-name" value="${emp?.name||''}" placeholder="e.g. John Smith"
+          oninput="this.closest('.emp-card').querySelector('.emp-label') && (this.closest('.emp-card').querySelector('.emp-label').textContent=this.value)"
+          style="width:100%;font-size:13px;font-weight:600;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;outline:none"
+          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+
+      <!-- Type -->
+      <div>
+        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Type</label>
+        <select class="emp-type" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;background:var(--white)"
+          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">
+          <option ${emp?.type==='Offshore'||!emp?.type?'selected':''}>Offshore</option>
+          <option ${emp?.type==='Onsite'?'selected':''}>Onsite</option>
+        </select>
+      </div>
+
+      <!-- Day Rate -->
+      <div>
+        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Day Rate (${sym})</label>
+        <input type="number" class="emp-day" value="${emp?.dayRate||''}" placeholder="0"
+          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;font-family:var(--font-mono)"
+          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+
+      <!-- Hourly Rate -->
+      <div>
+        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Hourly Rate (${sym})</label>
+        <input type="number" class="emp-hour" value="${emp?.hourRate||''}" placeholder="0"
+          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;font-family:var(--font-mono)"
+          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+
+      <!-- Fixed/Month (hidden but kept for data compat) -->
+      <div>
+        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Fixed/Month (${sym})</label>
+        <input type="number" class="emp-fixed" value="${emp?.fixedRate||''}" placeholder="0"
+          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;font-family:var(--font-mono)"
+          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+
+      <!-- Remove -->
+      <button onclick="this.closest('.emp-card').remove();renumberEmpCards()"
+        style="background:#fff1f0;border:1px solid #fdd;color:var(--red);padding:7px 10px;border-radius:7px;cursor:pointer;font-size:18px;line-height:1;align-self:flex-end;margin-top:18px"
+        title="Remove">✕</button>
+    </div>`;
+  container.appendChild(card);
+  if (emp?.name) { const lbl = card.querySelector('.emp-label'); if(lbl) lbl.textContent = emp.name; }
+}
+
+function addClientService() {
+  const input = document.getElementById('cl-new-service');
+  const val = input?.value?.trim();
+  if (!val) return;
+  const existing = document.querySelectorAll('#cl-services .service-chip');
+  const names = Array.from(existing).map(c=>c.dataset.name);
+  if (names.includes(val)) { showNotif('Already in list','error'); return; }
+  const chip = document.createElement('span');
+  chip.dataset.name = val;
+  chip.className = 'service-chip';
+  chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;cursor:default';
+  chip.innerHTML = `${val} <button onclick="this.closest('.service-chip').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 1px">×</button>`;
+  document.getElementById('cl-services').appendChild(chip);
+  if (input) input.value = '';
+}
+
+function renderClientServices(services) {
+  const el = document.getElementById('cl-services');
+  if (!el) return;
+  el.innerHTML = '';
+  (services||[]).forEach(s => {
+    const chip = document.createElement('span');
+    chip.dataset.name = s;
+    chip.className = 'service-chip';
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;cursor:default';
+    chip.innerHTML = `${s} <button onclick="this.closest('.service-chip').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 1px">×</button>`;
+    el.appendChild(chip);
+  });
+}
+
+function getClientServices() {
+  return Array.from(document.querySelectorAll('#cl-services .service-chip')).map(c=>c.dataset.name).filter(Boolean);
+}
+
+function renumberEmpCards() {
+  document.querySelectorAll('#cl-employees .emp-card').forEach((card, i) => {
+    const avatar = card.querySelector('.emp-avatar');
+    if (avatar) avatar.textContent = i + 1;
+    const label = card.querySelector('.emp-label');
+    const nameVal = card.querySelector('.emp-name')?.value;
+    if (label && !nameVal) label.textContent = `Employee ${i+1}`;
+  });
+}
+
+function updateClCurrSyms() {
+  const cur = document.getElementById('cl-currency').value;
+  const sym = cur==='USD'?'$':cur==='GBP'?'£':'AED';
+  // Update header labels
+  document.querySelectorAll('.cl-cur-sym').forEach(el=>el.textContent=cur);
+  // Update context pill
+  const pill = document.querySelector('.cl-cur-sym-label');
+  if (pill) pill.textContent = cur;
+  // Rebuild all existing employee cards with new currency symbols
+  const cards = document.querySelectorAll('#cl-employees .emp-card');
+  if (!cards.length) return;
+  // Collect current values
+  const empData = Array.from(cards).map(card=>({
+    name: card.querySelector('.emp-name')?.value||'',
+    type: card.querySelector('.emp-type')?.value||'Offshore',
+    rateType: card.querySelector('.emp-rate-type')?.value||'day',
+    dayRate: card.querySelector('.emp-day')?.value||'',
+    hourRate: card.querySelector('.emp-hour')?.value||'',
+    fixedRate: card.querySelector('.emp-fixed')?.value||''
+  }));
+  document.getElementById('cl-employees').innerHTML = '';
+  empData.forEach(e => addEmployeeRow({
+    name:e.name, type:e.type, rateType:e.rateType,
+    dayRate:parseFloat(e.dayRate)||0, hourRate:parseFloat(e.hourRate)||0, fixedRate:parseFloat(e.fixedRate)||0
+  }));
+}
+
+function saveClient() {
+  const name=document.getElementById('cl-name').value.trim();
+  if(!name) return showNotif('Enter company name','error');
+  const emps=[];
+  document.querySelectorAll('#cl-employees .emp-card').forEach(card=>{
+    const n=card.querySelector('.emp-name')?.value.trim();
+    if(!n)return;
+    emps.push({
+      name:n,
+      type:card.querySelector('.emp-type')?.value||'Offshore',
+      rateType:card.querySelector('.emp-rate-type')?.value||'day',
+      dayRate:parseFloat(card.querySelector('.emp-day')?.value)||0,
+      hourRate:parseFloat(card.querySelector('.emp-hour')?.value)||0,
+      fixedRate:parseFloat(card.querySelector('.emp-fixed')?.value)||0
+    });
+  });
+  const c={
+    name, contact:document.getElementById('cl-contact').value,
+    email:document.getElementById('cl-email').value,
+    address:document.getElementById('cl-address').value,
+    currency:document.getElementById('cl-currency').value,
+    convCurrency:document.getElementById('cl-conv-currency').value||'',
+    vat:parseFloat(document.getElementById('cl-vat').value)||0,
+    tax:document.getElementById('cl-tax')?.value||'',
+    clientType:document.getElementById('cl-client-type')?.value||'resource',
+    invoiceType:document.getElementById('cl-invoice-type')?.value||'mixed',
+    entryMode:document.getElementById('cl-entry-mode')?.value||'simple',
+    sectionHeader:document.getElementById('cl-section-header')?.value||'',
+    dayRate:parseFloat(document.getElementById('cl-day-rate').value)||0,
+    hourRate:parseFloat(document.getElementById('cl-hour-rate').value)||0,
+    fixedRate:parseFloat(document.getElementById('cl-fixed-rate').value)||0,
+    employees:emps,
+    services:getClientServices()
+  };
+  if(editingClientIdx!==null) state.clients[editingClientIdx]=c;
+  else state.clients.push(c);
+  saveState(); closeModal('modal-client'); renderClients();
+  showNotif('Client saved ✓');
 }
 
 // ═══════════════════════════════
@@ -2694,1487 +3017,646 @@ function openSendModal() {
 // ═══════════════════════════════
 // TIMESHEETS
 // ═══════════════════════════════
+
+let _editingTsId = null; // null = new, string = editing
+
 function initTimesheets() {
-  const sel = document.getElementById('ts-client');
-  sel.innerHTML = '<option value="">— Select Client —</option>'+
-    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  // Populate client filter
   const tf = document.getElementById('ts-filter-client');
-  tf.innerHTML = '<option value="">All Clients</option>'+
-    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
-  const now = new Date();
-  // Pre-select current month if available in dropdown
-  const tsMonthSel = document.getElementById('ts-month');
-  const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  if (tsMonthSel && [...tsMonthSel.options].some(o=>o.value===curMonth)) {
-    tsMonthSel.value = curMonth;
-  } else if (tsMonthSel && tsMonthSel.options.length > 1) {
-    tsMonthSel.selectedIndex = 1; // default to first available month
+  if (tf) {
+    tf.innerHTML = '<option value="">All Clients</option>'+
+      state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  }
+  // Auto-select current month in filter
+  const mf = document.getElementById('ts-filter-month');
+  if (mf) {
+    const now = new Date();
+    const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    if ([...mf.options].some(o=>o.value===cur)) mf.value = cur;
   }
   renderTimesheets();
 }
-
-function onTsClientChange() {
-  const idx = document.getElementById('ts-client').value;
-  if (idx==='') { document.getElementById('ts-employee-wrap').style.display='none'; return; }
-  const c = state.clients[idx];
-  const emps = c.employees||[];
-  if (!emps.length) {
-    document.getElementById('ts-employee-wrap').style.display='block';
-    document.getElementById('ts-employees-list').innerHTML='<div class="warn-box">No employees found for this client. Add them in Clients → Edit.</div>';
-    return;
-  }
-  document.getElementById('ts-employee-wrap').style.display='block';
-  document.getElementById('ts-employees-list').innerHTML = `
-    <table class="data-table mb-12">
-      <thead><tr><th>#</th><th>Employee</th><th>Type</th><th>Rate Type</th><th>Rate (${c.currency||'AED'})</th><th>Timesheet Type</th></tr></thead>
-      <tbody>${emps.map((e,i)=>`<tr>
-        <td>${i+1}</td>
-        <td><strong>${e.name}</strong></td>
-        <td>${e.type||'Offshore'}</td>
-        <td>${e.rateType==='hour'?'Hourly':e.rateType==='fixed'?'Fixed Monthly':'Day Rate'}</td>
-        <td class="mono">${c.currency==='USD'?'$':c.currency==='GBP'?'£':'AED '} ${e.rateType==='hour'?fmt(e.hourRate||0):e.rateType==='fixed'?fmt(e.fixedRate||0):fmt(e.dayRate||0)}</td>
-        <td><span class="badge ${e.rateType==='hour'?'badge-blue':e.rateType==='fixed'?'badge-purple':'badge-green'}">${e.rateType==='hour'?'Hourly Timesheet':e.rateType==='fixed'?'Fixed Monthly':'Daily Timesheet'}</span></td>
-      </tr>`).join('')}</tbody>
-    </table>`;
-}
-
-function createTimesheet() {
-  const clientIdx = document.getElementById('ts-client').value;
-  if (!clientIdx) return showNotif('Select a client first','error');
-  const month = document.getElementById('ts-month').value;
-  if (!month) return showNotif('Select a month','error');
-  const c = state.clients[clientIdx];
-  if (!c) return showNotif('Client not found','error');
-  const existing = state.timesheets.find(t=>t.clientName===c.name&&t.month===month);
-  if (existing) return showNotif('Timesheet already exists for this client/month','error');
-  const workDays = parseInt(document.getElementById('ts-working-days').value)||22;
-  const workHours = parseInt(document.getElementById('ts-working-hours').value)||176;
-  const emps = (c.employees||[]).map(e=>({
-    id:uid(), name:e.name, type:e.type||'Offshore', rateType:e.rateType||'day',
-    dayRate:e.dayRate||0, hourRate:e.hourRate||0, fixedRate:e.fixedRate||0,
-    worked:0, amount:0, submitted:false, submittedAt:null, entries:null
-  }));
-  emps.forEach(e=>ensureEntries(e,getDaysInMonth(month)));
-  const ts = {
-    id:uid(), clientName:c.name, currency:c.currency||'AED',
-    month, workDays, workHours, employees:emps, status:'draft', createdAt:today(), sentAt:null, total:0
-  };
-  state.timesheets.push(ts);
-  saveState();
-  renderTimesheets();
-  showNotif(`Timesheet created for ${c.name} — ${monthLabel(month)} ✓`);
-}
-
 
 function renderTimesheets() {
-  const filterIdx = document.getElementById('ts-filter-client').value;
-  const filterName = filterIdx ? state.clients[parseInt(filterIdx)]?.name : '';
-  let items = state.timesheets;
-  if (filterName) items = items.filter(t=>t.clientName===filterName);
+  const filterClient = document.getElementById('ts-filter-client')?.value||'';
+  const filterMonth  = document.getElementById('ts-filter-month')?.value||'';
+  const filterStatus = document.getElementById('ts-filter-status')?.value||'';
   const el = document.getElementById('ts-list');
+  if (!el) return;
+
+  let items = state.timesheets.slice();
+  if (filterClient) { const cn=state.clients[parseInt(filterClient)]?.name; if(cn) items=items.filter(t=>t.clientName===cn); }
+  if (filterMonth)  items = items.filter(t=>t.month===filterMonth);
+  if (filterStatus) items = items.filter(t=>t.status===filterStatus);
+  items.sort((a,b)=>b.month.localeCompare(a.month)||a.clientName.localeCompare(b.clientName));
+
   if (!items.length) {
-    el.innerHTML='<div class="empty-state"><div class="empty-icon">⏱</div><div class="empty-text">No timesheets yet</div><div class="text-muted">Select a client and create a timesheet above</div></div>';
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div>
+      <div class="empty-text">No timesheets yet</div>
+      <div class="text-muted">Click "+ New Timesheet" to get started</div>
+      <button class="btn btn-primary mt-12" onclick="openCreateTimesheet()">+ New Timesheet</button>
+    </div>`;
     return;
   }
-  el.innerHTML = items.slice().reverse().map(ts=>`
-    <div class="ts-card">
-      <div>
-        <div class="ts-month">${monthLabel(ts.month)} · ${ts.clientName}</div>
-        <div class="ts-client">${ts.employees.length} employees · ${ts.currency} ${fmt(ts.total)}</div>
-        <div class="ts-client" style="margin-top:4px">Created: ${ts.createdAt}</div>
+
+  const color = state.settings.template?.color||'#29963a';
+  el.innerHTML = items.map(ts => {
+    const c = state.clients.find(cl=>cl.name===ts.clientName);
+    const sym = invSym(ts.currency||'AED');
+    const total = ts.rows?.reduce((s,r)=>s+(r.total||0),0)||0;
+    const statusColors = {draft:'#6b7280',ready:'#16a34a',invoiced:'#0284c7'};
+    const statusLabels = {draft:'📝 Draft',ready:'✅ Ready',invoiced:'🧾 Invoiced'};
+    const sc = statusColors[ts.status]||'#6b7280';
+    const rowCount = ts.rows?.length||0;
+
+    return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:42px;height:42px;background:${color};border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px">${ts.clientName.charAt(0)}</div>
+          <div>
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">${ts.clientName}</div>
+            <div style="font-size:12px;color:var(--muted)">${monthLabel(ts.month)} · ${rowCount} row(s) · ${c?.invoiceType||'—'} · ${c?.entryMode||'simple'} mode</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="text-align:right">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Total</div>
+            <div style="font-family:var(--font-mono);font-size:16px;font-weight:800;color:${color}">${sym}${fmt(total)}</div>
+          </div>
+          <span style="background:${sc}18;color:${sc};border:1px solid ${sc}40;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${statusLabels[ts.status]||ts.status}</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="openEditTimesheet('${ts.id}')">✏️ Edit</button>
+            <button class="btn btn-primary btn-sm" onclick="tsToInvoice('${ts.id}')">→ Invoice</button>
+            <button class="btn btn-danger btn-xs" onclick="deleteTimesheet('${ts.id}')" title="Delete">🗑</button>
+          </div>
+        </div>
       </div>
-      <div class="ts-info">
-        <span class="badge ${ts.status==='approved'?'badge-green':ts.status==='submitted'?'badge-blue':ts.status==='sent'?'badge-amber':'badge-gray'}">${ts.status}</span>
-        <button class="btn btn-secondary btn-sm" onclick="openTimesheetView('${ts.id}')">Edit / View</button>
-        <button class="btn btn-primary btn-sm" onclick="createInvoiceFromTS('${ts.id}')">→ Invoice</button>
-        <button class="btn btn-danger btn-xs" onclick="deleteTs('${ts.id}')">✕</button>
-      </div>
-    </div>`).join('');
+      ${ts.rows?.length ? `<div style="overflow-x:auto"><table class="data-table" style="margin:0">
+        <thead><tr style="font-size:10px">${buildTsRowHeaders(c)}</tr></thead>
+        <tbody>${ts.rows.map((r,i)=>buildTsRowDisplay(r, ts, c, i)).join('')}</tbody>
+      </table></div>` : ''}
+    </div>`;
+  }).join('');
 }
 
-function openTimesheetView(tsId) {
-  const ts = state.timesheets.find(t=>t.id===tsId);
-  if (!ts) return;
-  document.getElementById('ts-view-title').textContent = `${ts.clientName} — ${monthLabel(ts.month)}`;
-  const locked = ts.status==='submitted'||ts.status==='approved';
-  document.getElementById('ts-view-content').innerHTML = `
-    <div class="info-box mb-12">Working Days: <strong>${ts.workDays}</strong> · Working Hours: <strong>${ts.workHours}</strong> · Currency: <strong>${ts.currency}</strong></div>
-    <table class="data-table">
-      <thead><tr><th>#</th><th>Employee</th><th>Type</th><th>Rate Type</th><th>Worked (Days/Hours)</th><th>Rate</th><th>Amount</th></tr></thead>
-      <tbody>${ts.employees.map((e,i)=>{
-        const rateDisp = e.rateType==='hour'?fmt(e.hourRate):e.rateType==='fixed'?fmt(e.fixedRate):fmt(e.dayRate);
-        const worked = e.worked||0;
-        const rate = e.rateType==='hour'?e.hourRate:e.rateType==='fixed'?e.fixedRate:e.dayRate;
-        const max = e.rateType==='hour'?ts.workHours:ts.workDays;
-        const amt = e.rateType==='fixed' ? (max>0?rate*worked/max:0) : worked*rate;
-        return `<tr>
-          <td>${i+1}</td><td><strong>${e.name}</strong></td><td>${e.type}</td>
-          <td><span class="badge ${e.rateType==='hour'?'badge-blue':e.rateType==='fixed'?'badge-purple':'badge-green'}">${e.rateType==='hour'?'Hourly':e.rateType==='fixed'?'Fixed':'Daily'}</span></td>
-          <td>${locked?`<strong>${worked}</strong>`:
-            `<input type="number" value="${worked}" min="0" max="${max}" onchange="updateTsWorked('${tsId}','${e.id}',parseFloat(this.value)||0)" style="width:80px" />`}</td>
-          <td class="mono">${ts.currency==='USD'?'$':ts.currency==='GBP'?'£':'AED '} ${rateDisp}</td>
-          <td class="mono" id="ts-amt-${e.id}"><strong>${fmt(amt)}</strong></td>
-        </tr>`;
-      }).join('')}</tbody>
-      <tfoot><tr>
-        <td colspan="6" style="text-align:right;padding:12px;font-weight:700;color:var(--g500)">Total</td>
-        <td class="mono" id="ts-view-total" style="font-weight:800;color:var(--g500)">${ts.currency} ${fmt(ts.total)}</td>
-      </tr></tfoot>
-    </table>`;
-  document.getElementById('ts-view-footer').innerHTML = locked ?
-    `<span class="badge badge-green">Submitted — locked</span>
-     <button class="btn btn-secondary" onclick="closeModal('modal-ts-view')">Close</button>` :
-    `<button class="btn btn-secondary" onclick="closeModal('modal-ts-view')">Close</button>
-     <button class="btn btn-secondary" onclick="saveTsDraft('${tsId}')">💾 Save Draft</button>
-     <button class="btn btn-primary" onclick="submitTs('${tsId}')">✔ Submit & Lock</button>`;
-  openModal('modal-ts-view');
+function buildTsRowHeaders(c) {
+  const invType = c?.invoiceType||'mixed';
+  const color = state.settings.template?.color||'#29963a';
+  const th = txt => `<th style="background:${color}18;color:var(--g600);padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.7px">${txt}</th>`;
+  if (invType==='day')    return [th('Name'),th('Type'),th('Days Worked'),th('Day Rate'),th('Total')].join('');
+  if (invType==='hour')   return [th('Description'),th('Type'),th('Total Hrs'),th('Hrs Worked'),th('Hourly Rate'),th('Total')].join('');
+  if (invType==='fixed')  return [th('Name'),th('Type'),th('Total Days'),th('Days Worked'),th('Monthly Rate'),th('Total')].join('');
+  if (invType==='unit')   return [th('Description'),th('Unit Price'),th('VAT%'),th('Total')].join('');
+  if (invType==='mixed')  return [th('Description'),th('Type'),th('Days'),th('Hours'),th('Rate'),th('Total')].join('');
+  return th('Description')+th('Total');
 }
 
-function updateTsWorked(tsId, empId, val) {
-  const ts = state.timesheets.find(t=>t.id===tsId);
-  if (!ts) return;
-  const e = ts.employees.find(e=>e.id===empId);
-  if (!e) return;
-  e.worked = val;
-  const rate = e.rateType==='hour'?e.hourRate:e.rateType==='fixed'?e.fixedRate:e.dayRate;
-  const max = e.rateType==='hour'?ts.workHours:ts.workDays;
-  e.amount = e.rateType==='fixed' ? (max>0?rate*val/max:0) : val*rate;
-  ts.total = ts.employees.reduce((s,emp)=>s+(emp.amount||0),0);
-  const amtEl=document.getElementById('ts-amt-'+empId);
-  if (amtEl) amtEl.innerHTML=`<strong>${fmt(e.amount)}</strong>`;
-  const totEl=document.getElementById('ts-view-total');
-  if (totEl) totEl.textContent=`${ts.currency} ${fmt(ts.total)}`;
+function buildTsRowDisplay(r, ts, c, i) {
+  const sym = invSym(ts.currency||'AED');
+  const invType = c?.invoiceType||'mixed';
+  const bg = i%2===1?'background:#f9fafb':'';
+  const td = v => `<td style="${bg};padding:7px 10px;font-size:12px">${v||''}</td>`;
+  const mnd = v => `<td style="${bg};padding:7px 10px;font-size:12px;font-family:monospace">${v||''}</td>`;
+  const ttd = v => `<td style="${bg};padding:7px 10px;font-size:12px;font-family:monospace;font-weight:700;color:var(--g600)">${v||''}</td>`;
+  if (invType==='day')   return `<tr>${td(r.name||r.desc)}${td(r.locType||'Offshore')}${mnd(r.days)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
+  if (invType==='hour')  return `<tr>${td(r.name||r.desc)}${td(r.locType||'Offshore')}${mnd(r.totalHours||'')}${mnd(r.hours)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
+  if (invType==='fixed') return `<tr>${td(r.name||r.desc)}${td(r.locType||'Offshore')}${mnd(r.totalDays||22)}${mnd(r.days)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
+  if (invType==='unit')  return `<tr>${td(r.desc)}${mnd(sym+fmt(r.unitPrice))}${mnd((r.vatPct||0)+'%')}${ttd(sym+fmt(r.total))}</tr>`;
+  if (invType==='mixed') return `<tr>${td(r.desc||r.name)}${td(r.locType||'Offshore')}${mnd(r.days||'')}${mnd(r.hours||'')}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
+  return `<tr>${td(r.desc||r.name)}${ttd(sym+fmt(r.total))}</tr>`;
 }
 
-function saveTsDraft(tsId) { saveState(); showNotif('Timesheet saved ✓'); }
-function submitTs(tsId) {
-  const ts=state.timesheets.find(t=>t.id===tsId);
-  if(ts){ts.status='submitted';}
-  saveState(); closeModal('modal-ts-view'); renderTimesheets();
-  showNotif('Timesheet submitted and locked ✓');
-}
-function deleteTs(tsId) {
-  state.timesheets=state.timesheets.filter(t=>t.id!==tsId);
-  saveState(); renderTimesheets(); showNotif('Timesheet deleted');
+// ── Open / Close timesheet modal ──────────────────────────
+function openCreateTimesheet() {
+  _editingTsId = null;
+  const sel = document.getElementById('ts-modal-client');
+  if (sel) sel.innerHTML = '<option value="">— Select Client —</option>'+
+    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  // Set current month
+  const mSel = document.getElementById('ts-modal-month');
+  if (mSel) {
+    const now=new Date(), cur=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    if([...mSel.options].some(o=>o.value===cur)) mSel.value=cur;
+  }
+  document.getElementById('ts-modal-title').textContent = 'New Timesheet';
+  document.getElementById('ts-modal-tbody').innerHTML = '';
+  document.getElementById('ts-modal-tfoot').innerHTML = '';
+  document.getElementById('ts-modal-client-info').style.display='none';
+  openModal('modal-timesheet');
 }
 
-function createInvoiceFromTS(tsId) {
+function openEditTimesheet(tsId) {
   const ts = state.timesheets.find(t=>t.id===tsId);
   if (!ts) return showNotif('Timesheet not found','error');
+  _editingTsId = tsId;
+  const sel = document.getElementById('ts-modal-client');
+  sel.innerHTML = '<option value="">— Select Client —</option>'+
+    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  const ci = state.clients.findIndex(c=>c.name===ts.clientName);
+  if (ci>-1) sel.value = String(ci);
+  document.getElementById('ts-modal-month').value = ts.month||'';
+  document.getElementById('ts-modal-total-days').value = ts.totalDays||22;
+  document.getElementById('ts-modal-total-hours').value = ts.totalHours||176;
+  document.getElementById('ts-modal-title').textContent = `Edit — ${ts.clientName} · ${monthLabel(ts.month)}`;
+  // Load rows into table
+  onTsModalClientChange(ts.rows||[]);
+  openModal('modal-timesheet');
+}
 
-  // ── Sync & recalc every employee before building invoice ──
-  ts.employees.forEach(e => {
-    ensureEntries(e, getDaysInMonth(ts.month));
-    syncSimpleToEntries(e, ts);
-    const tots = calcEmpTotals(e, ts);
-    e.worked = tots.totalBillableDays;
-    e.amount = tots.pay;
+function onTsModalClientChange(existingRows) {
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  if (!clientIdx) return;
+  const c = state.clients[parseInt(clientIdx)];
+  if (!c) return;
+
+  // Show client info banner
+  const infoEl = document.getElementById('ts-modal-client-info');
+  if (infoEl) {
+    infoEl.style.display = 'block';
+    infoEl.innerHTML = `<strong>${c.name}</strong> · 
+      <span style="color:var(--g600)">${c.invoiceType||'mixed'} invoice</span> · 
+      ${c.clientType==='description'?'📝 Description-based':'👤 Resource-based'} · 
+      ${c.entryMode==='calendar'?'📆 Calendar mode':'📋 Simple mode'} · 
+      Currency: <strong>${c.currency||'AED'}</strong>
+      ${c.sectionHeader?` · Section: <em>${c.sectionHeader}</em>`:''}`;
+  }
+
+  // Build table headers + rows based on client invoice type
+  buildTsModalTable(c, existingRows||null);
+  document.getElementById('ts-modal-title').textContent =
+    `${_editingTsId ? 'Edit' : 'New'} Timesheet — ${c.name}`;
+}
+
+function buildTsModalTable(c, existingRows) {
+  const invType  = c.invoiceType||'mixed';
+  const entryMode= c.entryMode||'simple';
+  const color    = state.settings.template?.color||'#29963a';
+  const sym      = invSym(c.currency||'AED');
+  const vatPct   = c.vat||0;
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
+
+  // Build initial rows from client employees/services if no existing rows
+  let rows = existingRows;
+  if (!rows) {
+    if (c.clientType==='description') {
+      rows = (c.services||[]).map(svc => buildDefaultRow(invType, svc, null, c, totalDays, totalHours));
+      if (!rows.length) rows = [buildDefaultRow(invType, '', null, c, totalDays, totalHours)];
+    } else {
+      rows = (c.employees||[]).map(emp => buildDefaultRow(invType, emp.name, emp, c, totalDays, totalHours));
+      if (!rows.length) rows = [buildDefaultRow(invType, '', null, c, totalDays, totalHours)];
+    }
+  }
+
+  // Build thead
+  const thead = document.getElementById('ts-modal-thead');
+  const thStyle = `background:${color};color:#fff;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.7px`;
+  const th = (txt,w='') => `<th style="${thStyle}${w?';width:'+w:''}">${txt}</th>`;
+
+  const thMap = {
+    mixed:  [th('Description'),th('Offshore/Onsite','100px'),th('Days Worked','90px'),th('Hours Worked','90px'),th('VAT%','55px'),th('VAT Amt','90px'),th(`Rate (${sym})`,'100px'),th('Total','100px'),th('','32px')],
+    day:    [th('Name of Resource'),th('Offshore/Onsite','100px'),th('Days Worked','90px'),th('VAT%','55px'),th('VAT Amt','90px'),th(`Day Rate (${sym})`,'110px'),th('Total','100px'),th('','32px')],
+    hour:   [th('Description'),th('Offshore/Onsite','100px'),th(`Total Hrs`,'80px'),th('Hrs Worked','90px'),th('VAT%','55px'),th('VAT Amt','90px'),th(`Hourly Rate (${sym})`,'110px'),th('Total','100px'),th('','32px')],
+    fixed:  [th('Name of Resource'),th('Offshore/Onsite','100px'),th('Total Days','80px'),th('Days Worked','90px'),th('VAT%','55px'),th('VAT Amt','90px'),th(`Monthly Rate (${sym})`,'120px'),th('Total','100px'),th('','32px')],
+    unit:   [th('Description'),th(`Unit Price (${sym})`,'120px'),th('VAT%','55px'),th('VAT Amt','90px'),th('Total','100px'),th('','32px')],
+    milestone:[th('Description/Topic'),th('Details'),th('Man Days','80px'),th('VAT%','55px'),th(`Amount (${sym})`,'110px'),th('Total','100px'),th('','32px')],
+  };
+  if (thead) thead.innerHTML = `<tr>${(thMap[invType]||thMap.mixed).join('')}</tr>`;
+
+  // Store rows for rendering
+  window._tsModalRows = rows.map((r,i)=>({...r, _idx:i}));
+  renderTsModalRows(c);
+}
+
+function buildDefaultRow(invType, nameOrDesc, emp, c, totalDays, totalHours) {
+  const id = uid();
+  const vatPct = c.vat||0;
+  const base = { id, vatPct };
+  if (invType==='mixed')    return {...base, desc:nameOrDesc, locType:emp?.type||'Offshore', days:'', hours:'', rate: emp?.hourRate||emp?.dayRate||c.hourRate||c.dayRate||0 };
+  if (invType==='day')      return {...base, name:nameOrDesc, locType:emp?.type||'Offshore', days:'', rate: emp?.dayRate||c.dayRate||0 };
+  if (invType==='hour')     return {...base, name:nameOrDesc, locType:emp?.type||'Offshore', totalHours, hours:'', rate: emp?.hourRate||c.hourRate||0 };
+  if (invType==='fixed')    return {...base, name:nameOrDesc, locType:emp?.type||'Offshore', totalDays, days:'', rate: emp?.fixedRate||c.fixedRate||0 };
+  if (invType==='unit')     return {...base, desc:nameOrDesc, unitPrice: c.dayRate||0 };
+  if (invType==='milestone')return {...base, desc:nameOrDesc, details:'', manDays:'', amount:0 };
+  return {...base, desc:nameOrDesc, rate:0};
+}
+
+function renderTsModalRows(c) {
+  const tbody = document.getElementById('ts-modal-tbody');
+  const tfoot = document.getElementById('ts-modal-tfoot');
+  if (!tbody) return;
+  const invType = c?.invoiceType||'mixed';
+  const sym = invSym(c?.currency||'AED');
+  const color = state.settings.template?.color||'#29963a';
+  const rows = window._tsModalRows||[];
+  const totalDays = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+
+  const inp = (field,val,type='text',extra='') =>
+    `<input type="${type}" value="${(val===undefined||val===null)?'':val}"
+      oninput="_tsModalRows[${rows.indexOf(rows.find(r=>r._idx!==undefined))}]; _tsModalUpdateRow(this,'${field}',${rows.length})"
+      data-field="${field}"
+      ${extra}
+      style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;${type==='number'?'text-align:right;font-family:monospace':''}; outline:none"
+      onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />`;
+
+  const locSel = (val,i) =>
+    `<select data-ridx="${i}" data-field="locType" oninput="_tsModalUpdateField(this)"
+      style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;outline:none">
+      <option ${(val||'Offshore')==='Offshore'?'selected':''}>Offshore</option>
+      <option ${val==='Onsite'?'selected':''}>Onsite</option>
+    </select>`;
+
+  tbody.innerHTML = rows.map((r,i) => {
+    const bg = i%2===1?'background:#f9fafb':'';
+    const td = v => `<td style="${bg};padding:5px 6px">${v}</td>`;
+    const rm = `<td style="${bg};padding:5px 4px"><button class="btn btn-danger btn-xs" onclick="_tsModalRemoveRow(${i})">✕</button></td>`;
+    const numInp = (field,val) => `<input type="number" value="${val||''}" data-ridx="${i}" data-field="${field}"
+      oninput="_tsModalUpdateField(this)"
+      style="width:100%;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:monospace;outline:none"
+      onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />`;
+    const txtInp = (field,val,ph='') => `<input type="text" value="${val||''}" placeholder="${ph}" data-ridx="${i}" data-field="${field}"
+      oninput="_tsModalUpdateField(this)"
+      list="inv-desc-list"
+      style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;outline:none"
+      onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />`;
+
+    // Compute totals
+    let sub=0, vat=0, total=0;
+    const vp=parseFloat(r.vatPct)||0;
+    if (invType==='mixed')    { const d=parseFloat(r.days)||0,h=parseFloat(r.hours)||0,rt=parseFloat(r.rate)||0; sub=d>0?d*rt:h*rt; }
+    else if (invType==='day') { sub=(parseFloat(r.days)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='hour'){ sub=(parseFloat(r.hours)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='fixed'){ const td2=parseFloat(r.totalDays)||totalDays,dw=parseFloat(r.days)||0,rt=parseFloat(r.rate)||0; sub=td2>0?rt*dw/td2:0; }
+    else if (invType==='unit') { sub=parseFloat(r.unitPrice)||0; }
+    else if (invType==='milestone') { sub=parseFloat(r.amount)||0; }
+    vat=sub*vp/100; total=sub+vat;
+
+    const totalCell = `<td style="${bg};padding:5px 6px;font-family:monospace;font-size:12px;font-weight:700;color:var(--g600);text-align:right">${sym}${fmt(total)}</td>`;
+    const vatAmtCell = `<td style="${bg};padding:5px 6px;font-family:monospace;font-size:12px;color:#d97706;text-align:right">${sym}${fmt(vat)}</td>`;
+
+    if (invType==='mixed')   return `<tr>${td(txtInp('desc',r.desc,'SAP Consulting'))}${td(locSel(r.locType,i))}${td(numInp('days',r.days))}${td(numInp('hours',r.hours))}${td(numInp('vatPct',r.vatPct))}${vatAmtCell}${td(numInp('rate',r.rate))}${totalCell}${rm}</tr>`;
+    if (invType==='day')     return `<tr>${td(txtInp('name',r.name,'Resource name'))}${td(locSel(r.locType,i))}${td(numInp('days',r.days))}${td(numInp('vatPct',r.vatPct))}${vatAmtCell}${td(numInp('rate',r.rate))}${totalCell}${rm}</tr>`;
+    if (invType==='hour')    return `<tr>${td(txtInp('name',r.name,'SAP Consulting'))}${td(locSel(r.locType,i))}${td(numInp('totalHours',r.totalHours))}${td(numInp('hours',r.hours))}${td(numInp('vatPct',r.vatPct))}${vatAmtCell}${td(numInp('rate',r.rate))}${totalCell}${rm}</tr>`;
+    if (invType==='fixed')   return `<tr>${td(txtInp('name',r.name,'Resource name'))}${td(locSel(r.locType,i))}${td(numInp('totalDays',r.totalDays))}${td(numInp('days',r.days))}${td(numInp('vatPct',r.vatPct))}${vatAmtCell}${td(numInp('rate',r.rate))}${totalCell}${rm}</tr>`;
+    if (invType==='unit')    return `<tr>${td(txtInp('desc',r.desc,'SAP Consulting'))}${td(numInp('unitPrice',r.unitPrice))}${td(numInp('vatPct',r.vatPct))}${vatAmtCell}${totalCell}${rm}</tr>`;
+    if (invType==='milestone')return `<tr>${td(txtInp('desc',r.desc,'Topic'))}${td(txtInp('details',r.details,'Description/Details'))}${td(numInp('manDays',r.manDays))}${td(numInp('vatPct',r.vatPct))}${td(numInp('amount',r.amount))}${totalCell}${rm}</tr>`;
+    return `<tr>${td(txtInp('desc',r.desc))}${totalCell}${rm}</tr>`;
+  }).join('');
+
+  // Tfoot totals
+  const grandSub = rows.reduce((s,r)=>{
+    const vp=parseFloat(r.vatPct)||0;
+    let sub=0;
+    if (invType==='mixed')    { const d=parseFloat(r.days)||0,h=parseFloat(r.hours)||0,rt=parseFloat(r.rate)||0; sub=d>0?d*rt:h*rt; }
+    else if (invType==='day') { sub=(parseFloat(r.days)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='hour'){ sub=(parseFloat(r.hours)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='fixed'){ const td2=parseFloat(r.totalDays)||totalDays,dw=parseFloat(r.days)||0,rt=parseFloat(r.rate)||0; sub=td2>0?rt*dw/td2:0; }
+    else if (invType==='unit') { sub=parseFloat(r.unitPrice)||0; }
+    else if (invType==='milestone') { sub=parseFloat(r.amount)||0; }
+    return s+sub;
+  },0);
+  const grandVat = rows.reduce((s,r)=>{
+    const vp=parseFloat(r.vatPct)||0;
+    let sub=0;
+    if (invType==='mixed')    { const d=parseFloat(r.days)||0,h=parseFloat(r.hours)||0,rt=parseFloat(r.rate)||0; sub=d>0?d*rt:h*rt; }
+    else if (invType==='day') { sub=(parseFloat(r.days)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='hour'){ sub=(parseFloat(r.hours)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='fixed'){ const td2=parseFloat(r.totalDays)||totalDays,dw=parseFloat(r.days)||0,rt=parseFloat(r.rate)||0; sub=td2>0?rt*dw/td2:0; }
+    else if (invType==='unit') { sub=parseFloat(r.unitPrice)||0; }
+    else if (invType==='milestone') { sub=parseFloat(r.amount)||0; }
+    return s+sub*vp/100;
+  },0);
+  const grandTotal = grandSub+grandVat;
+
+  const colspan = {mixed:7,day:5,hour:6,fixed:6,unit:3,milestone:4}[invType]||5;
+  tfoot.innerHTML = `
+    <tr><td colspan="${colspan}" style="text-align:right;padding:8px 10px;font-weight:700;font-size:12px">Subtotal</td>
+      <td style="text-align:right;padding:8px 6px;font-family:monospace;font-weight:700">${sym}${fmt(grandSub)}</td><td></td></tr>
+    ${grandVat>0?`<tr><td colspan="${colspan}" style="text-align:right;padding:4px 10px;font-size:12px;color:#d97706">VAT</td>
+      <td style="text-align:right;padding:4px 6px;font-family:monospace;color:#d97706">${sym}${fmt(grandVat)}</td><td></td></tr>`:''}
+    <tr style="background:${color}15"><td colspan="${colspan}" style="text-align:right;padding:10px 10px;font-weight:800;font-size:14px;color:${color}">TOTAL</td>
+      <td style="text-align:right;padding:10px 6px;font-family:monospace;font-weight:900;font-size:14px;color:${color}">${sym}${fmt(grandTotal)}</td><td></td></tr>`;
+}
+
+function _tsModalUpdateField(el) {
+  const i = parseInt(el.dataset.ridx);
+  const field = el.dataset.field;
+  if (!window._tsModalRows || !window._tsModalRows[i]) return;
+  const val = el.type==='number' ? (parseFloat(el.value)||0) : el.value;
+  window._tsModalRows[i][field] = val;
+  // Refresh totals only (don't re-render inputs to avoid losing focus)
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  const c = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
+  if (c) _refreshTsModalTotals(c);
+}
+
+function _refreshTsModalTotals(c) {
+  // Just update total cells without re-rendering all inputs
+  const invType = c?.invoiceType||'mixed';
+  const sym = invSym(c?.currency||'AED');
+  const color = state.settings.template?.color||'#29963a';
+  const totalDays = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const rows = window._tsModalRows||[];
+
+  let grandSub=0, grandVat=0;
+  rows.forEach((r,i)=>{
+    const vp=parseFloat(r.vatPct)||0;
+    let sub=0;
+    if (invType==='mixed')    { const d=parseFloat(r.days)||0,h=parseFloat(r.hours)||0,rt=parseFloat(r.rate)||0; sub=d>0?d*rt:h*rt; }
+    else if (invType==='day') { sub=(parseFloat(r.days)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='hour'){ sub=(parseFloat(r.hours)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='fixed'){ const td2=parseFloat(r.totalDays)||totalDays,dw=parseFloat(r.days)||0,rt=parseFloat(r.rate)||0; sub=td2>0?rt*dw/td2:0; }
+    else if (invType==='unit') { sub=parseFloat(r.unitPrice)||0; }
+    else if (invType==='milestone') { sub=parseFloat(r.amount)||0; }
+    const vat=sub*vp/100, total=sub+vat;
+    grandSub+=sub; grandVat+=vat;
+    // Update total cell (last-1 td in row)
+    const row = document.querySelector(`#ts-modal-tbody tr:nth-child(${i+1})`);
+    if (row) {
+      const cells = row.querySelectorAll('td');
+      const totalCell = cells[cells.length-2];
+      const vatCell = [...cells].find(td=>td.style.color==='rgb(217, 119, 6)');
+      if (totalCell) totalCell.textContent = sym+fmt(total);
+      if (vatCell) vatCell.textContent = sym+fmt(vat);
+    }
   });
-  ts.total = ts.employees.reduce((s,e)=>s+(e.amount||0), 0);
+  const grandTotal=grandSub+grandVat;
+  const colspan = {mixed:7,day:5,hour:6,fixed:6,unit:3,milestone:4}[invType]||5;
+  const tfoot = document.getElementById('ts-modal-tfoot');
+  if (tfoot) tfoot.innerHTML = `
+    <tr><td colspan="${colspan}" style="text-align:right;padding:8px 10px;font-weight:700;font-size:12px">Subtotal</td>
+      <td style="text-align:right;padding:8px 6px;font-family:monospace;font-weight:700">${sym}${fmt(grandSub)}</td><td></td></tr>
+    ${grandVat>0?`<tr><td colspan="${colspan}" style="text-align:right;padding:4px 10px;font-size:12px;color:#d97706">VAT</td>
+      <td style="text-align:right;padding:4px 6px;font-family:monospace;color:#d97706">${sym}${fmt(grandVat)}</td><td></td></tr>`:''}
+    <tr style="background:${color}15"><td colspan="${colspan}" style="text-align:right;padding:10px 10px;font-weight:800;font-size:14px;color:${color}">TOTAL</td>
+      <td style="text-align:right;padding:10px 6px;font-family:monospace;font-weight:900;font-size:14px;color:${color}">${sym}${fmt(grandTotal)}</td><td></td></tr>`;
+}
+
+function _tsModalRemoveRow(i) {
+  if (!window._tsModalRows) return;
+  window._tsModalRows.splice(i,1);
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  const c = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
+  if (c) renderTsModalRows(c);
+}
+
+function addTsModalRow() {
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  if (!clientIdx) return showNotif('Select a client first','error');
+  const c = state.clients[parseInt(clientIdx)];
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
+  if (!window._tsModalRows) window._tsModalRows = [];
+  const newRow = buildDefaultRow(c.invoiceType||'mixed','',null,c,totalDays,totalHours);
+  newRow._idx = window._tsModalRows.length;
+  window._tsModalRows.push(newRow);
+  renderTsModalRows(c);
+}
+
+function saveTsModal(status) {
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  const month     = document.getElementById('ts-modal-month')?.value||'';
+  if (!clientIdx || !month) return showNotif('Select client and month','error');
+  const c = state.clients[parseInt(clientIdx)];
+  const rows = window._tsModalRows||[];
+  const sym = invSym(c.currency||'AED');
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
+
+  // Compute totals for each row
+  const processedRows = rows.map(r=>{
+    const vp=parseFloat(r.vatPct)||0;
+    let sub=0;
+    const invType=c.invoiceType||'mixed';
+    if (invType==='mixed')    { const d=parseFloat(r.days)||0,h=parseFloat(r.hours)||0,rt=parseFloat(r.rate)||0; sub=d>0?d*rt:h*rt; }
+    else if (invType==='day') { sub=(parseFloat(r.days)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='hour'){ sub=(parseFloat(r.hours)||0)*(parseFloat(r.rate)||0); }
+    else if (invType==='fixed'){ const td2=parseFloat(r.totalDays)||totalDays,dw=parseFloat(r.days)||0,rt=parseFloat(r.rate)||0; sub=td2>0?rt*dw/td2:0; }
+    else if (invType==='unit') { sub=parseFloat(r.unitPrice)||0; }
+    else if (invType==='milestone') { sub=parseFloat(r.amount)||0; }
+    return {...r, subtotal:sub, vatAmt:sub*vp/100, total:sub+sub*vp/100};
+  });
+
+  const ts = {
+    id: _editingTsId||uid(),
+    clientName: c.name,
+    month, totalDays, totalHours,
+    currency: c.currency||'AED',
+    invoiceType: c.invoiceType||'mixed',
+    milestoneType: c.invoiceType==='milestone'?(document.getElementById('inv-milestone-type')?.value||'detailed'):'',
+    rows: processedRows,
+    status,
+    createdAt: today(),
+    updatedAt: today()
+  };
+
+  const existing = state.timesheets.findIndex(t=>t.id===ts.id);
+  if (existing>-1) state.timesheets[existing]=ts;
+  else state.timesheets.push(ts);
+
   saveState();
+  closeModal('modal-timesheet');
+  renderTimesheets();
+  showNotif(status==='ready'?'Timesheet marked ready for invoice ✓':'Draft saved ✓');
+}
+
+function deleteTimesheet(tsId) {
+  const ts = state.timesheets.find(t=>t.id===tsId);
+  if (!ts) return;
+  const popup = document.createElement('div');
+  popup.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)';
+  popup.innerHTML=`<div style="background:#fff;border-radius:14px;padding:28px;max-width:340px;text-align:center">
+    <div style="font-size:36px;margin-bottom:10px">🗑</div>
+    <div style="font-size:16px;font-weight:800;margin-bottom:6px">Delete Timesheet?</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px">${ts.clientName} — ${monthLabel(ts.month)}</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:#f3f4f6;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-weight:600">Cancel</button>
+      <button onclick="confirmDeleteTs('${tsId}');this.closest('div[style*=fixed]').remove()" style="background:#ef4444;color:#fff;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-weight:700">Delete</button>
+    </div>
+  </div>`;
+  document.body.appendChild(popup);
+}
+
+function confirmDeleteTs(tsId) {
+  state.timesheets = state.timesheets.filter(t=>t.id!==tsId);
+  saveState(); renderTimesheets();
+  showNotif('Timesheet deleted ✓');
+}
+
+// ── Generate invoice from timesheet ──────────────────────
+function tsToInvoice(tsId) {
+  const ts = state.timesheets.find(t=>t.id===tsId);
+  if (!ts) return showNotif('Timesheet not found','error');
+  const c  = state.clients.find(cl=>cl.name===ts.clientName);
+  if (!c)  return showNotif('Client not found','error');
 
   nav('invoice-new');
-  const co = state.settings.company;
-  document.getElementById('inv-number').value = (co.prefix||'VTL-') + String(co.nextNum||1).padStart(3,'0');
+
+  // Set client
+  const clientEl = document.getElementById('inv-client');
+  const ci = state.clients.findIndex(cl=>cl.name===ts.clientName);
+  if (ci>-1) { clientEl.value=String(ci); onInvClientChange(); }
+
+  // Set date
   document.getElementById('inv-date').value = today();
 
-  // Find & load client
-  const ci = state.clients.findIndex(c=>c.name===ts.clientName);
-  if (ci > -1) {
-    document.getElementById('inv-client').value = ci;
-    onInvClientChange(); // sets currency, vat, conv fields
-  }
+  // Set section header
+  if (c.sectionHeader) document.getElementById('inv-section-header').value = c.sectionHeader;
+
+  // Set notes
   document.getElementById('inv-notes').value = `Services rendered for ${monthLabel(ts.month)}`;
 
-  // ── Populate rows with ACTUAL worked days from timesheet ──
-  const dayEmps   = ts.employees.filter(e=>e.rateType==='day');
-  const hourEmps  = ts.employees.filter(e=>e.rateType==='hour');
-  const fixedEmps = ts.employees.filter(e=>e.rateType==='fixed');
+  // Switch to correct tab and populate rows
+  const invType = ts.invoiceType || c.invoiceType || 'mixed';
+  document.querySelectorAll('[data-tab-group="inv"]').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane[id^="inv-tab-"]').forEach(p=>p.classList.remove('active'));
+  const tabEl = document.querySelector(`[data-tab-group="inv"][data-tab="${invType}"]`);
+  if (tabEl) tabEl.classList.add('active');
+  const paneEl = document.getElementById(`inv-tab-${invType}`);
+  if (paneEl) paneEl.classList.add('active');
 
-  if (dayEmps.length) {
-    invRows.day = dayEmps.map(e => ({
-      id:uid(), name:e.name, type:e.type||'Offshore',
-      worked: Math.round(e.worked * 100) / 100,  // actual days from entries
-      rate: e.dayRate || 0
-    }));
-    renderInvRows('day');
-  }
-  if (hourEmps.length) {
-    invRows.hour = hourEmps.map(e => ({
-      id:uid(), name:e.name, type:e.type||'Offshore',
-      worked: Math.round(e.worked * 100) / 100,
-      rate: e.hourRate || 0
-    }));
-    renderInvRows('hour');
-  }
-  if (fixedEmps.length) {
-    invRows.fixed = fixedEmps.map(e => ({
-      id:uid(), name:e.name, type:e.type||'Offshore',
-      worked: Math.round(e.worked * 100) / 100,
-      rate: e.fixedRate || 0
-    }));
-    renderInvRows('fixed');
-  }
-
+  // Populate invRows from timesheet rows
+  invRows[invType] = ts.rows.map(r=>({...r, id:uid()}));
+  renderInvRows(invType);
   recalcInvoice();
+
+  // Mark as invoiced
+  ts.status = 'invoiced';
+  ts.invoicedAt = today();
+  saveState();
+
   showNotif(`Invoice pre-filled from ${ts.clientName} — ${monthLabel(ts.month)} ✓`);
 }
 
-// ═══════════════════════════════
-// CLIENTS
-// ═══════════════════════════════
-let editingClientIdx = null;
-function openClientModal(idx) {
-  editingClientIdx = idx!==undefined?idx:null;
-  const isEdit = idx!==undefined;
-  document.getElementById('client-modal-title').textContent = isEdit?'Edit Client':'Add Client';
-  if (isEdit) {
-    const c=state.clients[idx];
-    document.getElementById('cl-name').value=c.name||'';
-    document.getElementById('cl-contact').value=c.contact||'';
-    document.getElementById('cl-email').value=c.email||'';
-    document.getElementById('cl-address').value=c.address||'';
-    document.getElementById('cl-currency').value=c.currency||'AED';
-    document.getElementById('cl-conv-currency').value=c.convCurrency||'';
-    document.getElementById('cl-vat').value=c.vat!==undefined?c.vat:5;
-    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value=c.tax||'';
-    document.getElementById('cl-day-rate').value=c.dayRate||'';
-    document.getElementById('cl-hour-rate').value=c.hourRate||'';
-    document.getElementById('cl-fixed-rate').value=c.fixedRate||'';
-    document.getElementById('cl-employees').innerHTML='';
-    (c.employees||[]).forEach(e=>addEmployeeRow(e));
-    renderClientServices(c.services||[]);
-  } else {
-    ['cl-name','cl-contact','cl-email','cl-address','cl-day-rate','cl-hour-rate','cl-fixed-rate'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('cl-currency').value='AED';
-    document.getElementById('cl-conv-currency').value='';
-    document.getElementById('cl-vat').value=5;
-    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value='';
-    document.getElementById('cl-employees').innerHTML='';
-    renderClientServices([]);
-  }
-  openModal('modal-client');
+function tsModalToInvoice() {
+  saveTsModal('ready');
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  if (!clientIdx) return;
+  const c = state.clients[parseInt(clientIdx)];
+  // Find the ts we just saved
+  const month = document.getElementById('ts-modal-month')?.value||'';
+  const ts = state.timesheets.find(t=>t.clientName===c.name&&t.month===month);
+  if (ts) tsToInvoice(ts.id);
 }
 
-function addEmployeeRow(emp) {
-  const container = document.getElementById('cl-employees');
-  const n = container.querySelectorAll('.emp-card').length + 1;
-  const cur = document.getElementById('cl-currency')?.value || 'AED';
-  const sym = cur === 'USD' ? '$' : cur === 'GBP' ? '£' : 'AED';
-  const card = document.createElement('div');
-  card.className = 'emp-card';
-  card.style.cssText = 'background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;position:relative;transition:border-color .2s';
-  card.innerHTML = `
-    <div style="display:grid;grid-template-columns:36px 1fr 140px 120px 120px 120px auto;gap:10px;align-items:center">
-      <!-- # -->
-      <div class="emp-avatar" style="width:30px;height:30px;background:var(--g50);border:2px solid var(--g100);border-radius:7px;
-        display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:13px;color:var(--g600)">${n}</div>
-
-      <!-- Name -->
-      <div>
-        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Resource Name</label>
-        <input type="text" class="emp-name" value="${emp?.name||''}" placeholder="e.g. John Smith"
-          oninput="this.closest('.emp-card').querySelector('.emp-label') && (this.closest('.emp-card').querySelector('.emp-label').textContent=this.value)"
-          style="width:100%;font-size:13px;font-weight:600;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;outline:none"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </div>
-
-      <!-- Type -->
-      <div>
-        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Type</label>
-        <select class="emp-type" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;background:var(--white)"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">
-          <option ${emp?.type==='Offshore'||!emp?.type?'selected':''}>Offshore</option>
-          <option ${emp?.type==='Onsite'?'selected':''}>Onsite</option>
-        </select>
-      </div>
-
-      <!-- Day Rate -->
-      <div>
-        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Day Rate (${sym})</label>
-        <input type="number" class="emp-day" value="${emp?.dayRate||''}" placeholder="0"
-          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;font-family:var(--font-mono)"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </div>
-
-      <!-- Hourly Rate -->
-      <div>
-        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Hourly Rate (${sym})</label>
-        <input type="number" class="emp-hour" value="${emp?.hourRate||''}" placeholder="0"
-          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;font-family:var(--font-mono)"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </div>
-
-      <!-- Fixed/Month (hidden but kept for data compat) -->
-      <div>
-        <label style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px">Fixed/Month (${sym})</label>
-        <input type="number" class="emp-fixed" value="${emp?.fixedRate||''}" placeholder="0"
-          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;font-family:var(--font-mono)"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
-      </div>
-
-      <!-- Remove -->
-      <button onclick="this.closest('.emp-card').remove();renumberEmpCards()"
-        style="background:#fff1f0;border:1px solid #fdd;color:var(--red);padding:7px 10px;border-radius:7px;cursor:pointer;font-size:18px;line-height:1;align-self:flex-end;margin-top:18px"
-        title="Remove">✕</button>
-    </div>`;
-  container.appendChild(card);
-  if (emp?.name) { const lbl = card.querySelector('.emp-label'); if(lbl) lbl.textContent = emp.name; }
-}
-
-function addClientService() {
-  const input = document.getElementById('cl-new-service');
-  const val = input?.value?.trim();
-  if (!val) return;
-  const existing = document.querySelectorAll('#cl-services .service-chip');
-  const names = Array.from(existing).map(c=>c.dataset.name);
-  if (names.includes(val)) { showNotif('Already in list','error'); return; }
-  const chip = document.createElement('span');
-  chip.dataset.name = val;
-  chip.className = 'service-chip';
-  chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;cursor:default';
-  chip.innerHTML = `${val} <button onclick="this.closest('.service-chip').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 1px">×</button>`;
-  document.getElementById('cl-services').appendChild(chip);
-  if (input) input.value = '';
-}
-
-function renderClientServices(services) {
-  const el = document.getElementById('cl-services');
-  if (!el) return;
-  el.innerHTML = '';
-  (services||[]).forEach(s => {
-    const chip = document.createElement('span');
-    chip.dataset.name = s;
-    chip.className = 'service-chip';
-    chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;cursor:default';
-    chip.innerHTML = `${s} <button onclick="this.closest('.service-chip').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 1px">×</button>`;
-    el.appendChild(chip);
-  });
-}
-
-function getClientServices() {
-  return Array.from(document.querySelectorAll('#cl-services .service-chip')).map(c=>c.dataset.name).filter(Boolean);
-}
-
-function renumberEmpCards() {
-  document.querySelectorAll('#cl-employees .emp-card').forEach((card, i) => {
-    const avatar = card.querySelector('.emp-avatar');
-    if (avatar) avatar.textContent = i + 1;
-    const label = card.querySelector('.emp-label');
-    const nameVal = card.querySelector('.emp-name')?.value;
-    if (label && !nameVal) label.textContent = `Employee ${i+1}`;
-  });
-}
-
-function updateClCurrSyms() {
-  const cur = document.getElementById('cl-currency').value;
-  const sym = cur==='USD'?'$':cur==='GBP'?'£':'AED';
-  // Update header labels
-  document.querySelectorAll('.cl-cur-sym').forEach(el=>el.textContent=cur);
-  // Update context pill
-  const pill = document.querySelector('.cl-cur-sym-label');
-  if (pill) pill.textContent = cur;
-  // Rebuild all existing employee cards with new currency symbols
-  const cards = document.querySelectorAll('#cl-employees .emp-card');
-  if (!cards.length) return;
-  // Collect current values
-  const empData = Array.from(cards).map(card=>({
-    name: card.querySelector('.emp-name')?.value||'',
-    type: card.querySelector('.emp-type')?.value||'Offshore',
-    rateType: card.querySelector('.emp-rate-type')?.value||'day',
-    dayRate: card.querySelector('.emp-day')?.value||'',
-    hourRate: card.querySelector('.emp-hour')?.value||'',
-    fixedRate: card.querySelector('.emp-fixed')?.value||''
-  }));
-  document.getElementById('cl-employees').innerHTML = '';
-  empData.forEach(e => addEmployeeRow({
-    name:e.name, type:e.type, rateType:e.rateType,
-    dayRate:parseFloat(e.dayRate)||0, hourRate:parseFloat(e.hourRate)||0, fixedRate:parseFloat(e.fixedRate)||0
-  }));
-}
-
-function saveClient() {
-  const name=document.getElementById('cl-name').value.trim();
-  if(!name) return showNotif('Enter company name','error');
-  const emps=[];
-  document.querySelectorAll('#cl-employees .emp-card').forEach(card=>{
-    const n=card.querySelector('.emp-name')?.value.trim();
-    if(!n)return;
-    emps.push({
-      name:n,
-      type:card.querySelector('.emp-type')?.value||'Offshore',
-      rateType:card.querySelector('.emp-rate-type')?.value||'day',
-      dayRate:parseFloat(card.querySelector('.emp-day')?.value)||0,
-      hourRate:parseFloat(card.querySelector('.emp-hour')?.value)||0,
-      fixedRate:parseFloat(card.querySelector('.emp-fixed')?.value)||0
-    });
-  });
-  const c={
-    name, contact:document.getElementById('cl-contact').value,
-    email:document.getElementById('cl-email').value,
-    address:document.getElementById('cl-address').value,
-    currency:document.getElementById('cl-currency').value,
-    convCurrency:document.getElementById('cl-conv-currency').value||'',
-    vat:parseFloat(document.getElementById('cl-vat').value)||0,
-    tax:document.getElementById('cl-tax')?.value||'',
-    dayRate:parseFloat(document.getElementById('cl-day-rate').value)||0,
-    hourRate:parseFloat(document.getElementById('cl-hour-rate').value)||0,
-    fixedRate:parseFloat(document.getElementById('cl-fixed-rate').value)||0,
-    employees:emps,
-    services:getClientServices()
-  };
-  if(editingClientIdx!==null) state.clients[editingClientIdx]=c;
-  else state.clients.push(c);
-  saveState(); closeModal('modal-client'); renderClients();
-  showNotif('Client saved ✓');
-}
+// Legacy compatibility
+function createTimesheet() { openCreateTimesheet(); }
+function onTsClientChange() {}
+function generateShareLink() {}
 
 // ═══════════════════════════════════════════════════════════
-// TIMESHEET MANAGEMENT SYSTEM — REVAMPED
+// INVOICE READINESS (TMS) — SIMPLIFIED
 // ═══════════════════════════════════════════════════════════
-
-let tmsChartProgress = null, tmsChartMonthly = null;
-
-// ── Stable helpers ──────────────────────────────────────────
-
-function tmsGetShareLink(tsId, empId) {
-  return window.location.href.split('#')[0] + '#ts-' + tsId + '-emp-' + empId;
-}
-
-function getUniqueMonths() {
-  return [...new Set(state.timesheets.map(t=>t.month))].sort().reverse();
-}
-
-function tmsGetClient(ts) {
-  return state.clients.find(c=>c.name===ts.clientName) || null;
-}
-
-function getTmsSummary() {
-  let totalEmps=0, submitted=0, pending=0, partial=0;
-  state.timesheets.forEach(ts => {
-    (ts.employees||[]).forEach(e => {
-      totalEmps++;
-      if (e.submitted) submitted++;
-      else if (e.entries && Object.values(e.entries).some(arr=>arr.some(v=>v>0))) partial++;
-      else pending++;
-    });
-  });
-  const pendingTs = state.timesheets.filter(t=>t.status==='draft'||t.status==='sent').length;
-  return {totalEmps, submitted, pending, partial, pendingTs, total:state.timesheets.length};
-}
-
-function updateTmsBadge() {
-  const s = getTmsSummary();
-  const badge = document.getElementById('tms-pending-badge');
-  if (!badge) return;
-  badge.textContent = s.pending;
-  badge.style.display = s.pending > 0 ? 'inline-block' : 'none';
-}
 
 function initTms() {
   populateTmsFilters();
   renderTmsKpis();
-  renderTmsOverview();
   renderTmsClients();
-  renderTmsExport();
-  updateTmsBadge();
-  document.querySelectorAll('[data-tms-tab]').forEach(el => {
-    el.addEventListener('click', () => {
-      document.querySelectorAll('[data-tms-tab]').forEach(t=>t.classList.remove('active'));
-      document.querySelectorAll('.tms-pane').forEach(p=>p.classList.remove('active'));
-      el.classList.add('active');
-      document.getElementById('tms-tab-'+el.dataset.tmsTab)?.classList.add('active');
-    });
-  });
 }
 
 function tmsRefresh() {
   loadState();
   populateTmsFilters();
   renderTmsKpis();
-  renderTmsOverview();
   renderTmsClients();
-  renderTmsExport();
   renderTimesheets();
-  updateTmsBadge();
 }
 
 function populateTmsFilters() {
-  const months = getUniqueMonths();
-  ['tms-filter-month','export-month'].forEach(id => {
-    const el = document.getElementById(id); if (!el) return;
-    const cur = el.value;
-    el.innerHTML = '<option value="">All Months</option>' +
-      months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${monthLabel(m)}</option>`).join('');
-  });
-  const exportClient = document.getElementById('export-client');
-  if (exportClient) {
-    const cur = exportClient.value;
-    exportClient.innerHTML = '<option value="">All Clients</option>' +
-      state.clients.map((c,i)=>`<option value="${i}"${String(i)===cur?' selected':''}>${c.name}</option>`).join('');
-  }
+  const mf = document.getElementById('tms-month-filter');
+  if (!mf) return;
+  const cur = mf.value;
+  // months already hardcoded in HTML, just restore selection
+  if (cur) mf.value = cur;
 }
 
 function renderTmsKpis() {
-  const s = getTmsSummary();
+  const el = document.getElementById('tms-kpis');
+  if (!el) return;
   const color = state.settings.template?.color||'#29963a';
-  const pct = s.totalEmps > 0 ? Math.round(s.submitted/s.totalEmps*100) : 0;
-  const totalBillable = state.timesheets.reduce((sum,ts)=>sum+(ts.total||0),0);
-  const sym = (state.timesheets[0]?.currency==='USD'?'$':state.timesheets[0]?.currency==='GBP'?'£':'AED ');
-  document.getElementById('tms-kpis').innerHTML = `
+  const total    = state.timesheets.length;
+  const ready    = state.timesheets.filter(t=>t.status==='ready').length;
+  const draft    = state.timesheets.filter(t=>t.status==='draft'||!t.status).length;
+  const invoiced = state.timesheets.filter(t=>t.status==='invoiced').length;
+  const totalAmt = state.timesheets.filter(t=>t.status==='ready'||t.status==='invoiced')
+    .reduce((s,ts)=>s+(ts.rows||[]).reduce((ss,r)=>ss+(r.total||0),0),0);
+
+  el.innerHTML = `
     <div class="stat-card">
       <div class="stat-icon g">📋</div>
-      <div class="stat-label">Active Periods</div>
-      <div class="stat-value green">${s.total}</div>
-      <div class="stat-trend">${s.pendingTs} pending · ${s.total-s.pendingTs} complete</div>
+      <div class="stat-label">Total Timesheets</div>
+      <div class="stat-value green">${total}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon a">📝</div>
+      <div class="stat-label">Drafts</div>
+      <div class="stat-value amber">${draft}</div>
     </div>
     <div class="stat-card">
       <div class="stat-icon g">✅</div>
-      <div class="stat-label">Submitted</div>
-      <div class="stat-value green">${s.submitted}<span style="font-size:14px;font-weight:400;color:var(--muted)">/${s.totalEmps}</span></div>
-      <div style="margin-top:6px"><div class="progress-bar" style="height:6px"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div></div>
-      <div class="stat-trend">${pct}% completion</div>
+      <div class="stat-label">Ready for Invoice</div>
+      <div class="stat-value green">${ready}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon a">⏳</div>
-      <div class="stat-label">Pending</div>
-      <div class="stat-value amber">${s.pending}</div>
-      <div class="stat-trend">${s.partial} partial entries</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon b">💰</div>
-      <div class="stat-label">Total Billable</div>
-      <div class="stat-value blue" style="font-size:18px">${sym}${fmt(totalBillable)}</div>
-      <div class="stat-trend">across all periods</div>
+      <div class="stat-icon b">🧾</div>
+      <div class="stat-label">Invoiced</div>
+      <div class="stat-value blue">${invoiced}</div>
     </div>`;
-}
-
-function renderTmsOverview() {
-  const color = state.settings.template?.color||'#29963a';
-  const s = getTmsSummary();
-  if (tmsChartProgress) tmsChartProgress.destroy();
-  const ctx1 = document.getElementById('tms-chart-progress')?.getContext('2d');
-  if (ctx1) {
-    tmsChartProgress = new Chart(ctx1, {
-      type:'doughnut',
-      data:{ labels:['Submitted','Partial','Pending'],
-        datasets:[{data:[s.submitted||0,s.partial||0,s.pending||0],
-          backgroundColor:[color,'#f59e0b','#e5e7eb'],borderWidth:0,hoverOffset:6}]},
-      options:{responsive:true,cutout:'70%',plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
-    });
-  }
-  const months = getUniqueMonths().slice(0,6).reverse();
-  const monthData = months.map(m => {
-    const emps = state.timesheets.filter(t=>t.month===m).flatMap(t=>t.employees||[]);
-    return {submitted:emps.filter(e=>e.submitted).length, total:emps.length};
-  });
-  if (tmsChartMonthly) tmsChartMonthly.destroy();
-  const ctx2 = document.getElementById('tms-chart-monthly')?.getContext('2d');
-  if (ctx2 && months.length) {
-    tmsChartMonthly = new Chart(ctx2, {
-      type:'bar',
-      data:{
-        labels:months.map(m=>{const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleString('en',{month:'short',year:'2-digit'});}),
-        datasets:[
-          {label:'Submitted',data:monthData.map(d=>d.submitted),backgroundColor:color,borderRadius:4},
-          {label:'Total',data:monthData.map(d=>d.total),backgroundColor:'#e5e7eb',borderRadius:4}
-        ]
-      },
-      options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{x:{grid:{display:false}},y:{grid:{color:'#f0f0f0'},ticks:{stepSize:1,precision:0}}}}
-    });
-  }
-  const activities = [];
-  state.timesheets.slice().reverse().forEach(ts => {
-    (ts.employees||[]).filter(e=>e.submitted&&e.submittedAt).forEach(e => {
-      activities.push({time:e.submittedAt||'',icon:'✅',color:'#16a34a',
-        msg:`<strong>${e.name}</strong> submitted — ${ts.clientName} · ${monthLabel(ts.month)}`});
-    });
-    if (ts.sentAt)    activities.push({time:ts.sentAt,icon:'📧',color:'#0284c7',msg:`Links sent to <strong>${ts.clientName}</strong> for ${monthLabel(ts.month)}`});
-    if (ts.createdAt) activities.push({time:ts.createdAt,icon:'📋',color:'#6b7280',msg:`Period created — <strong>${ts.clientName}</strong> · ${monthLabel(ts.month)}`});
-  });
-  activities.sort((a,b)=>(b.time||'').localeCompare(a.time||''));
-  const feedEl = document.getElementById('tms-activity-feed');
-  if (!feedEl) return;
-  if (!activities.length) {
-    feedEl.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No activity yet. Create a timesheet period to get started.</div></div>';
-    return;
-  }
-  feedEl.innerHTML = activities.slice(0,20).map(a=>`
-    <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="width:32px;height:32px;background:${a.color}18;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${a.icon}</div>
-      <div style="flex:1;padding-top:4px">
-        <div style="font-size:13.5px">${a.msg}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${a.time||'—'}</div>
-      </div>
-    </div>`).join('');
 }
 
 function renderTmsClients() {
-  const monthF  = document.getElementById('tms-filter-month')?.value||'';
-  const search  = (document.getElementById('tms-search')?.value||'').toLowerCase();
-  const color   = state.settings.template?.color||'#29963a';
   const el = document.getElementById('tms-clients-list');
+  if (!el) return;
+  const monthF = document.getElementById('tms-month-filter')?.value||'';
+  const color  = state.settings.template?.color||'#29963a';
+
   let items = state.timesheets.slice();
-  if (monthF)  items = items.filter(t=>t.month===monthF);
-  if (search)  items = items.filter(t=>t.clientName.toLowerCase().includes(search)||(t.employees||[]).some(e=>e.name.toLowerCase().includes(search)));
+  if (monthF) items = items.filter(t=>t.month===monthF);
+  items.sort((a,b)=>b.month.localeCompare(a.month)||a.clientName.localeCompare(b.clientName));
+
   if (!items.length) {
-    el.innerHTML='<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-text">No timesheets found</div><div class="text-muted">Create a timesheet period to get started</div></div>';
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📊</div>
+      <div class="empty-text">No timesheets${monthF?' for '+monthLabel(monthF):''}</div>
+      <div class="text-muted">Create timesheets in the Timesheets page</div>
+      <button class="btn btn-primary mt-12" onclick="nav('timesheets')">→ Go to Timesheets</button>
+    </div>`;
     return;
   }
-  const byClient = {};
-  items.forEach(ts => { if (!byClient[ts.clientName]) byClient[ts.clientName]=[]; byClient[ts.clientName].push(ts); });
 
-  el.innerHTML = Object.entries(byClient).map(([clientName, tsList])=>{
-    const safeId = encodeURIComponent(clientName).replace(/%/g,'').slice(0,24);
-    const clientObj = tmsGetClient({clientName});
-    const allEmps = tsList.flatMap(t=>(t.employees||[]).map(e=>({...e,tsId:t.id,month:t.month})));
-    const submittedCount = allEmps.filter(e=>e.submitted).length;
-    const pct = allEmps.length>0?Math.round(submittedCount/allEmps.length*100):0;
-    const totalBillable = tsList.reduce((s,ts)=>s+(ts.total||0),0);
-    const sym = tsList[0]?.currency==='USD'?'$':tsList[0]?.currency==='GBP'?'£':'AED ';
-    const cn = clientName.replace(/'/g,"\\'");
+  const statusColors = {draft:'#6b7280',ready:'#16a34a',invoiced:'#0284c7'};
+  const statusLabels = {draft:'📝 Draft',ready:'✅ Ready',invoiced:'🧾 Invoiced'};
 
-    return `<div class="client-ts-block">
-      <div class="client-ts-header" onclick="tsToggleSection('tmscb${safeId}')">
-        <div style="display:flex;align-items:center;gap:14px">
-          <div style="width:44px;height:44px;background:${color};border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;flex-shrink:0">${clientName.charAt(0).toUpperCase()}</div>
-          <div>
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">${clientName}</div>
-            <div class="text-muted" style="font-size:12px">${tsList.length} period(s) · ${allEmps.length} employee slot(s) · ${clientObj?.currency||'AED'}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:16px">
-          <div style="text-align:right">
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Billable</div>
-            <div style="font-family:var(--font-mono);font-size:15px;font-weight:800;color:${color}">${sym}${fmt(totalBillable)}</div>
-          </div>
-          <div style="text-align:center;min-width:70px">
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Progress</div>
-            <div style="font-family:var(--font-display);font-size:18px;font-weight:800;color:${color}">${submittedCount}<span style="font-size:12px;color:var(--muted)">/${allEmps.length}</span></div>
-            <div class="progress-bar" style="height:5px;margin-top:3px"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
-          </div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();tmsBulkApprove('${cn}')">✓ Approve All</button>
-          </div>
+  el.innerHTML = items.map(ts=>{
+    const sym = invSym(ts.currency||'AED');
+    const total = (ts.rows||[]).reduce((s,r)=>s+(r.total||0),0);
+    const sc = statusColors[ts.status]||'#6b7280';
+    const rowCount = ts.rows?.length||0;
+    const c = state.clients.find(cl=>cl.name===ts.clientName);
+
+    return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.05)">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;background:${color};border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px">${ts.clientName.charAt(0)}</div>
+        <div>
+          <div style="font-family:var(--font-display);font-size:15px;font-weight:800">${ts.clientName}</div>
+          <div style="font-size:12px;color:var(--muted)">${monthLabel(ts.month)} · ${rowCount} row(s) · ${ts.invoiceType||c?.invoiceType||'—'} · ${ts.currency||'AED'}</div>
         </div>
       </div>
-      <div id="tmscb${safeId}" class="client-ts-body">
-        ${tsList.sort((a,b)=>b.month.localeCompare(a.month)).map(ts=>{
-          ts.employees.forEach(e=>{
-            syncSimpleToEntries(e,ts);
-            const t=calcEmpTotals(e,ts);e.worked=t.totalBillableDays;e.amount=t.pay;
-          });
-          ts.total = ts.employees.reduce((s,e)=>s+(e.amount||0),0);
-          const tsSubmitted = ts.employees.filter(e=>e.submitted).length;
-          const tsym = ts.currency==='USD'?'$':ts.currency==='GBP'?'£':'AED ';
-          const empRows = ts.employees.map((e,ei)=>{
-            const tots = calcEmpTotals(e,ts);
-            const en = e.name.replace(/'/g,"\\'");
-            return `<div class="emp-row">
-              <span style="color:var(--muted)">${ei+1}</span>
-              <div>
-                <div style="font-weight:600;font-size:13px">${e.name}</div>
-                <div style="font-size:11px;color:var(--muted)">${e.type||'—'}</div>
-              </div>
-              <span class="mono" style="font-size:12px">${tots.totalBillableDays.toFixed(1)}d</span>
-              <span class="mono" style="font-size:12px;color:${tots.pay>0?color:'var(--muted)'};font-weight:${tots.pay>0?'700':'400'}">${tsym}${fmt(tots.pay)}</span>
-              <span style="font-size:11px;color:var(--muted)">${e.submittedAt||'—'}</span>
-              <div style="display:flex;gap:3px">
-                <button class="btn btn-ghost btn-xs" onclick="tmsOpenEmpDetail('${ts.id}','${e.id}')">👁</button>
-                ${!e.submitted?`<button class="btn btn-ghost btn-xs" style="color:#16a34a" onclick="tmsMarkEmpSubmitted('${ts.id}','${e.id}')">✓</button>`:''}
-              </div>
-            </div>`;
-          }).join('');
-          return `<div style="border-top:1px solid var(--border)">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 18px;background:var(--surface)">
-              <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-family:var(--font-display);font-weight:700;font-size:14px">${monthLabel(ts.month)}</span>
-                <span class="badge ${ts.status==='approved'?'badge-green':ts.status==='submitted'?'badge-blue':ts.status==='sent'?'badge-amber':'badge-gray'}">${ts.status}</span>
-                <span class="text-muted" style="font-size:12px">${tsSubmitted}/${ts.employees.length} submitted · ${ts.workDays}d · ${tsym}${fmt(ts.total)}</span>
-              </div>
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-secondary btn-xs" onclick="tsEntryIsShared=false;showTimesheetEntryPage('${ts.id}',null)">📋 Admin View</button>
-                <button class="btn btn-primary btn-xs" onclick="createInvoiceFromTS('${ts.id}')">→ Invoice</button>
-                <button class="btn btn-danger btn-xs" onclick="tmsDeletePeriod('${ts.id}')" title="Delete period">🗑</button>
-              </div>
-            </div>
-            <div class="emp-row emp-row-head" style="font-size:9px;text-transform:uppercase;letter-spacing:.8px">
-              <span>#</span><span>Employee</span><span>Days</span><span>Amount</span><span>Submitted At</span><span>Actions</span>
-            </div>
-            ${empRows}
-          </div>`;
-        }).join('')}
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="text-align:right">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Total</div>
+          <div style="font-family:var(--font-mono);font-size:16px;font-weight:800;color:${color}">${sym}${fmt(total)}</div>
+        </div>
+        <span style="background:${sc}18;color:${sc};border:1px solid ${sc}40;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${statusLabels[ts.status]||ts.status}</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="openEditTimesheet('${ts.id}')">✏️ Edit</button>
+          ${ts.status!=='invoiced'?`<button class="btn btn-primary btn-sm" onclick="tsToInvoice('${ts.id}')">→ Invoice</button>`:'<span class="badge badge-blue">Invoiced</span>'}
+        </div>
       </div>
     </div>`;
   }).join('');
 }
 
 
-function tmsMarkEmpSubmitted(tsId, empId) {
-  const ts=state.timesheets.find(t=>t.id===tsId); if(!ts)return;
-  const e=ts.employees.find(x=>x.id===empId); if(!e)return;
-  syncSimpleToEntries(e,ts);
-  const tots=calcEmpTotals(e,ts);
-  e.worked=tots.totalBillableDays; e.amount=tots.pay;
-  e.submitted=true; e.submittedAt=today();
-  ts.total=ts.employees.reduce((s,x)=>s+(x.amount||0),0);
-  ts.status=ts.employees.every(x=>x.submitted)?'submitted':ts.employees.some(x=>x.submitted)?'partial':ts.status;
-  saveState(); tmsRefresh();
-  showNotif(`${e.name} marked submitted ✓`);
-}
-
-function tmsBulkApprove(clientName) {
-  const tsList=state.timesheets.filter(t=>t.clientName===clientName);
-  if(!tsList.length) return showNotif('No timesheets for this client','error');
-  tsList.forEach(ts=>{
-    ts.employees.forEach(e=>{
-      syncSimpleToEntries(e,ts);
-      const tots=calcEmpTotals(e,ts);
-      e.worked=tots.totalBillableDays; e.amount=tots.pay;
-      if(!e.submitted){e.submitted=true;e.submittedAt=e.submittedAt||today();}
-    });
-    ts.total=ts.employees.reduce((s,e)=>s+(e.amount||0),0);
-    ts.status='approved';
-  });
-  saveState(); tmsRefresh();
-  showNotif(`All timesheets approved for ${clientName} ✓`);
-}
-
-function tmsDeletePeriod(tsId) {
-  const ts=state.timesheets.find(t=>t.id===tsId); if(!ts)return;
-  const popup=document.createElement('div');
-  popup.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)';
-  popup.innerHTML=`<div style="background:#fff;border-radius:14px;padding:28px;max-width:360px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.2)">
-    <div style="font-size:36px;margin-bottom:10px">🗑</div>
-    <div style="font-family:var(--font-display);font-size:17px;font-weight:800;margin-bottom:6px">Delete Period?</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:20px"><strong>${ts.clientName}</strong> — ${monthLabel(ts.month)}<br>This cannot be undone.</div>
-    <div style="display:flex;gap:10px;justify-content:center">
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:#f3f4f6;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Cancel</button>
-      <button onclick="tmsConfirmDeletePeriod('${tsId}');this.closest('div[style*=fixed]').remove()" style="background:#ef4444;color:#fff;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Delete</button>
-    </div>
-  </div>`;
-  document.body.appendChild(popup);
-}
-
-function tmsConfirmDeletePeriod(tsId) {
-  state.timesheets=state.timesheets.filter(t=>t.id!==tsId);
-  saveState(); tmsRefresh();
-  showNotif('Timesheet period deleted ✓');
-}
-
-function tmsOpenEmpDetail(tsId, empId) {
-  const ts=state.timesheets.find(t=>t.id===tsId); if(!ts)return;
-  const e=ts.employees.find(x=>x.id===empId); if(!e)return;
-  ensureEntries(e,getDaysInMonth(ts.month));
-  syncSimpleToEntries(e,ts);
-  const tots=calcEmpTotals(e,ts);
-  const color=state.settings.template?.color||'#29963a';
-  const sym=ts.currency==='USD'?'$':ts.currency==='GBP'?'£':'AED ';
-  const link=tmsGetShareLink(tsId,empId);
-  document.getElementById('tms-emp-modal-title').textContent=`${e.name} — ${monthLabel(ts.month)}`;
-  document.getElementById('tms-emp-modal-content').innerHTML=`
-    <div style="padding:20px 24px">
-      <div class="info-box mb-12" style="font-size:13px">
-        <strong>Client:</strong> ${ts.clientName} &nbsp;·&nbsp;
-        <strong>Period:</strong> ${monthLabel(ts.month)} &nbsp;·&nbsp;
-        <strong>Rate:</strong> ${e.rateType==='hour'?'Hourly':e.rateType==='fixed'?'Fixed':'Day Rate'} &nbsp;·&nbsp;
-        <strong>Type:</strong> ${e.type||'—'}
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
-        <div class="kpi-mini"><div class="kpi-mini-val" style="color:#16a34a">${tots.bo>0?tots.bo.toFixed(1):'0'}</div><div class="kpi-mini-lbl">Offshore hrs</div></div>
-        <div class="kpi-mini"><div class="kpi-mini-val" style="color:#0284c7">${tots.bon>0?tots.bon.toFixed(1):'0'}</div><div class="kpi-mini-lbl">Onsite hrs</div></div>
-        <div class="kpi-mini"><div class="kpi-mini-val">${tots.totalBillableDays.toFixed(1)}</div><div class="kpi-mini-lbl">Total Days</div></div>
-        <div class="kpi-mini"><div class="kpi-mini-val" style="color:${color}">${sym}${fmt(tots.pay)}</div><div class="kpi-mini-lbl">Amount</div></div>
-      </div>
-      ${buildCalendarGrid(e,ts,true,false)}
-    </div>`;
-  document.getElementById('tms-emp-modal-footer').innerHTML=`
-    <button class="btn btn-secondary" onclick="closeModal('modal-tms-emp')">Close</button>
-    ${!e.submitted?`<button class="btn btn-primary" onclick="tmsMarkEmpSubmitted('${tsId}','${empId}');closeModal('modal-tms-emp')">✓ Mark Submitted</button>`:'<span class="badge badge-green" style="padding:8px 14px">✅ Submitted</span>'}`;
-  openModal('modal-tms-emp');
-}
-
-function openTmsCreate() {
-  const sel=document.getElementById('tms-create-client');
-  sel.innerHTML='<option value="">— Select Client —</option>'+
-    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
-  const now=new Date();
-  const curMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const mSel=document.getElementById('tms-create-month');
-  if(mSel&&[...mSel.options].some(o=>o.value===curMonth)) mSel.value=curMonth;
-  else if(mSel&&mSel.options.length>1) mSel.selectedIndex=1;
-  document.getElementById('tms-create-emp-preview').style.display='none';
-  openModal('modal-tms-create');
-}
-
-function tmsLoadClientEmps() {
-  const idx=document.getElementById('tms-create-client').value;
-  const prev=document.getElementById('tms-create-emp-preview');
-  if(!idx){prev.style.display='none';return;}
-  const c=state.clients[idx];
-  const emps=c.employees||[];
-  prev.style.display='block';
-  prev.innerHTML=emps.length
-    ?`<strong>${emps.length} employee(s):</strong> `+emps.map(e=>`<span class="email-chip">${e.name}</span>`).join('')
-    :`<span style="color:var(--muted)">No employees — period will be created with description rows only (services-based client).</span>`;
-}
-
-function tmsCreatePeriod() {
-  const clientIdx=document.getElementById('tms-create-client').value;
-  const month=document.getElementById('tms-create-month').value;
-  if(!clientIdx||!month) return showNotif('Select client and month','error');
-  const c=state.clients[clientIdx];
-  if(!c) return showNotif('Client not found','error');
-  // Allow creation even with 0 employees (services-only clients)
-  const exists=state.timesheets.find(t=>t.clientName===c.name&&t.month===month);
-  if(exists){closeModal('modal-tms-create');showNotif(`Period for ${c.name} · ${monthLabel(month)} already exists`,'error');return;}
-  const workDays=parseInt(document.getElementById('tms-create-days').value)||22;
-  const workHours=parseInt(document.getElementById('tms-create-hours').value)||176;
-  const emps=(c.employees||[]).map(e=>({
-    id:uid(),name:e.name,type:e.type||'Offshore',rateType:e.rateType||'day',
-    dayRate:e.dayRate||0,hourRate:e.hourRate||0,fixedRate:e.fixedRate||0,
-    worked:0,amount:0,submitted:false,submittedAt:null,entries:null
-  }));
-  const ts={id:uid(),clientName:c.name,currency:c.currency||'AED',month,workDays,workHours,employees:emps,status:'draft',createdAt:today(),sentAt:null,total:0};
-  emps.forEach(e=>ensureEntries(e,getDaysInMonth(month)));
-  state.timesheets.push(ts);
-  saveState();
-  closeModal('modal-tms-create');
-  tmsRefresh();
-  showNotif(`Period created — ${c.name} · ${monthLabel(month)} ✓`);
-}
-
-function renderTmsExport() {
-  const el=document.getElementById('tms-invoice-ready');
-  if(!el)return;
-  const ready=state.timesheets.filter(t=>t.status==='submitted'||t.status==='approved');
-  if(!ready.length){
-    el.innerHTML='<div class="empty-state" style="padding:24px"><div class="empty-icon">📄</div><div class="empty-text">No approved timesheets yet</div><div class="text-muted">Approve timesheets to make them invoice-ready</div></div>';
-    return;
-  }
-  el.innerHTML=ready.map(ts=>{
-    const sym=ts.currency==='USD'?'$':ts.currency==='GBP'?'£':'AED ';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-weight:700;font-size:13px">${ts.clientName} — ${monthLabel(ts.month)}</div>
-        <div class="text-muted" style="font-size:12px">${ts.employees.length} employee(s) · ${sym}${fmt(ts.total)} · ${ts.status}</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <span class="badge ${ts.status==='approved'?'badge-green':'badge-blue'}">${ts.status}</span>
-        <button class="btn btn-primary btn-xs" onclick="createInvoiceFromTS('${ts.id}')">→ Invoice</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function exportTimesheets() {
-  const clientF=document.getElementById('export-client').value;
-  const monthF=document.getElementById('export-month').value;
-  const fmt_=document.getElementById('export-format').value;
-  let items=state.timesheets.slice();
-  if(clientF){const cn=state.clients[parseInt(clientF)]?.name;if(cn)items=items.filter(t=>t.clientName===cn);}
-  if(monthF)items=items.filter(t=>t.month===monthF);
-  if(!items.length)return showNotif('No timesheets match filters','error');
-  items.forEach(ts=>ts.employees.forEach(e=>{syncSimpleToEntries(e,ts);const t=calcEmpTotals(e,ts);e.worked=t.totalBillableDays;e.amount=t.pay;}));
-  if(fmt_==='csv')exportCsv(items);
-  else if(fmt_==='json')exportJson(items);
-  else exportPdfSummary(items,fmt_==='pdf-detail');
-}
-
-function exportCsv(items) {
-  const rows=[['Client','Month','Employee','Type','Rate Type','Bill.Offshore','Bill.Onsite','Non-Billable','Leave','Holiday','Total Days','Total Hours','Amount','Currency','Status','Submitted At']];
-  items.forEach(ts=>{
-    (ts.employees||[]).forEach(e=>{
-      ensureEntries(e,getDaysInMonth(ts.month));
-      const tots=calcEmpTotals(e,ts);
-      rows.push([ts.clientName,ts.month,e.name,e.type||'',e.rateType||'',tots.bo,tots.bon,tots.nb,tots.lv,tots.hd,tots.totalBillableDays.toFixed(2),tots.totalBillableHrs,fmt(tots.pay),ts.currency,e.submitted?'submitted':'pending',e.submittedAt||'']);
-    });
-  });
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download=`timesheets_${today().replace(/\//g,'-')}.csv`;
-  a.click(); showNotif('CSV exported ✓');
-}
-
-function exportJson(items) {
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:'application/json'}));
-  a.download=`timesheets_${today().replace(/\//g,'-')}.json`;
-  a.click(); showNotif('JSON exported ✓');
-}
-
-function exportPdfSummary(items) {
-  if(!window.jspdf)return showNotif('PDF library not loaded','error');
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const W=210,M=18;let y=22;
-  const color=state.settings.template?.color||'#29963a';
-  const hex=color.replace('#','');
-  const cr=parseInt(hex.slice(0,2),16),cg=parseInt(hex.slice(2,4),16),cb=parseInt(hex.slice(4,6),16);
-  doc.setFillColor(cr,cg,cb);doc.rect(0,0,W,28,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(255,255,255);
-  doc.text('Timesheet Report',M,16);
-  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(`Generated: ${today()}`,W-M,16,{align:'right'});
-  y=38;
-  items.forEach(ts=>{
-    if(y>260){doc.addPage();y=22;}
-    const sym=ts.currency==='USD'?'$':ts.currency==='GBP'?'£':'AED ';
-    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(cr,cg,cb);
-    doc.text(`${ts.clientName} — ${monthLabel(ts.month)}`,M,y);y+=5;
-    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80);
-    doc.text(`Status: ${ts.status} · ${ts.workDays}d · ${sym}${fmt(ts.total)}`,M,y);y+=6;
-    const hdrs=['#','Employee','Type','Days','Hrs','Amount','Status'];
-    const cx=[M+2,M+8,M+50,M+80,M+94,M+110,M+140];
-    doc.setFillColor(cr,cg,cb);doc.rect(M,y,W-M*2,6,'F');
-    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(6.5);
-    hdrs.forEach((h,i)=>doc.text(h,cx[i],y+4));y+=7;
-    (ts.employees||[]).forEach((e,i)=>{
-      if(y>275){doc.addPage();y=22;}
-      if(i%2===0){doc.setFillColor(248,250,248);doc.rect(M,y-1,W-M*2,6,'F');}
-      ensureEntries(e,getDaysInMonth(ts.month));
-      const tots=calcEmpTotals(e,ts);
-      doc.setTextColor(25);doc.setFont('helvetica','normal');doc.setFontSize(7);
-      doc.text(String(i+1),cx[0],y+3.5);
-      doc.text(e.name.substring(0,16),cx[1],y+3.5);
-      doc.text((e.type||'').substring(0,8),cx[2],y+3.5);
-      doc.text(tots.totalBillableDays.toFixed(1),cx[3],y+3.5);
-      doc.text(String(tots.totalBillableHrs||0),cx[4],y+3.5);
-      doc.text(`${sym}${fmt(tots.pay)}`,cx[5],y+3.5);
-      doc.setTextColor(e.submitted?cr:150,e.submitted?cg:80,e.submitted?cb:80);
-      doc.text(e.submitted?'done':'pending',cx[6],y+3.5);
-      y+=6;
-    });
-    y+=8;
-  });
-  doc.save(`timesheet_report_${today().replace(/\//g,'-')}.pdf`);
-  showNotif('PDF exported ✓');
-}
-
-function renderClients() {
-  const grid=document.getElementById('client-grid');
-  if(!state.clients.length){
-    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏢</div><div class="empty-text">No clients yet</div><div class="text-muted">Add your first client to get started</div></div>`;
-    return;
-  }
-  grid.innerHTML=state.clients.map((c,i)=>`
-    <div class="client-card">
-      <div class="client-name">${c.name}</div>
-      <div class="client-detail">👤 ${c.contact||'—'}</div>
-      <div class="client-detail">✉ ${c.email||'—'}</div>
-      <div class="client-detail">📅 Day: ${c.currency==='USD'?'$':c.currency==='GBP'?'£':'AED '} ${fmt(c.dayRate||0)}</div>
-      <div class="client-detail">⏱ Hourly: ${c.currency==='USD'?'$':c.currency==='GBP'?'£':'AED '} ${fmt(c.hourRate||0)}</div>
-      <div class="client-detail">📌 Fixed/mo: ${c.currency==='USD'?'$':c.currency==='GBP'?'£':'AED '} ${fmt(c.fixedRate||0)}</div>
-      <div class="client-detail">🧾 VAT: ${c.vat}% · 👥 ${(c.employees||[]).length} employees</div>
-      ${c.convCurrency ? `<div class="client-detail">💱 Equivalent in: <strong>${c.convCurrency}</strong></div>` : ''}
-      <div class="flex gap-8 mt-12">
-        <span class="badge ${c.currency==='AED'?'badge-green':c.currency==='USD'?'badge-blue':'badge-purple'}">${c.currency}</span>
-        <button class="btn btn-secondary btn-xs" onclick="openClientModal(${i})">Edit</button>
-        <button class="btn btn-danger btn-xs" onclick="showConfirmDelete(${i},'${c.name.replace(/'/g,"\\'")}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-function deleteClient(i){
-  const c = state.clients[i];
-  if (!c) return showNotif('Client not found','error');
-  // Use a custom inline confirm instead of window.confirm (blocked on file:// in some browsers)
-  if (!window.confirm(`Delete client "${c.name}"?\n\nThis cannot be undone.`)) {
-    // fallback: try showConfirmDelete
-    showConfirmDelete(i, c.name);
-    return;
-  }
-  state.clients.splice(i, 1);
-  saveState();
-  renderClients();
-  showNotif(`Client "${c.name}" deleted ✓`);
-}
-
-function showConfirmDelete(idx, clientName) {
-  // Remove any existing confirm popup
-  const existing = document.getElementById('confirm-delete-popup');
-  if (existing) existing.remove();
-
-  const popup = document.createElement('div');
-  popup.id = 'confirm-delete-popup';
-  popup.style.cssText = `
-    position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);
-    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)`;
-  popup.innerHTML = `
-    <div style="background:#fff;border-radius:16px;padding:32px 28px;max-width:380px;width:90%;
-      box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center">
-      <div style="font-size:42px;margin-bottom:12px">🗑</div>
-      <div style="font-family:var(--font-display);font-size:18px;font-weight:800;color:#111827;margin-bottom:8px">
-        Delete Client?
-      </div>
-      <div style="font-size:14px;color:#6b7280;margin-bottom:6px">
-        <strong style="color:#111827">${clientName}</strong>
-      </div>
-      <div style="font-size:12px;color:#ef4444;margin-bottom:24px">
-        This cannot be undone.
-      </div>
-      <div style="display:flex;gap:12px;justify-content:center">
-        <button onclick="document.getElementById('confirm-delete-popup').remove()"
-          style="background:#f3f4f6;color:#374151;border:none;padding:10px 24px;border-radius:9px;
-            font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
-          Cancel
-        </button>
-        <button onclick="confirmDeleteClient(${idx})"
-          style="background:#ef4444;color:#fff;border:none;padding:10px 24px;border-radius:9px;
-            font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">
-          Yes, Delete
-        </button>
-      </div>
-    </div>`;
-  document.body.appendChild(popup);
-}
-
-function confirmDeleteClient(i) {
-  document.getElementById('confirm-delete-popup')?.remove();
-  const c = state.clients[i];
-  if (!c) return;
-  const name = c.name;
-  state.clients.splice(i, 1);
-  saveState();
-  renderClients();
-  showNotif(`Client "${name}" deleted ✓`);
-}
-
-// ═══════════════════════════════
-// CURRENCY
-// ═══════════════════════════════
-function quickConvert() {
-  const amount=parseFloat(document.getElementById('qc-amount').value)||0;
-  const from=document.getElementById('qc-from').value;
-  const to=document.getElementById('qc-to').value;
-  const gbpUsd=parseFloat(document.getElementById('ref-gbp-usd').value)||1.3295;
-  const usdAed=parseFloat(document.getElementById('ref-usd-aed').value)||3.6725;
-  const gbpAed=parseFloat(document.getElementById('ref-gbp-aed').value)||4.8812;
-  const aedUsd=parseFloat(document.getElementById('ref-aed-usd').value)||0.2723;
-  const rates={
-    'GBP-USD': gbpUsd,
-    'USD-AED': usdAed,
-    'GBP-AED': gbpAed,
-    'AED-USD': aedUsd,
-    'USD-GBP': 1/gbpUsd,
-    'AED-GBP': 1/gbpAed,
-    'USD-USD': 1, 'AED-AED': 1, 'GBP-GBP': 1
-  };
-  const rate=rates[from+'-'+to]||1;
-  const result=amount*rate;
-  document.getElementById('qc-result').textContent=`${fmtCur(result,to)}`;
-}
-
-// ═══════════════════════════════
-// TEMPLATE
-// ═══════════════════════════════
-const TEMPLATES = [
-  {id:'emerald',name:'Emerald',desc:'Vibrant green header, fresh corporate'},
-  {id:'slate',name:'Slate',desc:'Dark navy header, refined & elegant'},
-  {id:'luxe',name:'Luxe',desc:'Dark with color accents, premium feel'},
-  {id:'classic',name:'Classic',desc:'Centered header, traditional formal'},
-  {id:'minimal',name:'Minimal',desc:'Clean, white-space, no color bar'},
-  {id:'corporate',name:'Corporate',desc:'Two-tone, structured, professional'}
-];
-
-function initTemplate() {
-  const T=state.settings.template||{};
-  document.getElementById('tpl-color').value=T.color||'#29963a';
-  document.getElementById('tpl-color-hex').value=T.color||'#29963a';
-  document.getElementById('tpl-font-heading').value=T.fontHeading||'Outfit';
-  document.getElementById('tpl-font-body').value=T.fontBody||'Plus Jakarta Sans';
-  document.getElementById('tpl-font-size').value=T.fontSize||13;
-  document.getElementById('tpl-size-val').textContent=T.fontSize||13;
-  // Render template thumbnails
-  const color=T.color||'#29963a';
-  document.getElementById('tpl-grid').innerHTML=TEMPLATES.map(t=>`
-    <div class="tpl-card ${(T.style||'emerald')===t.id?'selected':''}" data-tpl="${t.id}" onclick="selectTpl('${t.id}')">
-      <div class="tpl-thumb">${tplThumb(t.id,color)}</div>
-      <div class="tpl-name">${t.name}</div>
-      <div class="tpl-desc">${t.desc}</div>
-    </div>`).join('');
-}
-
-function tplThumb(style,color){
-  const th={
-    emerald:`<div style="background:${color};height:30px;display:flex;align-items:center;padding:0 10px;color:#fff;font-size:9px;font-weight:700">VENQTEL <span style="margin-left:auto;background:#fff;color:${color};padding:2px 6px;border-radius:3px;font-size:8px">INVOICE</span></div><div style="padding:8px"><div style="height:4px;background:#e8e8e8;border-radius:2px;margin-bottom:5px;width:60%"></div><div style="height:3px;background:#eee;border-radius:2px;margin-bottom:3px"></div><div style="height:3px;background:#eee;border-radius:2px;width:80%"></div></div>`,
-    slate:`<div style="background:#1e293b;height:30px;display:flex;align-items:center;padding:0 10px;color:#fff;font-size:9px;font-weight:700">VENQTEL <span style="margin-left:auto;background:${color};color:#fff;padding:2px 6px;border-radius:3px;font-size:8px">INVOICE</span></div><div style="padding:8px"><div style="height:4px;background:#e8e8e8;border-radius:2px;margin-bottom:5px;width:60%"></div><div style="height:3px;background:#eee;border-radius:2px;margin-bottom:3px"></div></div>`,
-    luxe:`<div style="background:linear-gradient(135deg,#0f1a12,#1c3422);height:30px;display:flex;align-items:center;padding:0 10px;font-size:9px;font-weight:700;color:${color}">VENQTEL <span style="margin-left:auto;border:1px solid ${color};color:${color};padding:2px 6px;border-radius:3px;font-size:8px">INVOICE</span></div><div style="padding:8px"><div style="height:4px;background:#e8e8e8;border-radius:2px;margin-bottom:5px;width:60%"></div></div>`,
-    classic:`<div style="text-align:center;padding:10px 8px 6px;border-bottom:2px solid ${color}"><div style="font-size:10px;font-weight:800;color:#1a1a2a">VENQTEL</div><div style="margin-top:4px;background:${color};color:#fff;font-size:7px;padding:2px 8px;border-radius:3px;display:inline-block">TAX INVOICE</div></div><div style="padding:6px 8px"><div style="height:3px;background:#eee;border-radius:2px;margin-bottom:3px;width:80%"></div></div>`,
-    minimal:`<div style="display:flex;justify-content:space-between;padding:10px 8px 8px;border-bottom:1px solid #e8e8e8"><span style="font-size:10px;font-weight:800">VENQTEL</span><span style="font-size:8px;color:#888">Invoice</span></div><div style="padding:6px 8px"><div style="height:3px;background:#eee;border-radius:2px;margin-bottom:3px;width:70%"></div></div>`,
-    corporate:`<div style="display:flex;height:100%;border-radius:8px;overflow:hidden"><div style="width:6px;background:${color};flex-shrink:0"></div><div style="flex:1;background:#f8f9fa;padding:8px;border-bottom:1.5px solid ${color}"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="width:14px;height:14px;background:${color};border-radius:3px;display:inline-block;margin-right:4px;vertical-align:middle"></div><span style="font-size:9px;font-weight:800;color:#1a1a2a;vertical-align:middle">VENQTEL</span></div><span style="font-size:13px;font-weight:900;color:${color}">Invoice</span></div><div style="height:3px;background:#ddd;border-radius:2px;margin-top:8px;width:80%"></div><div style="height:3px;background:#eee;border-radius:2px;margin-top:4px;width:60%"></div></div></div>`
-  };
-  return th[style]||th.emerald;
-}
-
-function selectTpl(id) {
-  state.settings.template.style=id;
-  document.querySelectorAll('.tpl-card').forEach(c=>c.classList.toggle('selected',c.dataset.tpl===id));
-}
-function applyThemeColor() {
-  const c=document.getElementById('tpl-color').value;
-  document.getElementById('tpl-color-hex').value=c;
-  state.settings.template.color=c;
-  document.documentElement.style.setProperty('--g500',c);
-  // Derive shades
-  const hex=c.replace('#','');
-  const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
-  const dark=`#${Math.max(0,r-30).toString(16).padStart(2,'0')}${Math.max(0,g-30).toString(16).padStart(2,'0')}${Math.max(0,b-30).toString(16).padStart(2,'0')}`;
-  const light=`#${Math.min(255,r+180).toString(16).padStart(2,'0')}${Math.min(255,g+180).toString(16).padStart(2,'0')}${Math.min(255,b+180).toString(16).padStart(2,'0')}`;
-  document.documentElement.style.setProperty('--g600',dark);
-  document.documentElement.style.setProperty('--g50',light+'40');
-  initTemplate();
-}
-function setColor(c){document.getElementById('tpl-color').value=c;document.getElementById('tpl-color-hex').value=c;applyThemeColor();}
-function previewTemplate() {
-  const T=state.settings.template;
-  T.fontHeading=document.getElementById('tpl-font-heading').value;
-  T.fontBody=document.getElementById('tpl-font-body').value;
-  T.fontSize=parseInt(document.getElementById('tpl-font-size').value)||13;
-  const dummy={
-    id:'preview',number:'VTL-001',date:today(),from:state.settings.company.name||'Venqtel',
-    company:{...state.settings.company},logo:state.settings.logo,logoWidth:state.settings.logoWidth||140,
-    template:{...T},clientName:'Acme Corp',clientAddr:'Dubai, UAE',clientEmail:'client@acme.com',
-    currency:'AED',convertTo:'USD',convertRate:3.6725,convertedTotal:10000*3.6725,
-    vatPct:5,subtotal:10000,vat:500,total:10500,billingType:'day',fixedTotalDays:22,
-    notes:'Professional services for May 2026',
-    rows:[{index:1,name:'Resource A',type:'Offshore',worked:22,rate:300,total:6600},
-          {index:2,name:'Resource B',type:'Onsite',worked:20,rate:350,total:7000}],
-    company:{...state.settings.company},
-    status:'draft'
-  };
-  const wrap=document.getElementById('tpl-preview-wrap');
-  wrap.innerHTML=buildInvoiceHTML(dummy,false);
-  wrap.style.display='block';
-  wrap.scrollIntoView({behavior:'smooth'});
-}
-function saveTemplate() {
-  const T=state.settings.template;
-  T.fontHeading=document.getElementById('tpl-font-heading').value;
-  T.fontBody=document.getElementById('tpl-font-body').value;
-  T.fontSize=parseInt(document.getElementById('tpl-font-size').value)||13;
-  saveState();
-  showNotif('Template saved ✓');
-}
-
-// ═══════════════════════════════
-// COMPANY SETTINGS
-// ═══════════════════════════════
-function uploadLogo(e) {
-  const file=e.target.files[0];
-  if(!file)return;
-  if(file.size>2*1024*1024){showNotif('Logo too large (max 2MB)','error');return;}
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    state.settings.logo=ev.target.result;
-    document.getElementById('co-logo-img').src=state.settings.logo;
-    document.getElementById('co-logo-img').style.display='inline-block';
-    document.getElementById('co-logo-ph').style.display='none';
-    showNotif('Logo uploaded ✓');
-  };
-  reader.readAsDataURL(file);
-}
-function removeLogo(){
-  state.settings.logo='';
-  document.getElementById('co-logo-img').style.display='none';
-  document.getElementById('co-logo-ph').style.display='inline';
-  showNotif('Logo removed');
-}
-function loadCompanySettings() {
-  const co=state.settings.company||{};
-  ['name','tagline','address','phone','email','website','tax','bank'].forEach(k=>{
-    const el=document.getElementById('co-'+k);
-    if(el) el.value=co[k]||'';
-  });
-  document.getElementById('co-prefix').value=co.prefix||'VTL-';
-  document.getElementById('co-next-num').value=co.nextNum||1;
-  document.getElementById('co-default-vat').value=co.defaultVat!==undefined?co.defaultVat:5;
-  if(state.settings.logo){
-    document.getElementById('co-logo-img').src=state.settings.logo;
-    document.getElementById('co-logo-img').style.display='inline-block';
-    document.getElementById('co-logo-ph').style.display='none';
-  }
-  if(state.settings.logoWidth){
-    document.getElementById('co-logo-width').value=state.settings.logoWidth;
-    document.getElementById('co-logo-img').style.maxWidth=state.settings.logoWidth+'px';
-  }
-}
-function saveCompanySettings(){
-  const co={};
-  ['name','tagline','address','phone','email','website','tax'].forEach(k=>{
-    co[k]=document.getElementById('co-'+k)?.value||'';
-  });
-  co.prefix=document.getElementById('co-prefix').value||'VTL-';
-  co.nextNum=parseInt(document.getElementById('co-next-num').value)||1;
-  co.defaultVat=parseFloat(document.getElementById('co-default-vat').value)||5;
-  // Save bank accounts from cards
-  co.bankAccounts = getBankAccountsFromUI();
-  // Legacy single bank field — keep for backward compat
-  co.bank = co.bankAccounts.length ? co.bankAccounts[0].details : '';
-  state.settings.company=co;
-  state.settings.logoWidth=parseInt(document.getElementById('co-logo-width').value)||140;
-  saveState();
-  const f=document.getElementById('inv-from');
-  if(f)f.value=co.name||'Venqtel';
-  // Update bank selector in invoice form
-  renderInvBankSelector();
-  showNotif('Company settings saved ✓');
-}
-
-function getBankAccountsFromUI() {
-  const cards = document.querySelectorAll('.bank-account-card');
-  return Array.from(cards).map(card => ({
-    label:   card.querySelector('.ba-label')?.value||'',
-    currency:card.querySelector('.ba-currency')?.value||'AED',
-    details: card.querySelector('.ba-details')?.value||''
-  })).filter(a=>a.details.trim());
-}
-
-function renderBankAccounts() {
-  const el = document.getElementById('co-bank-accounts');
-  if (!el) return;
-  const accounts = state.settings.company?.bankAccounts || [];
-  if (!accounts.length) {
-    el.innerHTML = `<div class="text-muted" style="font-size:13px;text-align:center;padding:8px">No accounts added yet. Click "+ Add Account" to add one.</div>`;
-    return;
-  }
-  el.innerHTML = accounts.map((a,i) => buildBankAccountCard(a, i)).join('');
-}
-
-function buildBankAccountCard(a={}, i) {
-  const color = state.settings.template?.color||'#29963a';
-  return `<div class="bank-account-card" style="border:1.5px solid var(--border);border-radius:9px;padding:12px 14px;background:var(--white)">
-    <div style="display:grid;grid-template-columns:1fr 140px auto;gap:10px;align-items:start;margin-bottom:10px">
-      <div>
-        <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.7px">Account Label</label>
-        <input type="text" class="ba-label" value="${a.label||''}" placeholder="e.g. UAE Account / UK Account"
-          style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none"
-          onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
-      </div>
-      <div>
-        <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.7px">Currency</label>
-        <select class="ba-currency" style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none;background:var(--white)">
-          <option ${(a.currency||'AED')==='AED'?'selected':''}>AED</option>
-          <option ${a.currency==='USD'?'selected':''}>USD</option>
-          <option ${a.currency==='GBP'?'selected':''}>GBP</option>
-          <option ${a.currency==='EUR'?'selected':''}>EUR</option>
-          <option ${a.currency==='INR'?'selected':''}>INR</option>
-          <option ${a.currency==='SAR'?'selected':''}>SAR</option>
-        </select>
-      </div>
-      <button onclick="this.closest('.bank-account-card').remove()" title="Remove"
-        style="margin-top:20px;background:#fff1f2;border:1px solid #fca5a5;color:#dc2626;border-radius:7px;padding:7px 10px;cursor:pointer;font-size:13px">🗑</button>
-    </div>
-    <div>
-      <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.7px">Bank Details</label>
-      <textarea class="ba-details" rows="4" placeholder="Bank: Emirates NBD&#10;IBAN: AE12345678901234567890&#10;Swift: EBILAEAD&#10;Branch: Bur Dubai&#10;Account Name: Venqtel Technology Services FZCO"
-        style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:12.5px;font-family:var(--font-mono);outline:none;resize:vertical"
-        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">${a.details||''}</textarea>
-    </div>
-  </div>`;
-}
-
-function addBankAccount() {
-  const el = document.getElementById('co-bank-accounts');
-  // Remove empty state message if present
-  const emptyMsg = el.querySelector('.text-muted');
-  if (emptyMsg) emptyMsg.remove();
-  const div = document.createElement('div');
-  div.innerHTML = buildBankAccountCard({}, Date.now());
-  el.appendChild(div.firstElementChild);
-}
-
-// ═══════════════════════════════════════════════════
-function invAddToResourceList(nameOrEl, type) {
-  const name = typeof nameOrEl === 'string' ? nameOrEl : (nameOrEl.dataset?.name||'');
-  const t    = typeof nameOrEl === 'string' ? type : (nameOrEl.dataset?.type||'day');
-  if (!state.settings.resourceList) state.settings.resourceList = [];
-  if (state.settings.resourceList.includes(name)) {
-    showNotif(`"${name}" already in list`,'error'); return;
-  }
-  state.settings.resourceList.push(name);
-  saveState();
-  showNotif(`"${name}" added to resource list ✓`);
-  if (t) renderInvRows(t);
-  renderResourceList();
-}
-
-function removeFromResourceList(i) {
-  state.settings.resourceList.splice(i, 1);
-  saveState();
-  renderResourceList();
-  ['day','hour','fixed'].forEach(t => renderInvRows(t));
-}
-
-function renderResourceList() {
-  const el = document.getElementById('co-resource-list');
-  if (!el) return;
-  const list = state.settings.resourceList||[];
-  if (!list.length) {
-    el.innerHTML = '<div class="text-muted" style="font-size:13px;padding:8px 0">No items yet — type a new resource name in any invoice row and click "+ Save to list".</div>';
-    return;
-  }
-  el.innerHTML = list.map((item,i) => `
-    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);
-      color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;margin:3px">
-      ${item}
-      <button onclick="removeFromResourceList(${i})"
-        style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;padding:0 2px">×</button>
-    </span>`).join('');
-}
-function renderInvBankSelector() {
-  const el = document.getElementById('inv-bank-select');
-  if (!el) return;
-  const accounts = state.settings.company?.bankAccounts||[];
-  if (!accounts.length) {
-    el.innerHTML = '<option value="">— No bank accounts configured —</option>';
-    return;
-  }
-  el.innerHTML = '<option value="">— Select Payment Account —</option>' +
-    accounts.map((a,i) =>
-      `<option value="${i}">${a.label||'Account '+(i+1)} (${a.currency})</option>`
-    ).join('');
-}
-
-// ═══════════════════════════════
-// INIT
-// ═══════════════════════════════
-// All UI init moved here so Firebase can call it after auth
-function bootApp() {
-  if(state.settings.template?.color){
-    document.getElementById('tpl-color').value=state.settings.template.color;
-    document.getElementById('tpl-color-hex').value=state.settings.template.color;
-  }
-  applyThemeColor();
-  applyHeadingFont(state.settings.template?.fontHeading||'Outfit');
-  renderDashboard();
-  document.getElementById('dash-date').textContent=
-    'Today · '+new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  const co=state.settings.company;
-  const invNum=document.getElementById('inv-number');
-  if(invNum) invNum.value=(co.prefix||'VTL-')+String(co.nextNum||1).padStart(3,'0');
-  const invFrom=document.getElementById('inv-from');
-  if(invFrom) invFrom.value=co.name||'Venqtel';
-  const invDate=document.getElementById('inv-date');
-  if(invDate) invDate.value=today();
-  const invVat=document.getElementById('inv-vat');
-  if(invVat) invVat.value=co.defaultVat!==undefined?co.defaultVat:5;
-  const invClient=document.getElementById('inv-client');
-  if(invClient){
-    invClient.innerHTML='<option value="">— Select Client —</option>'+
-      state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
-  }
-  // Init default invoice rows
-  invRows={ mixed:[], day:[], hour:[], fixed:[], unit:[], milestone:[] };
-  window.invMixedRows = [];
-  addInvRow('mixed'); addInvRow('day'); addInvRow('hour'); addInvRow('fixed'); addInvRow('unit'); addInvRow('milestone');
-  renderMilestoneHeader(invSym(document.getElementById('inv-currency')?.value||'AED'));
-  recalcInvoice();
-  renderBankAccounts();
-  renderInvBankSelector();
-  renderResourceList();
-  checkHashRoute();
-} // end bootApp()
-
-window.addEventListener('DOMContentLoaded', () => {
-  initFirebase();
-});
-
-// ═══════════════════════════════
-// HEADING FONT — live updates app
-// ═══════════════════════════════
-function applyHeadingFont(fontName) {
-  if (!fontName) return;
-  // Load from Google Fonts if not already loaded
-  const safeFont = encodeURIComponent(fontName);
-  const id = 'gfont-'+fontName.replace(/\s+/g,'');
-  if (!document.getElementById(id)) {
-    const link = document.createElement('link');
-    link.id = id;
-    link.rel = 'stylesheet';
-    link.href = `https://fonts.googleapis.com/css2?family=${safeFont}:wght@400;600;700;800;900&display=swap`;
-    document.head.appendChild(link);
-  }
-  document.documentElement.style.setProperty('--font-display', `'${fontName}', sans-serif`);
-}
-
-// Hook into saveTemplate and previewTemplate to also apply font live
-const _origSaveTemplate = saveTemplate;
-saveTemplate = function() {
-  _origSaveTemplate();
-  applyHeadingFont(document.getElementById('tpl-font-heading').value);
-};
-
-// Auto-apply heading font on font selector change
-document.getElementById('tpl-font-heading').addEventListener('change', function() {
-  applyHeadingFont(this.value);
-});
-
-// ═══════════════════════════════
-// SHARE LINK — Timesheet entry
-// ═══════════════════════════════
-let tsEntryIsShared = false; // true = employee portal (no financial data shown)
-
-function checkHashRoute() {
-  const hash = window.location.hash;
-  if (!hash || !hash.startsWith('#ts-')) return;
-  tsEntryIsShared = true;
-  // Format: #ts-{tsId}-emp-{empId}
-  // tsId and empId are base36 strings (no hyphens), separated by literal "-emp-"
-  const raw = hash.slice(1); // remove leading #  → "ts-{tsId}-emp-{empId}"
-  const empSep = raw.indexOf('-emp-');
-  if (empSep !== -1) {
-    const tsId  = raw.slice(3, empSep);         // skip "ts-"
-    const empId = raw.slice(empSep + 5);         // skip "-emp-"
-    if (tsId && empId) {
-      showTimesheetEntryPage(tsId, empId);
-      return;
-    }
-  }
-  // Legacy / admin full-timesheet link: #ts-{tsId}
-  const tsId = raw.slice(3);
-  if (tsId) showTimesheetEntryPage(tsId, null);
-}
-
-// Fire on hash change (navigation within page)
-window.addEventListener('hashchange', checkHashRoute);
-// Fire on load — covers both direct URL open AND same-page reload
-window.addEventListener('load', () => { if (window.location.hash.startsWith('#ts-')) checkHashRoute(); });
-
-function generateShareLink() {
-  const clientIdx = document.getElementById('ts-client').value;
-  const month = document.getElementById('ts-month').value;
-  if (!clientIdx || !month) return showNotif('Select client and month first','error');
-  const clientObj = state.clients[clientIdx];
-  if (!clientObj) return showNotif('Client not found','error');
-  let ts = state.timesheets.find(t=>t.clientName===clientObj.name && t.month===month);
-  if (!ts) {
-    createTimesheet();
-    ts = state.timesheets.find(t=>t.clientName===clientObj.name && t.month===month);
-  }
-  if (!ts) return showNotif('Could not create timesheet','error');
-  const base = window.location.href.split('#')[0];
-  const links = ts.employees.map(e => {
-    const link = `${base}#ts-${ts.id}-emp-${e.id}`;
-    return {name:e.name, link, tsId:ts.id, empId:e.id};
-  });
-  document.getElementById('ts-share-link').style.display = 'block';
-  document.getElementById('ts-share-link').innerHTML = `
-    <div style="font-weight:700;margin-bottom:10px;font-size:14px">📋 Individual Share Links — one per employee:</div>
-    <div class="info-box mb-12" style="font-size:12px">
-      💡 Copy a link and share it with the employee. They open it in any browser — no login needed. Click <strong>Open ↗</strong> to fill it in directly here.
-    </div>
-    ${links.map(l=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="font-weight:700;min-width:140px;font-size:13px">${l.name}</span>
-        <input readonly value="${l.link}" onclick="this.select()"
-          style="flex:1;font-size:10px;font-family:var(--font-mono);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;cursor:text" />
-        <button class="btn btn-secondary btn-xs" onclick="navigator.clipboard&&navigator.clipboard.writeText('${l.link}').then(()=>showNotif('Copied ✓'));document.execCommand&&(()=>{const tmp=document.createElement('input');tmp.value='${l.link}';document.body.appendChild(tmp);tmp.select();document.execCommand('copy');document.body.removeChild(tmp);showNotif('Copied ✓')})()">📋 Copy</button>
-        <button class="btn btn-primary btn-xs" onclick="tsEntryIsShared=true;showTimesheetEntryPage('${l.tsId}','${l.empId}')">Open ↗</button>
-      </div>`).join('')}`;
-}
-
-// ═══════════════════════════════════════════════
 // TIMESHEET ENTRY — CALENDAR GRID (Modern)
 // ═══════════════════════════════════════════════
 
