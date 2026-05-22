@@ -2006,7 +2006,6 @@ function statusBadge(s) {
 // ═══════════════════════════════
 // INVOICE — STATE
 // ═══════════════════════════════
-let invRows = { day:[], hour:[], fixed:[], milestone:[] };
 
 function initNewInvoice() {
   // Populate client dropdown
@@ -2095,7 +2094,7 @@ function addInvRow(type) {
   const vatPct = parseFloat(document.getElementById('inv-vat')?.value)||0;
   const clientIdx = document.getElementById('inv-client')?.value||'';
   const c = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
-  const r = { id: uid() };
+  let r = { id: uid() };
   if (type==='mixed')     { r.desc=''; r.locType='Offshore'; r.days=''; r.hours=''; r.vatPct=vatPct; r.rate=c?.hourRate||c?.dayRate||0; }
   else if (type==='day')  { r.name=''; r.locType='Offshore'; r.days=''; r.vatPct=vatPct; r.rate=c?.dayRate||0; }
   else if (type==='hour') { r.name=''; r.locType='Offshore'; r.totalHours=176; r.hours=''; r.vatPct=vatPct; r.rate=c?.hourRate||0; }
