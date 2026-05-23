@@ -18,9 +18,9 @@
   --brand:       var(--brand);
   --brand-dark:  var(--brand-dark);
   --brand-light: var(--brand-light);
-  --brand-50:    #f0faf2;
-  --brand-100:   #d6f0db;
-  --brand-200:   #b0e0bb;
+  --brand-50:    #f0faf3;
+  --brand-100:   #d1eeda;
+  --brand-200:   #a3d9b1;
 
   /* Keep g-vars for backward compat — mapped to brand */
   --g50:   #f0faf2;
@@ -1395,7 +1395,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   <div class="card mb-16">
     <div class="card-title">🎨 Color Scheme</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px" id="color-presets">
-      <button onclick="setThemePreset('#29963a','Venqtel Green')"   style="width:40px;height:40px;background:#29963a;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all .15s" title="Ocean Blue"></button>
+      <button onclick="setThemePreset('#1a7f37','Venqtel Green')"   style="width:40px;height:40px;background:#1a7f37;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all .15s" title="Ocean Blue"></button>
       <button onclick="setThemePreset('#16a34a','Green')"  style="width:40px;height:40px;background:#16a34a;border-radius:10px;border:2px solid transparent;cursor:pointer" title="Emerald Green"></button>
       <button onclick="setThemePreset('#7c3aed','Purple')" style="width:40px;height:40px;background:#7c3aed;border-radius:10px;border:2px solid transparent;cursor:pointer" title="Royal Purple"></button>
       <button onclick="setThemePreset('#dc2626','Red')"    style="width:40px;height:40px;background:#dc2626;border-radius:10px;border:2px solid transparent;cursor:pointer" title="Crimson Red"></button>
@@ -1973,7 +1973,7 @@ let state = {
     company: { name:'Venqtel', tagline:'Technology Services', address:'', phone:'', email:'', website:'', tax:'', bank:'', prefix:'VTL-', nextNum:1, defaultVat:5 },
     logo: '',
     logoWidth: 140,
-    template: { style:'emerald', fontHeading:'Outfit', fontBody:'Plus Jakarta Sans', fontSize:13, color:'#29963a' }
+    template: { style:'emerald', fontHeading:'Outfit', fontBody:'Plus Jakarta Sans', fontSize:13, color:'#1a7f37' }
   }
 };
 
@@ -2327,7 +2327,7 @@ function renderClients() {
       <div class="text-muted">Add your first client to get started</div></div>`;
     return;
   }
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   const invTypeLabels = {mixed:'🔀 Mixed',day:'📅 Day Rate',hour:'⏱ Hourly',fixed:'📌 Fixed Monthly',unit:'💲 Unit Price',milestone:'⬡ Milestone'};
   grid.innerHTML = state.clients.map((c,i) => {
     const sym = invSym(c.currency||'AED');
@@ -2608,7 +2608,7 @@ function getActiveTab() {
 
 // ── Theme ─────────────────────────────────────────────────
 function applyThemeColor() {
-  const color     = state.settings.template?.color || '#29963a';
+  const color     = state.settings.template?.color || '#1a7f37';
   const colorDark = shadeColor(color, -15);
   const colorLight= shadeColor(color, 20);
   const color50   = shadeColor(color, 92);
@@ -2659,8 +2659,8 @@ function applyHeadingFont(fontName) {
 // ── Template / Settings pages ────────────────────────────
 function initTemplate() {
   const t = state.settings.template || {};
-  setEl('tpl-color',        t.color||'#29963a');
-  setEl('tpl-color-hex',    t.color||'#29963a');
+  setEl('tpl-color',        t.color||'#1a7f37');
+  setEl('tpl-color-hex',    t.color||'#1a7f37');
   setEl('tpl-style',        t.style||'modern');
   setEl('tpl-font-heading', t.fontHeading||'Space Grotesk');
   setEl('tpl-font-body',    t.fontBody||'Inter');
@@ -2710,7 +2710,7 @@ function renderTemplateCards() {
   const grid = document.getElementById('tpl-grid');
   if (!grid) return;
   const cur   = state.settings.template?.style || 'venqtel';
-  const c     = state.settings.template?.color || '#29963a';
+  const c     = state.settings.template?.color || '#1a7f37';
   const cDark = shadeColor(c, -20);
   const cLight= shadeColor(c, 70);
 
@@ -2872,7 +2872,7 @@ function renderBankAccounts() {
 }
 
 function buildBankAccountCard(a={}, i) {
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   return `<div class="bank-account-card" style="border:1.5px solid var(--border);border-radius:9px;padding:12px 14px;background:var(--white);margin-bottom:8px">
     <div style="display:grid;grid-template-columns:1fr 130px auto;gap:10px;align-items:start;margin-bottom:10px">
       <div>
@@ -2974,7 +2974,7 @@ function renderHistory() {
       <div class="text-muted">Create your first invoice to see it here</div></div>`;
     return;
   }
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   el.innerHTML = items.map((inv,i)=>{
     const sym = invSym(inv.currency||'AED');
     return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
@@ -3052,6 +3052,7 @@ function sendEmail() {
 }
 
 // ── Logo upload ───────────────────────────────────────────
+function uploadLogo(event) { handleLogoUpload(event.target); }
 function handleLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
@@ -3127,7 +3128,7 @@ function saveCurrencyRates() {
 
 // ── Dashboard ─────────────────────────────────────────────
 function renderDashboard() {
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   // KPIs
   const totalInvoiced = state.invoices.reduce((s,inv)=>s+(inv.total||0),0);
   const clientCount   = state.clients.length;
@@ -3767,11 +3768,16 @@ function saveInvoiceDraft() {
 
 // ── Build Invoice HTML (preview + PDF) ────────────────────────
 function buildInvoiceHTML(d, forPDF) {
-  const color    = d.template?.color || '#29963a';
+  const color    = d.template?.color || '#1a7f37';
   const style    = d.template?.style || 'venqtel';
   const colorDark= shadeColor(color, -20);
   const sym      = invSym(d.currency);
   const convSym  = d.convertTo ? invSym(d.convertTo) : '';
+  // Logo on white background (for templates with colored headers)
+  const logoOnColor = d.logo
+    ? `<div style="background:#fff;border-radius:8px;padding:6px 12px;display:inline-flex;align-items:center"><img src="${d.logo}" style="height:${forPDF?'34px':'44px'};max-width:${d.logoWidth||150}px;object-fit:contain" /></div>`
+    : `<div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px">${d.from}</div>`;
+  // Logo on white background (for light header templates)
   const logoImg  = d.logo
     ? `<img src="${d.logo}" style="height:${forPDF?'40px':'52px'};max-width:${d.logoWidth||160}px;object-fit:contain" />`
     : `<div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:900;color:${style==='executive'||style==='bold'?'#fff':color}">${d.from}</div>`;
@@ -3787,22 +3793,23 @@ function buildInvoiceHTML(d, forPDF) {
   let headerHtml = '';
 
   if (style === 'venqtel') {
-    // Left green stripe + white header
-    headerHtml = `<div style="display:flex;margin-bottom:24px">
-      <div style="width:5px;background:linear-gradient(180deg,${color},${colorDark});border-radius:3px;flex-shrink:0;margin-right:20px"></div>
-      <div style="flex:1;display:flex;justify-content:space-between;align-items:flex-start">
-        ${logoImg}<div style="text-align:right">
-          <div style="font-size:${forPDF?'22px':'26px'};font-weight:900;letter-spacing:-1px;color:${color}">INVOICE</div>
-          <div style="font-size:11px;color:#64748b;margin-top:2px">${d.number} · ${d.date}</div>
-          ${d.poNumber?`<div style="font-size:10px;color:#94a3b8;margin-top:2px">PO: ${d.poNumber}</div>`:''}
+    // Venqtel Pro: white header with left green gradient stripe
+    headerHtml = `<div style="display:flex;align-items:stretch;margin-bottom:24px;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div style="width:6px;background:linear-gradient(180deg,${color},${colorDark});flex-shrink:0"></div>
+      <div style="flex:1;background:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+        ${logoImg}
+        <div style="text-align:right">
+          <div style="font-size:${forPDF?'22px':'28px'};font-weight:900;letter-spacing:-1px;color:${color}">INVOICE</div>
+          <div style="font-size:11px;color:#64748b;margin-top:3px;font-weight:500">${d.number} &nbsp;·&nbsp; ${d.date}</div>
+          ${d.poNumber?`<div style="font-size:10px;color:#94a3b8;margin-top:2px;font-weight:600">Purchase Order: ${d.poNumber}</div>`:''}
         </div>
       </div>
     </div>`;
   } else if (style === 'modern') {
-    headerHtml = `<div style="background:linear-gradient(135deg,${color},${colorDark});padding:22px 28px;margin:-28px -28px 24px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0">
-      ${logoImg}${numBadge}
+  } else if (style === 'modern') {
+    headerHtml = `<div style="background:linear-gradient(135deg,${color},${colorDark});padding:22px 28px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+      ${logoOnColor}${numBadge}
     </div>`;
-  } else if (style === 'minimal') {
     headerHtml = `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:16px;border-bottom:2px solid ${color}">
       ${logoImg}
       <div style="text-align:right">
@@ -3812,10 +3819,10 @@ function buildInvoiceHTML(d, forPDF) {
       </div>
     </div>`;
   } else if (style === 'executive') {
-    headerHtml = `<div style="background:#0f172a;padding:22px 28px;margin:-28px -28px 24px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0;border-bottom:3px solid ${color}">
-      ${logoImg}${numBadge}
+  } else if (style === 'executive') {
+    headerHtml = `<div style="background:#0f172a;padding:22px 28px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;border-left:5px solid ${color}">
+      ${logoOnColor}${numBadge}
     </div>`;
-  } else if (style === 'stripe') {
     headerHtml = `<div style="display:flex;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">
       <div style="width:4px;background:${color};border-radius:2px;margin-right:16px;flex-shrink:0"></div>
       <div style="flex:1;display:flex;justify-content:space-between;align-items:flex-start">
@@ -3847,9 +3854,9 @@ function buildInvoiceHTML(d, forPDF) {
       <div style="height:1px;background:${color}44;margin:8px 40px 0"></div>
     </div>`;
   } else if (style === 'bold') {
-    headerHtml = `<div style="background:${color};padding:24px 28px;margin:-28px -28px 24px;border-radius:12px 12px 0 0">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        ${logoImg}
+  } else if (style === 'bold') {
+    headerHtml = `<div style="background:${color};padding:24px 28px;border-radius:10px;margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="text-align:right">
           <div style="font-size:${forPDF?'24px':'30px'};font-weight:900;color:#fff;letter-spacing:-1.5px">INVOICE</div>
           <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">${d.number} · ${d.date}</div>
@@ -3867,18 +3874,17 @@ function buildInvoiceHTML(d, forPDF) {
       </div>
     </div>`;
   } else if (style === 'corporate') {
-    headerHtml = `<div style="margin-bottom:24px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;margin:-28px -28px 20px;border-radius:12px 12px 0 0;overflow:hidden">
-        <div style="background:${color};padding:20px 24px;display:flex;align-items:center">${logoImg}</div>
-        <div style="background:#1e293b;padding:20px 24px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center">
-          <div style="font-size:${forPDF?'20px':'24px'};font-weight:900;color:#fff;letter-spacing:-1px">INVOICE</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">${d.number}</div>
+    headerHtml = `<div style="margin-bottom:24px;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)">
+      <div style="display:grid;grid-template-columns:1fr 1fr">
+        <div style="background:${color};padding:20px 24px;display:flex;align-items:center">${logoOnColor}</div>
+        <div style="background:#1e293b;padding:20px 24px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px">
+          <div style="font-size:${forPDF?'22px':'26px'};font-weight:900;color:#fff;letter-spacing:-1px">INVOICE</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);font-weight:500">${d.number}</div>
           <div style="font-size:11px;color:rgba(255,255,255,.6)">${d.date}</div>
-          ${d.poNumber?`<div style="font-size:10px;color:rgba(255,255,255,.5)">PO: ${d.poNumber}</div>`:''}
+          ${d.poNumber?`<div style="font-size:10px;color:rgba(255,255,255,.45)">PO: ${d.poNumber}</div>`:''}
         </div>
       </div>
     </div>`;
-  } else {
     // Default fallback = venqtel style
     headerHtml = `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid ${color}">
       ${logoImg}
@@ -4058,8 +4064,33 @@ function generateInvoicePreview() {
 }
 
 function downloadInvoicePDF() {
-  generateInvoicePreview();
-  showNotif('Print the preview using Ctrl+P and choose "Save as PDF"');
+  const d = getInvoiceData();
+  const html = buildInvoiceHTML(d, true);
+  // Open in new window for printing/saving as PDF
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) { showNotif('Allow popups to download PDF', 'error'); return; }
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>Invoice ${d.number||''}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Inter',sans-serif;background:#fff;padding:0;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      @page{size:A4;margin:15mm 12mm}
+      @media print{.no-print{display:none!important}body{padding:0}}
+      .inv-wrap{max-width:860px;margin:0 auto;padding:20px}
+      table{border-collapse:collapse;width:100%}
+      th,td{padding:7px 8px;font-size:11px}
+    </style>
+  </head><body>
+    <div class="inv-wrap">${html}</div>
+    <div class="no-print" style="position:fixed;bottom:20px;right:20px;display:flex;gap:10px">
+      <button onclick="window.print()" style="background:#29963a;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2)">🖨 Print / Save PDF</button>
+      <button onclick="window.close()" style="background:#f1f5f9;border:none;padding:12px 18px;border-radius:10px;font-size:14px;cursor:pointer">✕ Close</button>
+    </div>
+  </body></html>`);
+  win.document.close();
+  showNotif('PDF window opened — click "Print / Save PDF" ✓');
 }
 
 function openSendModal() {
@@ -4115,7 +4146,7 @@ function renderTimesheets() {
     return;
   }
 
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   el.innerHTML = items.map(ts => {
     const c = state.clients.find(cl=>cl.name===ts.clientName);
     const sym = invSym(ts.currency||'AED');
@@ -4157,7 +4188,7 @@ function renderTimesheets() {
 
 function buildTsRowHeaders(c) {
   const invType = c?.invoiceType||'mixed';
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   const th = txt => `<th style="background:${color}18;color:var(--g600);padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.7px">${txt}</th>`;
   if (invType==='day')    return [th('Name'),th('Type'),th('Days Worked'),th('Day Rate'),th('Total')].join('');
   if (invType==='hour')   return [th('Description'),th('Type'),th('Total Hrs'),th('Hrs Worked'),th('Hourly Rate'),th('Total')].join('');
@@ -4246,7 +4277,7 @@ function onTsModalClientChange(existingRows) {
 function buildTsModalTable(c, existingRows) {
   const invType  = c.invoiceType||'mixed';
   const entryMode= c.entryMode||'simple';
-  const color    = state.settings.template?.color||'#29963a';
+  const color    = state.settings.template?.color||'#1a7f37';
   const sym      = invSym(c.currency||'AED');
   const vatPct   = c.vat||0;
   const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
@@ -4303,7 +4334,7 @@ function renderTsModalRows(c) {
   if (!tbody) return;
   const invType = c?.invoiceType||'mixed';
   const sym = invSym(c?.currency||'AED');
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   const rows = window._tsModalRows||[];
   const totalDays = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
 
@@ -4410,7 +4441,7 @@ function _refreshTsModalTotals(c) {
   // Just update total cells without re-rendering all inputs
   const invType = c?.invoiceType||'mixed';
   const sym = invSym(c?.currency||'AED');
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   const totalDays = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
   const rows = window._tsModalRows||[];
 
@@ -4629,7 +4660,7 @@ function populateTmsFilters() {
 function renderTmsKpis() {
   const el = document.getElementById('tms-kpis');
   if (!el) return;
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   const total    = state.timesheets.length;
   const ready    = state.timesheets.filter(t=>t.status==='ready').length;
   const draft    = state.timesheets.filter(t=>t.status==='draft'||!t.status).length;
@@ -4664,7 +4695,7 @@ function renderTmsClients() {
   const el = document.getElementById('tms-clients-list');
   if (!el) return;
   const monthF = document.getElementById('tms-month-filter')?.value||'';
-  const color  = state.settings.template?.color||'#29963a';
+  const color  = state.settings.template?.color||'#1a7f37';
 
   let items = state.timesheets.slice();
   if (monthF) items = items.filter(t=>t.month===monthF);
@@ -4775,7 +4806,7 @@ function calcEmpTotals(e, ts) {
 function buildCalendarGrid(e, ts, locked, isShared) {
   const totalDays = getDaysInMonth(ts.month);
   ensureEntries(e, totalDays);
-  const color  = state.settings.template?.color || '#29963a';
+  const color  = state.settings.template?.color || '#1a7f37';
   const sym    = ts.currency === 'USD' ? '$' : ts.currency === 'GBP' ? '\u00a3' : 'AED ';
   const tots   = calcEmpTotals(e, ts);
   const utilPct = ts.workDays > 0 ? Math.min(100, Math.round(tots.totalBillableDays / ts.workDays * 100)) : 0;
@@ -5007,7 +5038,7 @@ function tsMarkDays(tsId, empId, rowKey) {
   const label = ROW_LABELS[rowKey]||rowKey;
 
   // Build day picker modal
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   const days = Array.from({length:totalDays},(_,i)=>i+1);
 
   const picker = document.createElement('div');
@@ -5098,7 +5129,7 @@ function tsGridCellInput(inp) {
   // Just do visual color feedback only
   const raw = inp.value;
   const val = parseFloat(raw);
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   const rowKey = inp.dataset.row;
   const ROW_CLR = {billable_offshore:color, billable_onsite:'#1e40af'};
   if (!isNaN(val) && val > 0) {
@@ -5155,7 +5186,7 @@ function tsGridCellBlur(inp) {
   e.entries[rowKey][dayIdx] = val;
 
   // Style the input
-  const color   = state.settings.template?.color||'#29963a';
+  const color   = state.settings.template?.color||'#1a7f37';
   const ROW_CLR = {billable_offshore:color, billable_onsite:'#1e40af'};
   inp.style.color = val > 12 ? '#dc2626' : val > 0 ? (ROW_CLR[rowKey]||color) : '#9ca3af';
   inp.closest('td').style.boxShadow = 'none';
@@ -5166,7 +5197,7 @@ function tsGridCellBlur(inp) {
 }
 
 function updateGridTotals(empId, tsId, e, ts, rowKey, dayIdx) {
-  const color   = state.settings.template?.color||'#29963a';
+  const color   = state.settings.template?.color||'#1a7f37';
   const ROW_KEYS = ['billable_onsite','billable_offshore','nonbillable','leave','holiday'];
   // Row total badge
   const rowTotal = e.entries[rowKey].reduce((s,v)=>s+(v||0),0);
@@ -5292,7 +5323,7 @@ function showTimesheetEntryPage(tsId, targetEmpId) {
   }
 
   const co = state.settings.company;
-  const color = state.settings.template?.color || '#29963a';
+  const color = state.settings.template?.color || '#1a7f37';
   const logo = state.settings.logo;
   const totalDays = getDaysInMonth(ts.month);
   const [y, m] = ts.month.split('-');
@@ -5717,7 +5748,7 @@ function tsSimpleUpdate(inp, tsId, empId) {
   if (!e._simpleHours) e._simpleHours = Array(getDaysInMonth(ts.month)).fill(0);
   e._simpleHours[dayIdx] = val;
   // Update cell style live
-  const color = state.settings.template?.color||'#29963a';
+  const color = state.settings.template?.color||'#1a7f37';
   const warn = val > 12;
   const full = val === 8;
   const partial = val > 0 && val < 8;
