@@ -2133,64 +2133,6 @@ function saveClient() {
   showNotif('Client saved ✓');
 }
 
-// ═══════════════════════════════
-// UTILS
-// ═══════════════════════════════
-const CUR = { AED:{code:'AED',sym:'AED'}, USD:{code:'USD',sym:'$'}, GBP:{code:'GBP',sym:'£'} };
-function fmt(n) { return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function fmtCur(n, cur) {
-  const c = CUR[cur]; if (!c) return fmt(n);
-  if (cur==='USD') return `$${fmt(n)}`;
-  if (cur==='GBP') return `£${fmt(n)}`;
-  return `AED ${fmt(n)}`;
-}
-function today() {
-  const d=new Date();
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-}
-function monthLabel(m) {
-  if (!m) return '';
-  const [y,mo] = m.split('-');
-  return new Date(y,mo-1,1).toLocaleString('en',{month:'long',year:'numeric'});
-}
-function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function showNotif(msg, type='success') {
-  const n=document.getElementById('notif');
-  n.textContent=msg; n.className=`notif ${type} show`;
-  setTimeout(()=>n.classList.remove('show'),2800);
-}
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-
-// Amount in words
-function numToWords(num, cur) {
-  num = Math.round(num * 100) / 100;
-  const int = Math.floor(num);
-  const dec = Math.round((num - int) * 100);
-  const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
-    'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-  const tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-  function toW(n) {
-    if (n===0) return '';
-    if (n<20) return ones[n]+' ';
-    if (n<100) return tens[Math.floor(n/10)]+(n%10?' '+ones[n%10]+' ':' ');
-    return ones[Math.floor(n/100)]+' Hundred '+toW(n%100);
-  }
-  function big(n) {
-    if (n===0) return 'Zero';
-    let r='';
-    if (Math.floor(n/1000000)>0) { r+=toW(Math.floor(n/1000000))+'Million '; n%=1000000; }
-    if (Math.floor(n/1000)>0) { r+=toW(Math.floor(n/1000))+'Thousand '; n%=1000; }
-    if (n>0) r+=toW(n);
-    return r.trim();
-  }
-  const units = { AED:['Dirhams','Fils'], USD:['Dollars','Cents'], GBP:['Pounds','Pence'] };
-  const [maj,min] = units[cur]||['Units','Cents'];
-  let w = big(int)+' '+maj;
-  if (dec>0) w += ' and '+big(dec)+' '+min;
-  return w+' Only';
-}
-
 // ═══════════════════════════════════════════════════════════
 // CORE FUNCTIONS — DO NOT REMOVE
 // These are required for login, theming, settings, and navigation
@@ -2775,142 +2717,8 @@ document.querySelectorAll('.nav-item').forEach(el => {
 // ═══════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════
-let chartTrend = null, chartStatus = null;
-function renderDashboard() {
-  document.getElementById('dash-date').textContent = 'Today · ' + new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  // KPIs by currency
-  const byCur = { AED:{total:0,count:0}, USD:{total:0,count:0}, GBP:{total:0,count:0} };
-  const pending = { count:0, amount:0, cur:'AED' };
-  state.invoices.forEach(inv => {
-    const cur = inv.currency||'AED';
-    if (!byCur[cur]) byCur[cur]={total:0,count:0};
-    byCur[cur].total += (inv.total||0);
-    byCur[cur].count++;
-    if (inv.status==='sent'||inv.status==='draft') {
-      pending.count++; pending.amount+=(inv.total||0); pending.cur=cur;
-    }
-  });
-  document.getElementById('kpi-aed').textContent = fmtCur(byCur.AED.total,'AED');
-  document.getElementById('kpi-usd').textContent = fmtCur(byCur.USD.total,'USD');
-  document.getElementById('kpi-gbp').textContent = fmtCur(byCur.GBP.total,'GBP');
-  document.getElementById('kpi-aed-count').textContent = byCur.AED.count+' invoices';
-  document.getElementById('kpi-usd-count').textContent = byCur.USD.count+' invoices';
-  document.getElementById('kpi-gbp-count').textContent = byCur.GBP.count+' invoices';
-  document.getElementById('kpi-pending').textContent = pending.count;
-  document.getElementById('kpi-pending-amt').textContent = fmtCur(pending.amount, pending.cur||'AED')+' outstanding';
-
-  // Monthly trend chart
-  const months = [];
-  const now = new Date();
-  const monthlyMap = {};
-  for (let i=5;i>=0;i--) {
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    const lbl = d.toLocaleString('en',{month:'short'});
-    months.push(lbl); monthlyMap[k]=0;
-  }
-  state.invoices.forEach(inv => {
-    const d = inv.date||''; // DD/MM/YYYY
-    if (!d) return;
-    const parts = d.split('/');
-    if (parts.length<3) return;
-    const k = `${parts[2]}-${parts[1]}`;
-    if (monthlyMap[k]!==undefined) monthlyMap[k]+=(inv.total||0);
-  });
-  const trendData = Object.values(monthlyMap);
-  const color = state.settings.template.color || '#29963a';
-  if (chartTrend) chartTrend.destroy();
-  const ctx1 = document.getElementById('chart-trend').getContext('2d');
-  const grad = ctx1.createLinearGradient(0,0,0,200);
-  grad.addColorStop(0, color+'40');
-  grad.addColorStop(1, color+'05');
-  chartTrend = new Chart(ctx1, {
-    type:'line',
-    data:{ labels:months, datasets:[{
-      label:'Revenue', data:trendData, borderColor:color, backgroundColor:grad,
-      borderWidth:2.5, fill:true, tension:.4, pointBackgroundColor:color,
-      pointRadius:4, pointHoverRadius:6
-    }]},
-    options:{
-      responsive:true, maintainAspectRatio:true,
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>' '+fmt(c.raw) }}},
-      scales:{ y:{grid:{color:'#f0f0f0'}, ticks:{callback:v=>fmt(v)}}, x:{grid:{display:false}}}
-    }
-  });
-
-  // Status donut
-  const statuses = {paid:0,sent:0,draft:0};
-  state.invoices.forEach(inv => { if(statuses[inv.status]!==undefined) statuses[inv.status]++; });
-  if (chartStatus) chartStatus.destroy();
-  const ctx2 = document.getElementById('chart-status').getContext('2d');
-  chartStatus = new Chart(ctx2, {
-    type:'doughnut',
-    data:{
-      labels:['Paid','Sent','Draft'],
-      datasets:[{data:[statuses.paid,statuses.sent,statuses.draft],
-        backgroundColor:[color,'#1a73e8','#c5d8c9'],
-        borderWidth:0, hoverOffset:6 }]
-    },
-    options:{ responsive:true, cutout:'70%', plugins:{legend:{display:false}} }
-  });
-  document.getElementById('chart-status-legend').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block"></span> Paid (${statuses.paid})</div>
-      <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#1a73e8;display:inline-block"></span> Sent (${statuses.sent})</div>
-      <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#c5d8c9;display:inline-block"></span> Draft (${statuses.draft})</div>
-    </div>`;
-
-  // Recent invoices
-  const recent = state.invoices.slice(0,6);
-  if (!recent.length) {
-    document.getElementById('dash-recent').innerHTML='<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">No invoices yet</div></div>';
-    return;
-  }
-  document.getElementById('dash-recent').innerHTML = `
-    <table class="data-table">
-      <thead><tr><th>Invoice #</th><th>Client</th><th>Amount</th><th>Currency</th><th>Date</th><th>Status</th></tr></thead>
-      <tbody>${recent.map(inv=>`<tr>
-        <td class="mono" style="font-size:12px">${inv.number||'—'}</td>
-        <td><strong>${inv.clientName||'—'}</strong></td>
-        <td class="mono">${fmt(inv.total)}</td>
-        <td><span class="badge ${inv.currency==='AED'?'badge-green':inv.currency==='USD'?'badge-blue':'badge-purple'}">${inv.currency||'AED'}</span></td>
-        <td style="color:var(--muted)">${inv.date||'—'}</td>
-        <td><span class="badge ${statusBadge(inv.status)}">${inv.status||'draft'}</span></td>
-      </tr>`).join('')}</tbody>
-    </table>`;
-}
-function statusBadge(s) {
-  return s==='paid'?'badge-green':s==='sent'?'badge-blue':s==='approved'?'badge-purple':'badge-gray';
-}
-
-// ═══════════════════════════════
 // INVOICE — STATE
 // ═══════════════════════════════
-
-function initNewInvoice() {
-  // Populate client dropdown
-  const sel = document.getElementById('inv-client');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— Select Client —</option>' +
-    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
-  sel.value = cur;
-  // Defaults
-  const co = state.settings.company;
-  document.getElementById('inv-from').value = co.name||'Venqtel';
-  if (!document.getElementById('inv-date').value) document.getElementById('inv-date').value = today();
-  if (!document.getElementById('inv-number').value) {
-    document.getElementById('inv-number').value = (co.prefix||'VTL-') + String(co.nextNum||1).padStart(3,'0');
-  }
-  document.getElementById('inv-vat').value = co.defaultVat||5;
-  // Ensure initial rows
-  if (!invRows.day.length) addInvRow('day');
-  if (!invRows.hour.length) addInvRow('hour');
-  if (!invRows.fixed.length) addInvRow('fixed');
-  if (!invRows.milestone.length) addInvRow('milestone');
-  renderInvRows('day'); renderInvRows('hour'); renderInvRows('fixed'); renderInvRows('milestone');
-  updateInvCurLabels();
-  recalcInvoice();
-}
 
 function onInvClientChange() {
   const idx = document.getElementById('inv-client').value;
@@ -5381,6 +5189,12 @@ function submitTsEntry(tsId) {
 // Keep backward compat
 function updateTsEntryAmt(){} // now handled by tsGridInput
 
+// ═══════════════════════════════
+// APP STARTUP — DO NOT REMOVE
+// ═══════════════════════════════
+window.addEventListener('DOMContentLoaded', function() {
+  initFirebase();
+});
 </script>
 </div><!-- end app-root -->
 </body>
