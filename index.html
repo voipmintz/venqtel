@@ -15,22 +15,22 @@
 /* ── Design Tokens ── */
 :root {
   /* Brand — overridden by applyThemeColor() */
-  --brand:       #2563eb;
-  --brand-dark:  #1d4ed8;
-  --brand-light: #3b82f6;
-  --brand-50:    #eff6ff;
-  --brand-100:   #dbeafe;
-  --brand-200:   #bfdbfe;
+  --brand:       #29963a;
+  --brand-dark:  #1f7a2e;
+  --brand-light: #4db86a;
+  --brand-50:    #f0faf2;
+  --brand-100:   #d6f0db;
+  --brand-200:   #b0e0bb;
 
   /* Keep g-vars for backward compat — mapped to brand */
-  --g50:   #eff6ff;
-  --g100:  #dbeafe;
-  --g200:  #bfdbfe;
-  --g400:  #3b82f6;
-  --g500:  #2563eb;
-  --g600:  #1d4ed8;
-  --g700:  #1e40af;
-  --g900:  #1e3a8a;
+  --g50:   #f0faf2;
+  --g100:  #d6f0db;
+  --g200:  #b0e0bb;
+  --g400:  #4db86a;
+  --g500:  #29963a;
+  --g600:  #1f7a2e;
+  --g700:  #155421;
+  --g900:  #0b2e12;
 
   /* Neutrals */
   --ink:    #0f172a;
@@ -717,7 +717,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 <!-- ── Firebase Login Overlay ── -->
 <div id="fb-login-overlay">
   <div class="login-card">
-    <div class="login-logo">⚡</div>
+    <div class="login-logo" style="background:transparent;box-shadow:none;width:120px;height:auto"><img src="data:image/png;base64,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" style="width:120px;height:auto" /></div>
     <div class="login-title">Venqtel</div>
     <div class="login-sub">Sign in to access your data</div>
     <div style="text-align:left">
@@ -739,18 +739,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 <!-- ── App Root (hidden until signed in) ── -->
 <div id="app-root" style="display:none">
 
-<!-- ── Auth bar (top of sidebar/nav) ── -->
-<div id="fb-auth-bar" style="padding:8px 16px;background:var(--surface);
-    border-bottom:1px solid var(--border);font-size:12px"></div>
 <div class="app">
 
 <!-- ═══════════════════════ SIDEBAR ═══════════════════════ -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="sidebar-logo-icon">⚡</div>
-    <div>
-      <div class="sidebar-logo-text">Venqtel</div>
-      <div class="sidebar-logo-sub">Invoice Manager</div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABZARQDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAUHAwQGAggB/8QAPxAAAQMDAgIGCAQFAQkAAAAAAQACAwQFEQYSITEHE0FRcYEUFSIyYZGhwVJTktEIQmJysRYjJDM0VJOiwuH/xAAbAQEAAgMBAQAAAAAAAAAAAAAAAwUBBAYCB//EAC4RAAICAgEDAgMHBQAAAAAAAAABAgMEESEFMUESUQZhcRMiMkKBkcEUobHh8P/aAAwDAQACEQMRAD8A+MkREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAERTGjray66hpqWUZiyXyDvaOJCxKSitsjutjTXKyXZLZnsOkrxeIRPBEyKA+7JKdod4dqnIui++SAYq6Hze79lZULWsaGMaGtaMADkApah5DKqrM2xco4h/EeVZY/TpL6FUR9EmoX8qy3/rd+yzs6GtSP5Vtt/7jv2VqtqrpBlxtjKlo5dTNg48HBemaxs9I7ZdWVtrOcF1VTuDP1tyFrvNyn+HTLOrqWZPtp/Qqiq6FtWxU75YZbfUuaMiNkxDneGRhctZNJV9yuk9pfLFRXCA+1T1ILXEDnhfVdmuFBcoRNb62nq4/xQyB2PlyVcfxBW+O3y2PV9IBFWQVYglcB77SCRnww4eaYvUrrLPsp932+pvU5t9m4PiXjjycBF0Qagk92tt/m937LR1D0W6rs9C+tNPDWwMG55pnlzmjwwD8lflvc17WPZxa4ZHgVO0fJRS6pfB86ZpY/V8iT+9o+LUVjdP+mqbT+smT0MIipbjD14YOTX5IeB8M8fNVyr+m1WwU49mdJXNTipLyERFIewiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAKZ0XcWWzUdLUynEZJY89wdwyoZFiUVJNMjuqjdXKuXZrR9DREHBByCOBW8aykoKX0muqYqaEfzyODQfgO8+Cr7Qmp4TpmodXuJktsW5/e+Pk3zyQ3zCWG1S6mkF+1E50zZDmmpc4jYzs4Knlj6363wj57Hp39NOc8l6jF647t/L9OTsh0iaQhfj1rvA7WwuwfmFsDpO0S9nVzVj5GHgQ6nJBVRs0s+71epp6ZrmuoJXdRExow47j7OP7QcLjlKunUT8s6nH6Ziy/A3ta3z8t+xcOoqvo4q3Gv03fZrBdRlzHwxPZE4/wBQA4eIXPO1dqXXcdq0tcXx1DY6sTOnDMPIAx7R7gCfmq/VwdDdhFFQuu9QzFRVDEeebY//AL+yksqhj1+p8tdt9yfOsrwaPU3t9lvvstagAG0NGABgDuCnKLsXL0Vwebu2io2MkdDxqnuHCHIyG/F54HHYOa8dJOqW6T0jPWxuHp0+YaRp57yPe8Gjj44XPyplOagu7OfxKZSlGPllSfxE6ghvGtWUNLIJIbZD1BcO2QnL/kcDyVZqRoKT1gZZ55nl5flx5lxPEkpd7eyiggkZI53Wl4IPZjH7rrKalVWoLwdnXBQiorwRyLftlA2rje973NAOBjtX7dKCOlMDY5HOfLkkHsGcA/PPyUh7I9FN+pofzZPonqaH86T6ICERSd0t0NJRsmbK5z3SbdpxyxnKywWiJ8DHukeHOaCRwQEOi2rpS+h1roGuLm4Dmk8yCAR/lSdPZKd72CSoexp952BwQEEimdK6drdQ1roaXDImcZZXe6wfc/BWFSdGlnjjAqKqqmf2kENHkFr25VdT1J8lVm9ZxMOXoslz7LkqRFZ976M4DTvktFVL1wGRFLgh3wB7CuDtlvZOyTrtzXMdtwOzvXuq+Fq3Fmxg9QozouVL3ruRiKe9T0345Pmnqem/HJ81KbpAop19ppmxSv3P9iNz/eA5AlYLfbYZ6VssjnZdnkUBEop71RTfjk+a8y2qljgmkL5PYjc4cRzA4ICDRSVqoYqqF75C4YdgYWK8UkVHUMjic8h0Yedw7TlAaSIiAIiIAiIgPccskbXtY9zWyN2vAPvDIOD5gHyV56ZdG+xUDojlhgZj5KiVYvRPewQ+y1D+Iy+nJPPvb9/mtTLg5Q2vBz3xJiyuxlOP5eX9DsdFQmDUupmlgYXVUUuAcjD2bh/lV90tab9S3302mjxRVxL24HBj/wCZv3Csy0EQ6sq4gMCppI5eXNzHFp+hCl9VWGHUenKm2SACRzd0Dz/JIOR+x+BWgsj7K/1Ps9bKzBznVkqx9pKO/wBl/hlBaLsr73e44C0+jx/7Sd3YGjs8+St2mu7qyo9U6bdHI9g2z1oGYqVvLDexz+7sCrTSNkrKm51dlrK59A2KQekUwO18pHYPgPurh07RUtvpWUtHC2KJvJrRzP3K2MyxJ+7Jet5Ncclb+9JLheFvy/d+3gn9PUNPbqRlNT5DRlz3vdlz3HiXOJ5k8ySqD6WtU/6n1O91O8mgowYabucAeL/M/TCsHpd1ay0WWSx0Uw9YVbdku08YYjzz3E8sd2VRq89Px2t3T7ss+jY0lF32d3/2/wBSY06f+MPArNqf/kaH++X/ANFr6c9+bwH3Uhd4OuZbWkeyZJSfAbFaF4erVAY6WKLk53PxKjKuYV2oA5udjXhjOOfZaMD/AApasl9Gt1RUZw4N2R/FzuH0G4+QUJYWbq3d+FpKAma2R8VDO+IAybQG9pBLhy8sqF9LuR45l/QpqrqI6aNr5ScOOBhYYbtRtkDiT7PEZbkZ7PqgIWapqKt0Ucz9204aMcs810rQGtDRyAwFzdtaZbhHn8W44+a6KpnFNQzzHIdhrWn4lwz/AOO5Aal3p+tfSTDmJOrPHs5j7rbqHiKiqpS4jbC4cDg5d7I+rh5ZXr2XN5Ag4IWteCRbHMDfamlbG07c8uJwf0oCyejOhZRaRpXtZh9RmZ5788voAuJ1vrS8u1BVUlvrZKSlpZXRMEJ29ZtOC5xHPJGVaFsDLVZafJaxlJThx3DgNrcnI8l8/RMdVVzY2gudNIAB3klVeHGNk52S5OO6DXXlZF+TYk+eN/Pf8aPoDTks9XZ6Caoe0zTQsc93IZI5qjL9Xb79cZaLdBTyVUj2RtPBoLjgcFedUWW2xzvYcMpKVxBxnAa3gcL55c4ucXHmTkrPTlv1SR7+FYJu61dm1r+7/kmrHLPMZXSyOeBgDJWTUNQ+GCljifse7e9xaeJHADPmHL8sLNtEXficStXU0hdcGREECGFjQDz4jcfq4qzOuNJ1XVPjdG6eQtcMOGeYzn7LpLaxkcFO2QHYA3eBwOO1cvC3fMxne4BdWdrIpHkhrY2Fx8B2ICBmluTpnuHXgFxIAHALDUzVzWmGofK0PaCWu4ZHMKV9b0vdJ8lGXipjq60yRAhga1rcjicBAS1lZsoGd7iSoy/u3XacDADCGYByAQMH65U9bo2tbTxP3bRtDsc8dq5aqmfUVMtRJjfK8vdgYGSclAY0REAREQBERAFmoqmajq4qqBxbLE8OafiFhRDDSktM+gtLVFJfKSivcTi2VjHNLR3nAc0+BGQuwo+xUP0Q6hFtvPqypkxS1hAaSeDJOw+fL5K+KRc7nVuuevHg4XLw3iX/AGf5fH0/0Q+rdA2rU8za3rJKC5NHs1UPM45bh2/5XN12gdWW2hq6+t1++G3wROfK8B27YBx4Z5q06XsVQ/xF6uOYtI0MxDRiWvLTzPNkZ8OZ8lHh232WKqL4/fSLXAc7pRg+UvdJ6KYqHmSd7zI+TLj7TzxPisaIumOmJfTnvT+Dfuph2XBgdk7M7fhnGf8AAXKQzSw56qRzM89pxlZPTav/AKmX9RQEnqebb6PRj+QGV4/qdy+gC8adZwmk8GqKlkfLIZJHue88yTklfsc0sY2xyOaO4FAdHWUkVVs63d7AOMLFBZqR88bD1pDnAEA8cZUH6VU/nyfqX6KuqByKiQH+4oDdskY9YSFoO1gIHzW7qFwZaY2bQXSz5yRxaGt7PHf9AoOnqZ6fd1Ez493PacZX7UVNRUBonmfJt93cc4QE9aZeuoWHiS32T5LHf5HwNoXFoLd7pRx54IGMeShqerqqZpbBPJGCckNdjK81NRPUvD6iZ8rgMAuOcBDDW+D6BtldSXq1MqoXMlhnjw9vPGRxaVEWrQ9it9xZWwQSPljdujD3lwaew4VR6bu09outPUslkbC2VrpWNcQHDt4eGVdd1pKfUVlaKeuljjk9uKaB+McMccc+HYqS6mWPLSlqLPnufgWdLsVcbWq592vHyfuc70qajp6K1S2Wmma+tqfZmDTnqo+0H+o8sdgyqjU9rawP09coqZ9V6SZout3bcdpH2UCrTGrhCtKHY7HpONRj4sVQ9p8799+TqbVD/utPF7u/AzjllQV6lE12qpAAAZXYA8V4FfWhoaKqYADAG48AtY8TkqcsjbtDN9wi+B3fJdFI3fE+Mkhrxtdg8wuTa5zTlpIPeF766b81/wA0BO+q6P8ALd+orRudHDBcoIIWuDXMY47u8rQ66b81/wA15dI9zw9z3Fw5ElAdbyBAOMtLfIjC0fVdGP5HfqKguum/Nf8ANOul/Nf80BsXmGGnuD4IBhrGtBGSfawM/XK016e5z3Fz3FzjzJ7V5QBERAEREAREQH6CQQQSCORCsrSPStV22ljpLvRmuYwBrZmv2yY+PYVWiKK2mFq1NbIL8aq9asWy4L/00zOo3wWG2mnmcMConfuLfiGjhnxyqkqqieqqZKmplfLNK4ue95yXE8ySsSLFOPXStQWjNOPXQtQWgiIpiYIiIAiIgCIiAIiIAiIgCkbRfLraXZt9dNADzaHeyfJRyLDSktM8TrjYvTNbXzJC+Xm4XqpZUXGbrZGM2NO0DAyTjh4lR6IiSS0jMIRhFRitJBERZPQREQBERAEREAREQBERAf/Z" style="height:32px;width:auto;object-fit:contain" alt="Venqtel" />
+      <div class="sidebar-logo-sub" style="margin-top:2px">Invoice Manager</div>
     </div>
   </div>
   <nav>
@@ -775,7 +771,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 </aside>
 
 <!-- ═══════════════════════ MAIN ═══════════════════════ -->
-<main class="main">
+<main class="main-content">
 
 <!-- ─── DASHBOARD ─── -->
 <div id="page-dashboard" class="page active">
@@ -1395,7 +1391,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   <div class="card mb-16">
     <div class="card-title">🎨 Color Scheme</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px" id="color-presets">
-      <button onclick="setThemePreset('#2563eb','Blue')"   style="width:40px;height:40px;background:#2563eb;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all .15s" title="Ocean Blue"></button>
+      <button onclick="setThemePreset('#29963a','Venqtel Green')"   style="width:40px;height:40px;background:#29963a;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all .15s" title="Ocean Blue"></button>
       <button onclick="setThemePreset('#16a34a','Green')"  style="width:40px;height:40px;background:#16a34a;border-radius:10px;border:2px solid transparent;cursor:pointer" title="Emerald Green"></button>
       <button onclick="setThemePreset('#7c3aed','Purple')" style="width:40px;height:40px;background:#7c3aed;border-radius:10px;border:2px solid transparent;cursor:pointer" title="Royal Purple"></button>
       <button onclick="setThemePreset('#dc2626','Red')"    style="width:40px;height:40px;background:#dc2626;border-radius:10px;border:2px solid transparent;cursor:pointer" title="Crimson Red"></button>
@@ -2651,8 +2647,8 @@ function applyHeadingFont(fontName) {
 // ── Template / Settings pages ────────────────────────────
 function initTemplate() {
   const t = state.settings.template || {};
-  setEl('tpl-color',        t.color||'#2563eb');
-  setEl('tpl-color-hex',    t.color||'#2563eb');
+  setEl('tpl-color',        t.color||'#29963a');
+  setEl('tpl-color-hex',    t.color||'#29963a');
   setEl('tpl-style',        t.style||'modern');
   setEl('tpl-font-heading', t.fontHeading||'Space Grotesk');
   setEl('tpl-font-body',    t.fontBody||'Inter');
@@ -2686,42 +2682,50 @@ function highlightColorPreset(color) {
 }
 
 const TEMPLATES = [
-  { id:'modern',    name:'Modern Pro',      desc:'Clean sidebar accent, bold headers',
-    header:'gradient', color:'#2563eb' },
-  { id:'minimal',   name:'Minimal',         desc:'Clean white, subtle borders',
-    header:'line',   color:'#0f172a' },
-  { id:'classic',   name:'Classic',         desc:'Traditional layout with full header',
-    header:'full',   color:'#16a34a' },
-  { id:'bold',      name:'Bold Dark',       desc:'Dark header, high contrast',
-    header:'dark',   color:'#7c3aed' },
-  { id:'elegant',   name:'Elegant',         desc:'Serif fonts, premium feel',
-    header:'elegant',color:'#b45309' },
-  { id:'corporate', name:'Corporate',       desc:'Structured, professional layout',
-    header:'corp',   color:'#0891b2' },
+  { id:'venqtel',   name:'Venqtel Pro',    desc:'Gradient sidebar with logo accent' },
+  { id:'modern',    name:'Modern Clean',   desc:'Bold header, clean white body' },
+  { id:'minimal',   name:'Minimal',        desc:'Borderless, typography-first' },
+  { id:'executive', name:'Executive',      desc:'Dark header, premium feel' },
+  { id:'stripe',    name:'Side Stripe',    desc:'Left color stripe accent' },
+  { id:'classic',   name:'Classic',        desc:'Traditional bordered layout' },
+  { id:'elegant',   name:'Elegant',        desc:'Double-rule serif styling' },
+  { id:'bold',      name:'Bold Impact',    desc:'Full-bleed header block' },
+  { id:'fresh',     name:'Fresh',          desc:'Rounded cards, soft shadows' },
+  { id:'corporate', name:'Corporate',      desc:'Two-column professional header' },
 ];
 
 function renderTemplateCards() {
   const grid = document.getElementById('tpl-grid');
   if (!grid) return;
-  const cur = state.settings.template?.style || 'modern';
-  const curColor = state.settings.template?.color || '#2563eb';
+  const cur   = state.settings.template?.style || 'venqtel';
+  const c     = state.settings.template?.color || '#29963a';
+  const cDark = shadeColor(c, -20);
+  const cLight= shadeColor(c, 70);
+
+  const previews = {
+    venqtel:   `<div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(180deg,${c},${cDark})"></div><div style="padding:8px 8px 8px 14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:9px;font-weight:800;color:${c}">INVOICE</div><div style="width:24px;height:10px;background:${cLight};border-radius:3px"></div></div><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:4px;width:70%"></div><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:10px;width:50%"></div><div style="background:${c};height:18px;border-radius:3px;display:flex;align-items:center;padding:0 6px"><div style="height:3px;background:rgba(255,255,255,.4);border-radius:1px;flex:1"></div></div></div>`,
+    modern:    `<div style="background:linear-gradient(135deg,${c},${cDark});height:36px;display:flex;align-items:center;padding:0 10px"><div style="color:#fff;font-size:9px;font-weight:800">INVOICE</div><div style="margin-left:auto;width:20px;height:8px;background:rgba(255,255,255,.3);border-radius:2px"></div></div><div style="padding:8px"><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:4px;width:65%"></div><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:10px;width:45%"></div><div style="height:14px;background:#f1f5f9;border-radius:3px"></div></div>`,
+    minimal:   `<div style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div style="height:20px;width:2px;background:${c}"></div><div style="font-size:9px;font-weight:800;color:#0f172a">INVOICE</div></div><div style="height:1px;background:${c};margin-bottom:8px"></div><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:4px;width:70%"></div><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:8px;width:45%"></div><div style="height:14px;background:#f8fafc;border-radius:2px;border:1px solid #e2e8f0"></div></div>`,
+    executive: `<div style="background:#0f172a;height:40px;display:flex;align-items:center;padding:0 10px"><div style="color:#fff;font-size:9px;font-weight:800">INVOICE</div><div style="margin-left:auto;width:3px;height:16px;background:${c};border-radius:1px"></div></div><div style="padding:8px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px"><div style="height:5px;background:#e2e8f0;border-radius:2px"></div><div style="height:5px;background:#e2e8f0;border-radius:2px"></div></div><div style="height:14px;background:#f1f5f9;border-radius:3px"></div></div>`,
+    stripe:    `<div style="display:flex;height:100%"><div style="width:8px;background:linear-gradient(180deg,${c},${cDark});flex-shrink:0"></div><div style="flex:1;padding:8px"><div style="font-size:9px;font-weight:800;color:${c};margin-bottom:8px">INVOICE</div><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:4px;width:65%"></div><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:10px;width:45%"></div><div style="height:14px;background:#f8fafc;border-radius:2px;border-left:3px solid ${c}"></div></div></div>`,
+    classic:   `<div style="border:2px solid ${c};margin:6px;border-radius:3px;padding:6px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="font-size:9px;font-weight:800;color:${c}">INVOICE</div><div style="width:18px;height:12px;background:${cLight};border-radius:2px"></div></div><div style="height:1px;background:${c};margin-bottom:6px"></div><div style="height:4px;background:#e2e8f0;border-radius:1px;margin-bottom:3px;width:60%"></div><div style="height:4px;background:#e2e8f0;border-radius:1px;width:40%"></div></div>`,
+    elegant:   `<div style="padding:10px"><div style="text-align:center;border-bottom:2px solid ${c};padding-bottom:6px;margin-bottom:8px"><div style="font-size:9px;font-weight:800;color:#0f172a;letter-spacing:2px">INVOICE</div><div style="height:1px;background:${c};margin:3px 20px 0"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px"><div style="height:4px;background:#e2e8f0;border-radius:1px"></div><div style="height:4px;background:#e2e8f0;border-radius:1px"></div></div><div style="height:14px;background:#fafafa;border-radius:2px;border:1px solid #e2e8f0"></div></div>`,
+    bold:      `<div style="background:${c};padding:10px 10px 8px"><div style="color:#fff;font-size:11px;font-weight:900;letter-spacing:-0.5px">INVOICE</div><div style="color:rgba(255,255,255,.6);font-size:8px;margin-top:1px">TAX INVOICE</div></div><div style="padding:8px"><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:4px;width:70%"></div><div style="height:5px;background:#e2e8f0;border-radius:2px;margin-bottom:8px;width:50%"></div><div style="height:14px;background:#f8fafc;border-radius:2px"></div></div>`,
+    fresh:     `<div style="padding:8px"><div style="background:${cLight};border-radius:8px;padding:6px 8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:9px;font-weight:800;color:${cDark}">INVOICE</div><div style="width:16px;height:16px;background:${c};border-radius:50%"></div></div><div style="height:5px;background:#e2e8f0;border-radius:3px;margin-bottom:4px;width:65%"></div><div style="height:5px;background:#e2e8f0;border-radius:3px;margin-bottom:8px;width:45%"></div><div style="height:14px;background:#f8fafc;border-radius:8px;border:1px solid ${cLight}"></div></div>`,
+    corporate: `<div style="display:grid;grid-template-columns:1fr 1fr;height:36px"><div style="background:${c};display:flex;align-items:center;padding:0 8px"><div style="color:#fff;font-size:8px;font-weight:800">VENQTEL</div></div><div style="background:#1e293b;display:flex;align-items:center;justify-content:flex-end;padding:0 8px"><div style="color:#fff;font-size:8px;font-weight:600">INVOICE</div></div></div><div style="padding:8px"><div style="height:4px;background:#e2e8f0;border-radius:1px;margin-bottom:3px;width:60%"></div><div style="height:4px;background:#e2e8f0;border-radius:1px;margin-bottom:8px;width:40%"></div><div style="height:14px;background:#f1f5f9;border-radius:2px"></div></div>`,
+  };
+
   grid.innerHTML = TEMPLATES.map(t => {
-    const c = curColor;
     const sel = cur === t.id;
-    return `<div class="tpl-card ${sel?'selected':''}" onclick="selectTemplate('${t.id}')">
-      <div class="tpl-preview" style="background:${t.header==='dark'?'#0f172a':'#fff'}">
-        ${t.header==='gradient' ? `<div class="tpl-preview-header" style="background:linear-gradient(90deg,${c},${c}cc)"></div>` : ''}
-        ${t.header==='line'     ? `<div style="height:3px;background:${c};border-radius:2px;margin-bottom:10px"></div>` : ''}
-        ${t.header==='full'     ? `<div class="tpl-preview-header" style="background:${c};border-radius:4px"></div>` : ''}
-        ${t.header==='dark'     ? `<div class="tpl-preview-header" style="background:#1e293b;border-radius:4px"></div>` : ''}
-        ${t.header==='elegant'  ? `<div style="height:2px;background:${c};margin-bottom:8px"></div><div style="height:2px;background:${c}33;margin-bottom:8px"></div>` : ''}
-        ${t.header==='corp'     ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px"><div style="height:16px;background:${c};border-radius:3px"></div><div style="height:16px;background:#f1f5f9;border-radius:3px"></div></div>` : ''}
-        <div class="tpl-preview-line"></div>
-        <div class="tpl-preview-line short"></div>
-        <div class="tpl-preview-table" style="background:${t.header==='dark'?'#1e293b':'#f8fafc'}"></div>
-        ${sel ? `<div style="position:absolute;top:8px;right:8px;background:${c};color:#fff;border-radius:20px;font-size:9px;font-weight:700;padding:2px 7px">✓ Active</div>` : ''}
+    return `<div class="tpl-card ${sel?'selected':''}" onclick="selectTemplate('${t.id}')" style="position:relative">
+      <div class="tpl-preview" style="background:#fff;padding:0;overflow:hidden;position:relative;height:120px">
+        ${previews[t.id]||''}
+        ${sel?`<div style="position:absolute;top:6px;right:6px;background:${c};color:#fff;border-radius:20px;font-size:9px;font-weight:700;padding:2px 7px;z-index:2">✓</div>`:''}
       </div>
-      <div class="tpl-label">${t.name}</div>
+      <div class="tpl-label" style="display:flex;flex-direction:column;gap:1px;padding:10px 12px">
+        <span style="font-weight:700;color:var(--ink)">${t.name}</span>
+        <span style="font-size:10px;color:var(--muted);font-weight:400">${t.desc}</span>
+      </div>
     </div>`;
   }).join('');
 }
