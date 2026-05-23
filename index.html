@@ -2192,6 +2192,66 @@ function numToWords(num, cur) {
 }
 
 // ═══════════════════════════════
+// APP BOOT
+// ═══════════════════════════════
+
+function bootApp() {
+  // Apply theme
+  if (state.settings.template?.color) {
+    const tc = document.getElementById('tpl-color');
+    const th = document.getElementById('tpl-color-hex');
+    if (tc) tc.value = state.settings.template.color;
+    if (th) th.value = state.settings.template.color;
+  }
+  applyThemeColor();
+  applyHeadingFont(state.settings.template?.fontHeading||'Outfit');
+
+  // Dashboard
+  renderDashboard();
+  const dd = document.getElementById('dash-date');
+  if (dd) dd.textContent = 'Today · '+new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // Invoice defaults
+  const co = state.settings.company||{};
+  const invNum  = document.getElementById('inv-number');
+  if (invNum)  invNum.value  = (co.prefix||'VTL-')+String(co.nextNum||1).padStart(3,'0');
+  const invFrom = document.getElementById('inv-from');
+  if (invFrom) invFrom.value = co.name||'Venqtel';
+  const invDate = document.getElementById('inv-date');
+  if (invDate) invDate.value = today();
+  const invVat  = document.getElementById('inv-vat');
+  if (invVat)  invVat.value  = co.defaultVat!==undefined ? co.defaultVat : 5;
+
+  // Populate client dropdowns everywhere
+  const clients_html = '<option value="">— Select Client —</option>'+
+    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  ['inv-client','ts-modal-client','ts-filter-client'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = clients_html;
+  });
+
+  // Invoice rows init
+  invRows = { mixed:[], day:[], hour:[], fixed:[], unit:[], milestone:[] };
+  window._tsModalRows = [];
+  ['mixed','day','hour','fixed','unit','milestone'].forEach(t => addInvRow(t));
+  renderMilestoneHeader(invSym(document.getElementById('inv-currency')?.value||'AED'));
+  recalcInvoice();
+
+  // Bank + resource selectors
+  renderBankAccounts();
+  renderInvBankSelector();
+  renderResourceList();
+
+  // Load company settings fields
+  loadCompanySettings();
+
+  // Navigate to dashboard
+  nav('dashboard');
+}
+
+function fbLogout() { fbSignOut(); }
+
+// ═══════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════
 function nav(page, e) {
