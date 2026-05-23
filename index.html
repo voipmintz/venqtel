@@ -2191,6 +2191,500 @@ function numToWords(num, cur) {
   return w+' Only';
 }
 
+// ═══════════════════════════════════════════════════════════
+// CORE FUNCTIONS — DO NOT REMOVE
+// These are required for login, theming, settings, and navigation
+// ═══════════════════════════════════════════════════════════
+
+// ── Helpers ──────────────────────────────────────────────
+function setEl(id, val) { const e=document.getElementById(id); if(e) e.value=val; }
+function getEl(id)      { return document.getElementById(id); }
+function getVal(id)     { const e=document.getElementById(id); return e?e.value:''; }
+
+function getActiveTab() {
+  const el = document.querySelector('[data-tab-group="inv"].active');
+  return el ? el.dataset.tab : 'mixed';
+}
+
+// ── Theme ─────────────────────────────────────────────────
+function applyThemeColor() {
+  const color = state.settings.template?.color || '#29963a';
+  document.documentElement.style.setProperty('--g500', color);
+  // Derive lighter/darker shades
+  document.documentElement.style.setProperty('--g600', shadeColor(color, -20));
+  document.documentElement.style.setProperty('--g400', shadeColor(color, 20));
+  document.documentElement.style.setProperty('--g200', shadeColor(color, 60));
+  document.documentElement.style.setProperty('--g100', shadeColor(color, 75));
+  document.documentElement.style.setProperty('--g50',  shadeColor(color, 88));
+}
+
+function shadeColor(hex, pct) {
+  try {
+    hex = hex.replace('#','');
+    if (hex.length===3) hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    const r=Math.min(255,Math.max(0,Math.round(parseInt(hex.slice(0,2),16)*(1+pct/100))));
+    const g=Math.min(255,Math.max(0,Math.round(parseInt(hex.slice(2,4),16)*(1+pct/100))));
+    const b=Math.min(255,Math.max(0,Math.round(parseInt(hex.slice(4,6),16)*(1+pct/100))));
+    return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  } catch(e) { return hex; }
+}
+
+function applyHeadingFont(fontName) {
+  if (!fontName) fontName = 'Outfit';
+  document.documentElement.style.setProperty('--font-display', `'${fontName}', sans-serif`);
+  // Load from Google Fonts if not already loaded
+  const linkId = 'gfont-'+fontName.replace(/\s/g,'-');
+  if (!document.getElementById(linkId)) {
+    const link = document.createElement('link');
+    link.id   = linkId;
+    link.rel  = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g,'+')}:wght@400;600;700;800;900&display=swap`;
+    document.head.appendChild(link);
+  }
+}
+
+// ── Template / Settings pages ────────────────────────────
+function initTemplate() {
+  const t = state.settings.template || {};
+  setEl('tpl-color', t.color||'#29963a');
+  setEl('tpl-color-hex', t.color||'#29963a');
+  setEl('tpl-style', t.style||'emerald');
+  setEl('tpl-font-heading', t.fontHeading||'Outfit');
+  setEl('tpl-font-body', t.fontBody||'Inter');
+  // Preview ref rates
+  const refs = state.settings.exchangeRates||{};
+  setEl('ref-gbp-usd', refs.gbpUsd||1.3295);
+  setEl('ref-usd-aed', refs.usdAed||3.6725);
+  setEl('ref-gbp-aed', refs.gbpAed||4.8812);
+}
+
+function saveTemplate() {
+  if (!state.settings.template) state.settings.template = {};
+  state.settings.template.color      = getVal('tpl-color');
+  state.settings.template.style      = getVal('tpl-style')||'emerald';
+  state.settings.template.fontHeading= getVal('tpl-font-heading')||'Outfit';
+  state.settings.template.fontBody   = getVal('tpl-font-body')||'Inter';
+  // Save exchange rates
+  if (!state.settings.exchangeRates) state.settings.exchangeRates={};
+  state.settings.exchangeRates.gbpUsd = parseFloat(getVal('ref-gbp-usd'))||1.3295;
+  state.settings.exchangeRates.usdAed = parseFloat(getVal('ref-usd-aed'))||3.6725;
+  state.settings.exchangeRates.gbpAed = parseFloat(getVal('ref-gbp-aed'))||4.8812;
+  applyThemeColor();
+  applyHeadingFont(state.settings.template.fontHeading);
+  saveState();
+  showNotif('Template settings saved ✓');
+}
+
+function onTplColorInput(val) {
+  document.getElementById('tpl-color-hex').value = val;
+  state.settings.template = state.settings.template||{};
+  state.settings.template.color = val;
+  applyThemeColor();
+}
+
+function onTplColorHexInput(val) {
+  const el = document.getElementById('tpl-color');
+  if (el && /^#[0-9a-fA-F]{6}$/.test(val)) { el.value = val; onTplColorInput(val); }
+}
+
+// ── Company Settings ──────────────────────────────────────
+function loadCompanySettings() {
+  const co = state.settings.company||{};
+  setEl('co-name',        co.name||'');
+  setEl('co-tagline',     co.tagline||'');
+  setEl('co-address',     co.address||'');
+  setEl('co-phone',       co.phone||'');
+  setEl('co-email',       co.email||'');
+  setEl('co-website',     co.website||'');
+  setEl('co-tax',         co.tax||'');
+  setEl('co-prefix',      co.prefix||'VTL-');
+  setEl('co-next-num',    co.nextNum||1);
+  setEl('co-default-vat', co.defaultVat!==undefined?co.defaultVat:5);
+  setEl('co-logo-width',  state.settings.logoWidth||140);
+  renderBankAccounts();
+  renderResourceList();
+}
+
+function saveCompanySettings() {
+  const co = {};
+  ['name','tagline','address','phone','email','website','tax'].forEach(k=>{
+    co[k] = getVal('co-'+k);
+  });
+  co.prefix     = getVal('co-prefix')||'VTL-';
+  co.nextNum    = parseInt(getVal('co-next-num'))||1;
+  co.defaultVat = parseFloat(getVal('co-default-vat'))||5;
+  co.bankAccounts = getBankAccountsFromUI();
+  co.bank = co.bankAccounts.length ? co.bankAccounts[0].details : '';
+  state.settings.company = co;
+  state.settings.logoWidth = parseInt(getVal('co-logo-width'))||140;
+  saveState();
+  const f = document.getElementById('inv-from');
+  if (f) f.value = co.name||'Venqtel';
+  renderInvBankSelector();
+  showNotif('Company settings saved ✓');
+}
+
+// ── Bank accounts ─────────────────────────────────────────
+function renderBankAccounts() {
+  const el = document.getElementById('co-bank-accounts');
+  if (!el) return;
+  const accounts = state.settings.company?.bankAccounts||[];
+  if (!accounts.length) {
+    el.innerHTML=`<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px">
+      No accounts yet. Click "+ Add Account" to add one.</div>`;
+    return;
+  }
+  el.innerHTML = accounts.map((a,i)=>buildBankAccountCard(a,i)).join('');
+}
+
+function buildBankAccountCard(a={}, i) {
+  const color = state.settings.template?.color||'#29963a';
+  return `<div class="bank-account-card" style="border:1.5px solid var(--border);border-radius:9px;padding:12px 14px;background:var(--white);margin-bottom:8px">
+    <div style="display:grid;grid-template-columns:1fr 130px auto;gap:10px;align-items:start;margin-bottom:10px">
+      <div>
+        <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted)">Account Label</label>
+        <input type="text" class="ba-label" value="${a.label||''}" placeholder="e.g. UAE AED Account"
+          style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none"
+          onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted)">Currency</label>
+        <select class="ba-currency" style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;outline:none">
+          ${['AED','USD','GBP','EUR','INR','SAR'].map(c=>`<option ${(a.currency||'AED')===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <button onclick="this.closest('.bank-account-card').remove()" title="Remove"
+        style="margin-top:20px;background:#fff1f2;border:1px solid #fca5a5;color:#dc2626;border-radius:7px;padding:7px 10px;cursor:pointer">🗑</button>
+    </div>
+    <div>
+      <label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted)">Bank Details</label>
+      <textarea class="ba-details" rows="4" placeholder="Bank: Emirates NBD&#10;IBAN: AE12345&#10;Swift: EBILAEAD&#10;Branch: Bur Dubai"
+        style="width:100%;margin-top:4px;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:12.5px;font-family:monospace;outline:none;resize:vertical"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">${a.details||''}</textarea>
+    </div>
+  </div>`;
+}
+
+function addBankAccount() {
+  const el = document.getElementById('co-bank-accounts');
+  if (!el) return;
+  const empty = el.querySelector('div[style*="text-align:center"]');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.innerHTML = buildBankAccountCard({}, Date.now());
+  el.appendChild(div.firstElementChild);
+}
+
+function getBankAccountsFromUI() {
+  return Array.from(document.querySelectorAll('.bank-account-card')).map(card=>({
+    label:    card.querySelector('.ba-label')?.value||'',
+    currency: card.querySelector('.ba-currency')?.value||'AED',
+    details:  card.querySelector('.ba-details')?.value||''
+  })).filter(a=>a.details.trim());
+}
+
+function renderInvBankSelector() {
+  const el = document.getElementById('inv-bank-select');
+  if (!el) return;
+  const accounts = state.settings.company?.bankAccounts||[];
+  el.innerHTML = '<option value="">— Select Payment Account —</option>'+
+    accounts.map((a,i)=>`<option value="${i}">${a.label||'Account '+(i+1)} (${a.currency})</option>`).join('');
+}
+
+// ── Resource list ─────────────────────────────────────────
+function renderResourceList() {
+  const el = document.getElementById('co-resource-list');
+  if (!el) return;
+  const list = state.settings.resourceList||[];
+  if (!list.length) {
+    el.innerHTML='<div style="font-size:13px;color:var(--muted);padding:4px 0">No items yet.</div>';
+    return;
+  }
+  el.innerHTML = list.map((item,i)=>`
+    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--g50);border:1px solid var(--g200);
+      color:var(--g700);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;margin:3px">
+      ${item}
+      <button onclick="removeFromResourceList(${i})"
+        style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;line-height:1">×</button>
+    </span>`).join('');
+}
+
+function invAddToResourceList(nameOrEl, type) {
+  const name = typeof nameOrEl==='string' ? nameOrEl : (nameOrEl.dataset?.name||'');
+  const t    = typeof nameOrEl==='string' ? type     : (nameOrEl.dataset?.type||'day');
+  if (!name.trim()) return;
+  if (!state.settings.resourceList) state.settings.resourceList=[];
+  if (state.settings.resourceList.includes(name.trim())) { showNotif('"'+name+'" already in list','error'); return; }
+  state.settings.resourceList.push(name.trim());
+  saveState();
+  showNotif('"'+name+'" added to list ✓');
+  renderResourceList();
+  if (t) renderInvRows(t);
+}
+
+function removeFromResourceList(i) {
+  if (!state.settings.resourceList) return;
+  state.settings.resourceList.splice(i,1);
+  saveState();
+  renderResourceList();
+}
+
+// ── Invoice history ───────────────────────────────────────
+function renderHistory() {
+  const el = document.getElementById('inv-history-list');
+  if (!el) return;
+  const items = (state.invoices||[]).slice().reverse();
+  if (!items.length) {
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🧾</div>
+      <div class="empty-text">No invoices yet</div>
+      <div class="text-muted">Create your first invoice to see it here</div></div>`;
+    return;
+  }
+  const color = state.settings.template?.color||'#29963a';
+  el.innerHTML = items.map((inv,i)=>{
+    const sym = invSym(inv.currency||'AED');
+    return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:800;font-size:14px">${inv.number||'—'}</div>
+        <div style="font-size:12px;color:var(--muted)">${inv.clientName||'—'} · ${inv.date||'—'} · ${inv.billingType||'—'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="font-family:monospace;font-size:16px;font-weight:800;color:${color}">${sym}${fmt(inv.total||0)}</div>
+        <button class="btn btn-secondary btn-sm" onclick="previewHistoryInvoice(${state.invoices.length-1-i})">👁 Preview</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteInvoice(${state.invoices.length-1-i})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function previewHistoryInvoice(idx) {
+  const inv = state.invoices[idx];
+  if (!inv) return;
+  const wrap = document.getElementById('inv-history-preview');
+  if (!wrap) return;
+  wrap.style.display='block';
+  wrap.innerHTML = buildInvoiceHTML(inv, false);
+  wrap.scrollIntoView({behavior:'smooth'});
+}
+
+function deleteInvoice(idx) {
+  state.invoices.splice(idx,1);
+  saveState();
+  renderHistory();
+  showNotif('Invoice deleted ✓');
+}
+
+// ── Confirm delete client ─────────────────────────────────
+function showConfirmDelete(idx, name) {
+  const popup = document.createElement('div');
+  popup.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)';
+  popup.innerHTML=`<div style="background:#fff;border-radius:14px;padding:28px;max-width:340px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-size:36px;margin-bottom:10px">🗑</div>
+    <div style="font-size:16px;font-weight:800;margin-bottom:6px">Delete Client?</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px">${name}</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="this.closest('div[style*=fixed]').remove()"
+        style="background:#f3f4f6;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-weight:600">Cancel</button>
+      <button onclick="confirmDeleteClient(${idx});this.closest('div[style*=fixed]').remove()"
+        style="background:#ef4444;color:#fff;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-weight:700">Delete</button>
+    </div>
+  </div>`;
+  document.body.appendChild(popup);
+}
+
+function confirmDeleteClient(idx) {
+  state.clients.splice(idx,1);
+  saveState();
+  renderClients();
+  showNotif('Client deleted ✓');
+}
+
+// ── Send email modal ──────────────────────────────────────
+function applySendTemplate() {
+  const subj = document.getElementById('send-subject')?.value||'';
+  const body = `Dear Client,\n\nPlease find attached invoice ${subj.replace('Invoice ','').split(' ')[0]}.\n\nKind regards,\n${state.settings.company?.name||'Venqtel'}`;
+  const el = document.getElementById('send-body');
+  if (el) el.value = body;
+}
+
+function sendEmail() {
+  const to   = getVal('send-to');
+  const subj = getVal('send-subject');
+  const body = getVal('send-body');
+  if (!to) return showNotif('Enter recipient email','error');
+  window.open(`mailto:${to}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`);
+  closeModal('modal-send');
+  showNotif('Email client opened ✓');
+}
+
+// ── Logo upload ───────────────────────────────────────────
+function handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    state.settings.logo = e.target.result;
+    const prev = document.getElementById('logo-preview');
+    if (prev) { prev.src=e.target.result; prev.style.display='block'; }
+    saveState();
+    showNotif('Logo uploaded ✓');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  state.settings.logo = null;
+  const prev = document.getElementById('logo-preview');
+  if (prev) prev.style.display='none';
+  saveState();
+  showNotif('Logo removed ✓');
+}
+
+// ── Utilities ─────────────────────────────────────────────
+function monthLabel(m) {
+  if (!m) return '—';
+  const [yr, mo] = m.split('-');
+  const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return (months[parseInt(mo)]||mo)+' '+yr;
+}
+
+function fmt(n) {
+  if (!n && n!==0) return '0.00';
+  return parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function today() {
+  const d=new Date();
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+}
+
+function showNotif(msg, type) {
+  const el = document.getElementById('notif');
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = 'notif show'+(type==='error'?' notif-error':'');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+function openModal(id)  { const e=document.getElementById(id); if(e) e.classList.add('open'); }
+function closeModal(id) { const e=document.getElementById(id); if(e) e.classList.remove('open'); }
+
+// ── Currency page ─────────────────────────────────────────
+function initCurrencyPage() {
+  const rates = state.settings.exchangeRates||{};
+  setEl('ref-gbp-usd', rates.gbpUsd||1.3295);
+  setEl('ref-usd-aed', rates.usdAed||3.6725);
+  setEl('ref-gbp-aed', rates.gbpAed||4.8812);
+}
+
+function saveCurrencyRates() {
+  if (!state.settings.exchangeRates) state.settings.exchangeRates={};
+  state.settings.exchangeRates.gbpUsd = parseFloat(getVal('ref-gbp-usd'))||1.3295;
+  state.settings.exchangeRates.usdAed = parseFloat(getVal('ref-usd-aed'))||3.6725;
+  state.settings.exchangeRates.gbpAed = parseFloat(getVal('ref-gbp-aed'))||4.8812;
+  saveState();
+  showNotif('Exchange rates saved ✓');
+}
+
+// ── Dashboard ─────────────────────────────────────────────
+function renderDashboard() {
+  const color = state.settings.template?.color||'#29963a';
+  // KPIs
+  const totalInvoiced = state.invoices.reduce((s,inv)=>s+(inv.total||0),0);
+  const clientCount   = state.clients.length;
+  const tsReady       = state.timesheets.filter(t=>t.status==='ready').length;
+  const tsTotal       = state.timesheets.length;
+
+  const kpi = document.getElementById('dash-kpis');
+  if (kpi) kpi.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon g">🏢</div>
+      <div class="stat-label">Active Clients</div>
+      <div class="stat-value green">${clientCount}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon b">🧾</div>
+      <div class="stat-label">Total Invoiced</div>
+      <div class="stat-value blue">${state.invoices.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon a">📋</div>
+      <div class="stat-label">Timesheets</div>
+      <div class="stat-value amber">${tsTotal}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon g">✅</div>
+      <div class="stat-label">Ready to Invoice</div>
+      <div class="stat-value green">${tsReady}</div>
+    </div>`;
+
+  // Recent invoices
+  const recent = document.getElementById('dash-recent-invoices');
+  if (recent) {
+    const items = state.invoices.slice(-5).reverse();
+    if (!items.length) {
+      recent.innerHTML='<div class="text-muted" style="text-align:center;padding:20px">No invoices yet</div>';
+    } else {
+      recent.innerHTML=`<table class="data-table">
+        <thead><tr><th>Invoice#</th><th>Client</th><th>Date</th><th>Type</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>${items.map(inv=>{
+          const sym=invSym(inv.currency||'AED');
+          return `<tr>
+            <td class="mono">${inv.number||'—'}</td>
+            <td>${inv.clientName||'—'}</td>
+            <td style="font-size:12px;color:var(--muted)">${inv.date||'—'}</td>
+            <td><span class="badge badge-green">${inv.billingType||'—'}</span></td>
+            <td class="mono" style="text-align:right;font-weight:700;color:${color}">${sym}${fmt(inv.total||0)}</td>
+          </tr>`;}).join('')}
+        </tbody></table>`;
+    }
+  }
+
+  // Ready timesheets
+  const readyTs = document.getElementById('dash-ready-ts');
+  if (readyTs) {
+    const items = state.timesheets.filter(t=>t.status==='ready').slice(-3);
+    if (!items.length) {
+      readyTs.innerHTML='<div class="text-muted" style="text-align:center;padding:20px">No timesheets ready</div>';
+    } else {
+      readyTs.innerHTML = items.map(ts=>{
+        const sym=invSym(ts.currency||'AED');
+        const total=(ts.rows||[]).reduce((s,r)=>s+(r.total||0),0);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-weight:700">${ts.clientName}</div>
+            <div style="font-size:12px;color:var(--muted)">${monthLabel(ts.month)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-family:monospace;font-weight:700;color:${color}">${sym}${fmt(total)}</div>
+            <button class="btn btn-primary btn-sm" onclick="tsToInvoice('${ts.id}')">→ Invoice</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+// ── Init new invoice page ─────────────────────────────────
+function initNewInvoice() {
+  const co = state.settings.company||{};
+  setEl('inv-number', (co.prefix||'VTL-')+String(co.nextNum||1).padStart(3,'0'));
+  setEl('inv-from',   co.name||'Venqtel');
+  setEl('inv-date',   today());
+  setEl('inv-vat',    co.defaultVat!==undefined?co.defaultVat:5);
+  // Populate client dropdown
+  const sel = document.getElementById('inv-client');
+  if (sel) sel.innerHTML = '<option value="">— Select Client —</option>'+
+    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  renderInvBankSelector();
+  recalcInvoice();
+}
+
 // ═══════════════════════════════
 // APP BOOT
 // ═══════════════════════════════
@@ -2257,17 +2751,20 @@ function fbLogout() { fbSignOut(); }
 function nav(page, e) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page-'+page).classList.add('active');
+  const pageEl = document.getElementById('page-'+page);
+  if (!pageEl) return;
+  pageEl.classList.add('active');
   const navEl = document.querySelector(`[data-page="${page}"]`);
   if (navEl) navEl.classList.add('active');
-  // page-specific init
-  if (page==='dashboard') renderDashboard();
-  if (page==='invoice-new') initNewInvoice();
+  // Page-specific init
+  if (page==='dashboard')       renderDashboard();
+  if (page==='invoice-new')     initNewInvoice();
   if (page==='invoice-history') renderHistory();
-  if (page==='timesheets') initTimesheets();
-  if (page==='tms') initTms();
-  if (page==='clients') renderClients();
-  if (page==='template') initTemplate();
+  if (page==='timesheets')      initTimesheets();
+  if (page==='tms')             initTms();
+  if (page==='clients')         renderClients();
+  if (page==='template')        initTemplate();
+  if (page==='currency')        initCurrencyPage();
   if (page==='company-settings') { loadCompanySettings(); renderBankAccounts(); renderInvBankSelector(); renderResourceList(); }
 }
 
