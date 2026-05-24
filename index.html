@@ -4134,40 +4134,40 @@ function buildInvoiceHTML(d, forPDF) {
   const convCurSym   = hasConv ? convSym : (isAEDOnly ? sym : '');
 
   const footerRows = `
-    <tr><td colspan="100" style="padding:0;padding-top:10px">
-      <!-- Amount in Words row — always shown -->
-      <div style="padding:8px 0 10px;display:flex;align-items:flex-start;gap:6px;border-bottom:1px solid #f1f5f9;margin-bottom:6px">
-        <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;white-space:nowrap;padding-top:1px">Amount in Words:</span>
-        <span style="font-size:10px;font-style:italic;color:#475569;line-height:1.5">${d.amtWords}</span>
-      </div>
-      <div style="display:flex;justify-content:flex-end">
-        <div style="min-width:260px;width:40%">
-          <!-- Subtotal row -->
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9">
+    <tr><td colspan="100" style="padding:0;padding-top:14px">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end">
+
+        <!-- LEFT: Amount in Words — aligned beside totals box -->
+        <div style="padding:12px 16px;background:#f8fafc;border-radius:8px;border-left:4px solid ${color};align-self:end">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:${color};margin-bottom:5px">Amount in Words</div>
+          <div style="font-size:11px;color:#334155;line-height:1.6;font-style:italic">${d.amtWords}</div>
+        </div>
+
+        <!-- RIGHT: Totals stack -->
+        <div style="min-width:270px">
+          <!-- Subtotal -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9">
             <span style="font-size:11.5px;color:#64748b;font-weight:500">Subtotal</span>
             <span style="font-size:11.5px;font-family:monospace;color:#334155;font-weight:600">${sym}${fmt(d.subtotal)}</span>
           </div>
-          ${d.vat>0?`<!-- VAT row -->
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9">
-            <span style="font-size:11.5px;color:#d97706;font-weight:600">VAT (${d.vatPct||''}%)</span>
-            <span style="font-size:11.5px;font-family:monospace;color:#d97706;font-weight:600">${sym}${fmt(d.vat)}</span>
+          ${d.vat>0?`<!-- VAT -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9">
+            <span style="font-size:11.5px;color:#d97706;font-weight:700">VAT (${d.vatPct||''}%)</span>
+            <span style="font-size:11.5px;font-family:monospace;color:#d97706;font-weight:700">${sym}${fmt(d.vat)}</span>
           </div>`:''}
-          <!-- TOTAL row -->
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:${color};border-radius:${convAmount!=null?'6px 6px 0 0':'6px'};margin-top:2px">
-            <span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.3px">TOTAL</span>
+          <!-- TOTAL -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:${color};border-radius:${convAmount!=null?'6px 6px 0 0':'6px'};margin-top:3px">
+            <span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.5px">TOTAL</span>
             <span style="font-size:13px;font-family:monospace;font-weight:900;color:#fff">${sym}${fmt(d.total)}</span>
           </div>
-          ${convAmount!=null?`<!-- Converted Total — highlighted professional row -->
-          <div style="border:1.5px solid ${color};border-top:none;border-radius:0 0 6px 6px;overflow:hidden">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff">
-              <div>
-                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:${color};margin-bottom:1px">${convCurLabel}</div>
-                <div style="font-size:9px;font-style:italic;color:#94a3b8;line-height:1.4;max-width:160px">${d.amtWords}</div>
-              </div>
-              <div style="font-size:18px;font-family:monospace;font-weight:900;color:${color};letter-spacing:-0.5px;white-space:nowrap;margin-left:12px">${convCurSym}${fmt(convAmount)}</div>
-            </div>
+          <!-- CONVERTED TOTAL or AED-only highlight — same design -->
+          ${convAmount!=null?`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:#fff;border:2px solid ${color};border-top:none;border-radius:0 0 6px 6px">
+            <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:${color}">${convCurLabel}</span>
+            <span style="font-size:18px;font-family:monospace;font-weight:900;color:${color};letter-spacing:-.5px">${convCurSym}${fmt(convAmount)}</span>
           </div>`:''}
         </div>
+
       </div>
     </td></tr>`;
 
