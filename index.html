@@ -97,7 +97,8 @@ input, select, textarea, button {
 }
 
 /* ── Layout Shell ── */
-#app-root { display: flex; min-height: 100vh; }
+#app-root { display: block; min-height: 100vh; }
+.app { display: flex; min-height: 100vh; }
 
 /* ── Sidebar ── */
 .sidebar {
@@ -1507,15 +1508,22 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     </div>
     <div class="card">
       <div class="card-title">Invoice Numbering</div>
-      <div class="form-group mb-12">
-        <label>Invoice Prefix</label>
-        <input type="text" id="co-prefix" value="VTL-" placeholder="e.g. VTL-" />
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group" style="margin:0">
+          <label>Invoice Prefix</label>
+          <input type="text" id="co-prefix" placeholder="e.g. VTL-" oninput="updateInvNumPreview()" />
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Leave blank for no prefix (e.g. just "032")</div>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Current Invoice Number <span style="font-size:10px;color:var(--muted);font-weight:400">(will auto-increment)</span></label>
+          <input type="number" id="co-next-num" min="1" oninput="updateInvNumPreview()" />
+        </div>
       </div>
-      <div class="form-group mb-12">
-        <label>Next Invoice Number</label>
-        <input type="number" id="co-next-num" value="1" min="1" />
+      <div style="margin-top:12px;padding:10px 14px;background:var(--brand-50);border:1.5px solid var(--brand-200);border-radius:8px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;color:var(--muted);font-weight:600">Next invoice will be:</span>
+        <span id="inv-num-preview" style="font-family:monospace;font-size:15px;font-weight:800;color:var(--brand)"></span>
       </div>
-      <div class="info-box">Invoice numbers auto-increment across all clients and billing types.</div>
+      <div class="info-box mt-12">Invoice numbers auto-increment each time you save an invoice. Set the current number to continue from where you left off.</div>
     </div>
   </div>
   <div class="card mb-16">
@@ -2822,6 +2830,13 @@ function onTplColorHexInput(val) {
 }
 
 // ── Company Settings ──────────────────────────────────────
+function updateInvNumPreview() {
+  const prefix = getVal('co-prefix') || '';
+  const num    = parseInt(getVal('co-next-num')) || 1;
+  const el = document.getElementById('inv-num-preview');
+  if (el) el.textContent = prefix + String(num).padStart(3,'0');
+}
+
 function loadCompanySettings() {
   const co = state.settings.company||{};
   setEl('co-name',        co.name||'');
@@ -2831,10 +2846,11 @@ function loadCompanySettings() {
   setEl('co-email',       co.email||'');
   setEl('co-website',     co.website||'');
   setEl('co-tax',         co.tax||'');
-  setEl('co-prefix',      co.prefix||'VTL-');
+  setEl('co-prefix',      co.prefix !== undefined ? co.prefix : 'VTL-');
   setEl('co-next-num',    co.nextNum||1);
-  setEl('co-default-vat', co.defaultVat!==undefined?co.defaultVat:5);
+  setEl('co-default-vat', co.defaultVat!==undefined ? co.defaultVat : 5);
   setEl('co-logo-width',  state.settings.logoWidth||140);
+  updateInvNumPreview();
   renderBankAccounts();
   renderResourceList();
 }
@@ -3208,10 +3224,14 @@ function renderDashboard() {
 // ── Init new invoice page ─────────────────────────────────
 function initNewInvoice() {
   const co = state.settings.company||{};
-  setEl('inv-number', (co.prefix||'VTL-')+String(co.nextNum||1).padStart(3,'0'));
+  // Always use current nextNum from state (not hardcoded)
+  const prefix = co.prefix||'VTL-';
+  const nextNum = co.nextNum||1;
+  const padded  = String(nextNum).padStart(3,'0');
+  setEl('inv-number', prefix + padded);
   setEl('inv-from',   co.name||'Venqtel');
   setEl('inv-date',   today());
-  setEl('inv-vat',    co.defaultVat!==undefined?co.defaultVat:5);
+  setEl('inv-vat',    co.defaultVat!==undefined ? co.defaultVat : 5);
   // Populate client dropdown
   const sel = document.getElementById('inv-client');
   if (sel) sel.innerHTML = '<option value="">— Select Client —</option>'+
@@ -3771,17 +3791,29 @@ function getInvoiceData() {
   };
 }
 
-function saveInvoiceDraft() {
+ function saveInvoiceDraft() {
   const d = getInvoiceData();
-  const existing = state.invoices.findIndex(i=>i.id===d.id);
-  if (existing>-1) state.invoices[existing]=d;
-  else state.invoices.push(d);
-  // Increment invoice number
-  const co = state.settings.company;
-  co.nextNum = (co.nextNum||1)+1;
-  document.getElementById('inv-number').value = (co.prefix||'VTL-')+String(co.nextNum).padStart(3,'0');
-  saveState();
-  showNotif('Invoice saved ✓');
+  const invNum = document.getElementById('inv-number')?.value||d.number;
+  d.number = invNum; // ensure number is set
+  // Match by number (user-editable) to prevent duplicates
+  const existing = state.invoices.findIndex(inv=>inv.number===d.number);
+  const isNew = existing === -1;
+  if (!isNew) {
+    d.id = state.invoices[existing].id; // preserve ID
+    state.invoices[existing] = d;
+    saveState();
+    showNotif('Invoice updated ✓');
+  } else {
+    state.invoices.push(d);
+    // Only increment number for new invoices
+    const co = state.settings.company;
+    if (!co) return;
+    co.nextNum = (co.nextNum||1) + 1;
+    const newNum = (co.prefix||'VTL-') + String(co.nextNum).padStart(3,'0');
+    document.getElementById('inv-number').value = newNum;
+    saveState();
+    showNotif('Invoice saved ✓');
+  }
 }
 
 // ── Build Invoice HTML (preview + PDF) ────────────────────────
@@ -4766,6 +4798,17 @@ function initTms() {
   renderTmsClients();
 }
 
+function deleteTmsEntry(tsId) {
+  const ts = state.timesheets.find(t=>t.id===tsId);
+  if (!ts) return;
+  if (!confirm('Delete timesheet for '+ts.clientName+' — '+monthLabel(ts.month)+'?\n\nThis cannot be undone.')) return;
+  state.timesheets = state.timesheets.filter(t=>t.id!==tsId);
+  saveState();
+  renderTmsClients();
+  renderTmsKpis();
+  showNotif('Timesheet deleted ✓');
+}
+
 function tmsRefresh() {
   loadState();
   populateTmsFilters();
@@ -4859,9 +4902,10 @@ function renderTmsClients() {
           <div style="font-family:var(--font-mono);font-size:16px;font-weight:800;color:${color}">${sym}${fmt(total)}</div>
         </div>
         <span style="background:${sc}18;color:${sc};border:1px solid ${sc}40;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${statusLabels[ts.status]||ts.status}</span>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;align-items:center">
           <button class="btn btn-secondary btn-sm" onclick="openEditTimesheet('${ts.id}')">✏️ Edit</button>
-          ${ts.status!=='invoiced'?`<button class="btn btn-primary btn-sm" onclick="tsToInvoice('${ts.id}')">→ Invoice</button>`:'<span class="badge badge-blue">Invoiced</span>'}
+          ${ts.status!=='invoiced'?`<button class="btn btn-primary btn-sm" onclick="tsToInvoice('${ts.id}')">→ Invoice</button>`:'<span class="badge badge-blue">🧾 Invoiced</span>'}
+          <button class="btn btn-danger btn-xs" onclick="deleteTmsEntry('${ts.id}')" title="Delete timesheet">🗑</button>
         </div>
       </div>
     </div>`;
