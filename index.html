@@ -951,8 +951,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             <th style="width:100px">Offshore/Onsite</th>
             <th style="width:85px;text-align:right">Days Worked</th>
             <th style="width:85px;text-align:right">Hours Worked</th>
-            <th style="width:60px;text-align:right">VAT%</th>
-            <th style="width:95px;text-align:right">VAT Amount</th>
+            <th style="width:72px;text-align:right">VAT %</th>
+            <th style="width:105px;text-align:right">VAT Amount</th>
             <th style="width:100px;text-align:right">Rates</th>
             <th style="width:100px;text-align:right">Total</th>
             <th style="width:32px"></th>
@@ -977,8 +977,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <th id="th-day-name">Name of the Resource</th>
           <th style="width:100px">Offshore/Onsite</th>
           <th style="width:90px;text-align:right">Days Worked</th>
-          <th style="width:60px;text-align:right">VAT%</th>
-          <th style="width:95px;text-align:right">VAT Amount</th>
+          <th style="width:72px;text-align:right">VAT %</th>
+          <th style="width:105px;text-align:right">VAT Amount</th>
           <th style="width:110px;text-align:right" id="day-rate-th">Day Rates</th>
           <th style="width:100px;text-align:right">Total</th>
           <th style="width:32px"></th>
@@ -1007,8 +1007,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <th style="width:100px">Offshore/Onsite</th>
           <th style="width:90px;text-align:right">Total Hours</th>
           <th style="width:90px;text-align:right">Hours Worked</th>
-          <th style="width:60px;text-align:right">VAT%</th>
-          <th style="width:95px;text-align:right">VAT Amount</th>
+          <th style="width:72px;text-align:right">VAT %</th>
+          <th style="width:105px;text-align:right">VAT Amount</th>
           <th style="width:100px;text-align:right">Hourly Rate</th>
           <th style="width:100px;text-align:right">Total</th>
           <th style="width:32px"></th>
@@ -1038,8 +1038,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <th style="width:100px">Offshore/Onsite</th>
           <th style="width:90px;text-align:right">Total Days</th>
           <th style="width:90px;text-align:right">Days Worked</th>
-          <th style="width:60px;text-align:right">VAT%</th>
-          <th style="width:95px;text-align:right">VAT Amount</th>
+          <th style="width:72px;text-align:right">VAT %</th>
+          <th style="width:105px;text-align:right">VAT Amount</th>
           <th style="width:110px;text-align:right">Monthly Rate</th>
           <th style="width:100px;text-align:right">Total</th>
           <th style="width:32px"></th>
@@ -1062,7 +1062,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <th style="width:40px">Sr.No</th>
           <th>Description</th>
           <th style="width:120px;text-align:right">Unit Price</th>
-          <th style="width:60px;text-align:right">VAT%</th>
+          <th style="width:72px;text-align:right">VAT %</th>
           <th style="width:100px;text-align:right">VAT Amount</th>
           <th style="width:110px;text-align:right">Total</th>
           <th style="width:32px"></th>
@@ -1217,7 +1217,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       </div>
       <div class="form-group" style="margin:0">
         <label>Month</label>
-        <select id="ts-modal-month" style="width:100%">
+        <select id="ts-modal-month" onchange="onTsModalMonthChange()" style="width:100%">
           <option value="">— Month —</option>
           <option value="2026-04">April 2026</option>
           <option value="2026-05">May 2026</option>
@@ -1231,12 +1231,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         </select>
       </div>
       <div class="form-group" style="margin:0">
-        <label>Total Working Days</label>
-        <input type="number" id="ts-modal-total-days" value="22" />
+        <label>Total Working Days <span style="font-size:9px;color:var(--brand);font-weight:600">AUTO</span></label>
+        <input type="number" id="ts-modal-total-days" value="22" title="Auto-calculated (Mon-Fri only). You can override." />
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">Mon–Fri only · auto-filled by month</div>
       </div>
       <div class="form-group" style="margin:0">
-        <label>Total Working Hours</label>
-        <input type="number" id="ts-modal-total-hours" value="176" />
+        <label>Total Working Hours <span style="font-size:9px;color:var(--brand);font-weight:600">AUTO</span></label>
+        <input type="number" id="ts-modal-total-hours" value="176" title="Auto-calculated (working days × 8hrs). You can override." />
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">Days × 8 hrs · auto-filled by month</div>
       </div>
     </div>
 
@@ -1264,12 +1266,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     </div>
   </div>
   <div style="padding:16px 24px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:10px;justify-content:space-between;position:sticky;bottom:0">
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-secondary" onclick="saveTsModal('draft')">💾 Save Draft</button>
       <button class="btn btn-primary" onclick="saveTsModal('ready')">✅ Mark Ready for Invoice</button>
+      <span style="font-size:10px;color:var(--muted);max-width:180px;line-height:1.4">Saves timesheet · won't generate invoice yet</span>
     </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="color:#16a34a;border-color:#86efac" onclick="tsModalToInvoice()">→ Generate Invoice</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:10px;color:var(--muted);text-align:right;max-width:160px;line-height:1.4">Saves + opens New Invoice pre-filled</span>
+      <button class="btn btn-ghost" style="color:#16a34a;border-color:#86efac;font-weight:700" onclick="tsModalToInvoice()">→ Generate Invoice</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-timesheet')">Cancel</button>
     </div>
   </div>
@@ -3456,16 +3460,16 @@ function renderInvRows(type) {
     const inp = (cls,val,ph,extra='') =>
       `<input type="text" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}"
         oninput="invRows.${type}[${i}].${cls}=this.value;recalcInvoice()" ${extra}
-        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;outline:none"
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none"
         onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />`;
     const num = (cls,val,ph) =>
       `<input type="number" value="${val||''}" placeholder="${ph}"
         oninput="invRows.${type}[${i}].${cls}=parseFloat(this.value)||0;recalcInvoice()"
-        style="width:100%;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:var(--font-mono);outline:none"
+        style="width:100%;text-align:right;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12.5px;font-family:var(--font-mono);outline:none"
         onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />`;
     const locSel = (val) =>
       `<select oninput="invRows.${type}[${i}].locType=this.value"
-        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;outline:none">
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none">
         <option ${(val||'Offshore')==='Offshore'?'selected':''}>Offshore</option>
         <option ${val==='Onsite'?'selected':''}>Onsite</option>
       </select>`;
@@ -4248,6 +4252,43 @@ function openSendModal() {
 }
 
 
+// ── Working Days / Hours Calculator ──────────────────────
+function getWorkingDaysInMonth(yearMonth) {
+  // yearMonth = "2026-05"
+  if (!yearMonth) return 22;
+  const [yr, mo] = yearMonth.split('-').map(Number);
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const day = new Date(yr, mo-1, d).getDay();
+    if (day !== 0 && day !== 6) count++; // skip Sun(0) and Sat(6)
+  }
+  return count;
+}
+
+function getWorkingHoursInMonth(yearMonth, hoursPerDay) {
+  const hpd = hoursPerDay || 8;
+  return getWorkingDaysInMonth(yearMonth) * hpd;
+}
+
+// ── Generate month options dynamically (12 months back + 12 forward) ──
+function generateMonthOptions(selectedVal) {
+  const now = new Date();
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  let html = '<option value="">— Month —</option>';
+  // Start from 3 months ago, show 15 months total
+  for (let i = -3; i <= 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const val = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = months[d.getMonth()]+' '+d.getFullYear();
+    const sel = val === selectedVal ? ' selected' : '';
+    html += `<option value="${val}"${sel}>${label}</option>`;
+  }
+  return html;
+}
+
+
 // ═══════════════════════════════
 // TIMESHEETS
 // ═══════════════════════════════
@@ -4255,6 +4296,16 @@ function openSendModal() {
 let _editingTsId = null; // null = new, string = editing
 
 function initTimesheets() {
+  // Populate dynamic month options in filter dropdowns
+  const now = new Date();
+  const curMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  ['ts-filter-month','tms-month-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value || '';
+    el.innerHTML = '<option value="">All Months</option>' + generateMonthOptions('').replace('<option value="">— Month —</option>','');
+    if (cur) el.value = cur;
+  });
   // Populate client filter
   const tf = document.getElementById('ts-filter-client');
   if (tf) {
@@ -4366,17 +4417,45 @@ function openCreateTimesheet() {
   const sel = document.getElementById('ts-modal-client');
   if (sel) sel.innerHTML = '<option value="">— Select Client —</option>'+
     state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
-  // Set current month
+
+  // Generate dynamic month options
+  const now = new Date();
+  const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const mSel = document.getElementById('ts-modal-month');
   if (mSel) {
-    const now=new Date(), cur=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    if([...mSel.options].some(o=>o.value===cur)) mSel.value=cur;
+    mSel.innerHTML = generateMonthOptions(curMonth);
   }
-  document.getElementById('ts-modal-title').textContent = 'New Timesheet';
-  document.getElementById('ts-modal-tbody').innerHTML = '';
-  document.getElementById('ts-modal-tfoot').innerHTML = '';
-  document.getElementById('ts-modal-client-info').style.display='none';
+
+  // Auto-calculate working days and hours for current month
+  const wDays  = getWorkingDaysInMonth(curMonth);
+  const wHours = getWorkingHoursInMonth(curMonth);
+  const tdEl = document.getElementById('ts-modal-total-days');
+  const thEl = document.getElementById('ts-modal-total-hours');
+  if (tdEl) tdEl.value = wDays;
+  if (thEl) thEl.value = wHours;
+
+  document.getElementById('ts-modal-title').textContent    = 'New Timesheet';
+  document.getElementById('ts-modal-subtitle').textContent = 'Fill in hours worked for this month';
+  document.getElementById('ts-modal-tbody').innerHTML      = '';
+  document.getElementById('ts-modal-tfoot').innerHTML      = '';
+  document.getElementById('ts-modal-client-info').style.display = 'none';
   openModal('modal-timesheet');
+}
+
+function onTsModalMonthChange() {
+  const month = document.getElementById('ts-modal-month')?.value;
+  if (!month) return;
+  // Auto-update working days and hours
+  const wDays  = getWorkingDaysInMonth(month);
+  const wHours = getWorkingHoursInMonth(month);
+  const tdEl = document.getElementById('ts-modal-total-days');
+  const thEl = document.getElementById('ts-modal-total-hours');
+  if (tdEl) tdEl.value = wDays;
+  if (thEl) thEl.value = wHours;
+  // Show info
+  const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [yr, mo] = month.split('-').map(Number);
+  showNotif(`${monthNames[mo]} ${yr}: ${wDays} working days · ${wHours} working hours`);
 }
 
 function openEditTimesheet(tsId) {
@@ -4495,7 +4574,7 @@ function renderTsModalRows(c) {
 
   const locSel = (val,i) =>
     `<select data-ridx="${i}" data-field="locType" oninput="_tsModalUpdateField(this)"
-      style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;outline:none">
+      style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none">
       <option ${(val||'Offshore')==='Offshore'?'selected':''}>Offshore</option>
       <option ${val==='Onsite'?'selected':''}>Onsite</option>
     </select>`;
@@ -4511,7 +4590,7 @@ function renderTsModalRows(c) {
     const txtInp = (field,val,ph='') => `<input type="text" value="${val||''}" placeholder="${ph}" data-ridx="${i}" data-field="${field}"
       oninput="_tsModalUpdateField(this)"
       list="inv-desc-list"
-      style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;outline:none"
+      style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none"
       onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />`;
 
     // Compute totals
