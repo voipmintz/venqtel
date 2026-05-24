@@ -4088,57 +4088,45 @@ function buildInvoiceHTML(d, forPDF) {
 
   // Totals footer rows
   // Determine display label for converted amount
-  const convLabel = d.convertTo === 'AED' ? 'Total in AED' :
+   const convLabel = d.convertTo === 'AED' ? 'Total in AED' :
                     d.convertTo === 'USD' ? 'Total in USD' :
                     d.convertTo === 'GBP' ? 'Total in GBP' :
-                    d.convertTo ? `Total in ${d.convertTo}` : '';
-  // For AED-only invoices (no conversion), highlight the total in AED
+                    d.convertTo ? 'Total in '+d.convertTo : '';
   const isAEDOnly = !d.convertTo && d.currency === 'AED';
+  const hasConv   = d.convertedTotal != null;
+  const convCurLabel = hasConv ? convLabel : (isAEDOnly ? 'Total in AED' : '');
+  const convAmount   = hasConv ? d.convertedTotal : (isAEDOnly ? d.total : null);
+  const convCurSym   = hasConv ? convSym : (isAEDOnly ? sym : '');
 
   const footerRows = `
-    <tr><td colspan="100" style="padding:0">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:10px;gap:16px">
-        <!-- Left: Amount in Words -->
-        <div style="flex:1;max-width:52%;padding:10px 12px;background:#f8fafc;border-radius:8px;border-left:3px solid ${color}">
-          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-bottom:4px">Amount in Words</div>
-          <div style="font-style:italic;font-size:10px;color:#475569;line-height:1.6">${d.amtWords}</div>
-        </div>
-        <!-- Right: Totals table -->
-        <div style="min-width:230px">
-          <table style="width:100%;border-collapse:collapse;font-size:12px">
-            <tr style="border-top:1px solid #f1f5f9">
-              <td style="padding:5px 10px;color:#64748b;font-weight:600">Subtotal</td>
-              <td style="padding:5px 10px;text-align:right;font-family:monospace;font-weight:600;color:#334155">${sym}${fmt(d.subtotal)}</td>
-            </tr>
-            ${d.vat>0?`<tr>
-              <td style="padding:4px 10px;color:#d97706;font-weight:600">VAT (${d.vatPct||''}%)</td>
-              <td style="padding:4px 10px;text-align:right;font-family:monospace;color:#d97706">${sym}${fmt(d.vat)}</td>
-            </tr>`:''}
-            <tr style="background:${color}">
-              <td style="padding:9px 10px;color:#fff;font-weight:800;font-size:13px;border-radius:6px 0 0 ${d.convertedTotal!=null||isAEDOnly?'0':'6px'}">TOTAL</td>
-              <td style="padding:9px 10px;text-align:right;font-family:monospace;font-weight:900;color:#fff;font-size:13px;border-radius:0 6px ${d.convertedTotal!=null||isAEDOnly?'0':'6px'} 0">${sym}${fmt(d.total)}</td>
-            </tr>
-            ${d.convertedTotal!=null?`
-            <tr style="background:linear-gradient(135deg,${color}18,${color}08);border:2px solid ${color}40;border-top:none">
-              <td style="padding:10px 10px;border-radius:0 0 0 6px">
-                <div style="font-weight:800;font-size:12px;color:${color}">${convLabel}</div>
-                <div style="font-size:9px;font-style:italic;color:#94a3b8;margin-top:2px;line-height:1.5">${d.amtWords}</div>
-              </td>
-              <td style="padding:10px 10px;text-align:right;vertical-align:top;border-radius:0 0 6px 0">
-                <div style="font-family:monospace;font-size:16px;font-weight:900;color:${color};line-height:1">${convSym}${fmt(d.convertedTotal)}</div>
-              </td>
-            </tr>`:''}
-            ${isAEDOnly?`
-            <tr style="background:linear-gradient(135deg,${color}18,${color}08);border:2px solid ${color}40;border-top:none">
-              <td style="padding:10px 10px;border-radius:0 0 0 6px">
-                <div style="font-weight:800;font-size:12px;color:${color}">Total in AED</div>
-                <div style="font-size:9px;font-style:italic;color:#94a3b8;margin-top:2px;line-height:1.5">${d.amtWords}</div>
-              </td>
-              <td style="padding:10px 10px;text-align:right;vertical-align:top;border-radius:0 0 6px 0">
-                <div style="font-family:monospace;font-size:16px;font-weight:900;color:${color};line-height:1">${sym}${fmt(d.total)}</div>
-              </td>
-            </tr>`:''}
-          </table>
+    <tr><td colspan="100" style="padding:0;padding-top:10px">
+      <div style="display:flex;justify-content:flex-end">
+        <div style="min-width:260px;width:40%">
+          <!-- Subtotal row -->
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9">
+            <span style="font-size:11.5px;color:#64748b;font-weight:500">Subtotal</span>
+            <span style="font-size:11.5px;font-family:monospace;color:#334155;font-weight:600">${sym}${fmt(d.subtotal)}</span>
+          </div>
+          ${d.vat>0?`<!-- VAT row -->
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9">
+            <span style="font-size:11.5px;color:#d97706;font-weight:600">VAT (${d.vatPct||''}%)</span>
+            <span style="font-size:11.5px;font-family:monospace;color:#d97706;font-weight:600">${sym}${fmt(d.vat)}</span>
+          </div>`:''}
+          <!-- TOTAL row -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:${color};border-radius:${convAmount!=null?'6px 6px 0 0':'6px'};margin-top:2px">
+            <span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.3px">TOTAL</span>
+            <span style="font-size:13px;font-family:monospace;font-weight:900;color:#fff">${sym}${fmt(d.total)}</span>
+          </div>
+          ${convAmount!=null?`<!-- Converted Total — highlighted professional row -->
+          <div style="border:1.5px solid ${color};border-top:none;border-radius:0 0 6px 6px;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff">
+              <div>
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:${color};margin-bottom:1px">${convCurLabel}</div>
+                <div style="font-size:9px;font-style:italic;color:#94a3b8;line-height:1.4;max-width:160px">${d.amtWords}</div>
+              </div>
+              <div style="font-size:18px;font-family:monospace;font-weight:900;color:${color};letter-spacing:-0.5px;white-space:nowrap;margin-left:12px">${convCurSym}${fmt(convAmount)}</div>
+            </div>
+          </div>`:''}
         </div>
       </div>
     </td></tr>`;
