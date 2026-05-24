@@ -2333,7 +2333,7 @@ function renderClients() {
   const color = state.settings.template?.color||'#1a7f37';
   const invTypeLabels = {mixed:'🔀 Mixed',day:'📅 Day Rate',hour:'⏱ Hourly',fixed:'📌 Fixed Monthly',unit:'💲 Unit Price',milestone:'⬡ Milestone'};
   grid.innerHTML = state.clients.map((c,i) => {
-    const sym = invSym(c.currency||'AED');
+    const sym = invSymPlain(c.currency||'AED');
     const empCount = (c.employees||[]).length;
     const svcCount = (c.services||[]).length;
     return `<div class="client-card">
@@ -2596,9 +2596,6 @@ function saveClient() {
 
 // ═══════════════════════════════════════════════════════════
 // CORE FUNCTIONS — DO NOT REMOVE
-// These are required for login, theming, settings, and navigation
-// ═══════════════════════════════════════════════════════════
-
 // ── Helpers ──────────────────────────────────────────────
 function setEl(id, val) { const e=document.getElementById(id); if(e) e.value=val; }
 function getEl(id)      { return document.getElementById(id); }
@@ -2979,7 +2976,7 @@ function renderHistory() {
   }
   const color = state.settings.template?.color||'#1a7f37';
   el.innerHTML = items.map((inv,i)=>{
-    const sym = invSym(inv.currency||'AED');
+    const sym = invSymPlain(inv.currency||'AED');
     return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
       <div>
         <div style="font-weight:800;font-size:14px">${inv.number||'—'}</div>
@@ -3171,7 +3168,7 @@ function renderDashboard() {
       recent.innerHTML=`<table class="data-table">
         <thead><tr><th>Invoice#</th><th>Client</th><th>Date</th><th>Type</th><th style="text-align:right">Total</th></tr></thead>
         <tbody>${items.map(inv=>{
-          const sym=invSym(inv.currency||'AED');
+          const sym=invSymPlain(inv.currency||'AED');
           return `<tr>
             <td class="mono">${inv.number||'—'}</td>
             <td>${inv.clientName||'—'}</td>
@@ -3191,7 +3188,7 @@ function renderDashboard() {
       readyTs.innerHTML='<div class="text-muted" style="text-align:center;padding:20px">No timesheets ready</div>';
     } else {
       readyTs.innerHTML = items.map(ts=>{
-        const sym=invSym(ts.currency||'AED');
+        const sym=invSymPlain(ts.currency||'AED');
         const total=(ts.rows||[]).reduce((s,r)=>s+(r.total||0),0);
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
           <div>
@@ -3266,7 +3263,7 @@ function bootApp() {
   invRows = { mixed:[], day:[], hour:[], fixed:[], unit:[], milestone:[] };
   window._tsModalRows = [];
   ['mixed','day','hour','fixed','unit','milestone'].forEach(t => addInvRow(t));
-  renderMilestoneHeader(invSym(document.getElementById('inv-currency')?.value||'AED'));
+  renderMilestoneHeader(invSymPlain(document.getElementById('inv-currency')?.value||'AED'));
   recalcInvoice();
 
   // Bank + resource selectors
@@ -3382,6 +3379,12 @@ function invSymText(cur) {
   if (cur === 'USD') return '$';
   return 'AED '; // fallback text for non-HTML contexts
 }
+// Plain symbol for use in innerHTML table cells (no SVG)
+function invSymPlain(cur) {
+  if (cur === 'GBP') return '£';
+  if (cur === 'USD') return '$';
+  return 'Ð'; // Unicode Dirham approximation for table cells
+}
 
 // ── Row storage ──
 let invRows = { mixed:[], day:[], hour:[], fixed:[], unit:[], milestone:[] };
@@ -3416,7 +3419,7 @@ function renderInvRows(type) {
   const tbody = document.getElementById('inv-tbody-'+type);
   if (!tbody) return;
   const cur = document.getElementById('inv-currency')?.value||'AED';
-  const sym = invSym(cur);
+  const sym = invSymPlain(cur);
   const fixedDays = parseInt(document.getElementById('fixed-total-days')?.value||22)||22;
   const clientIdx = document.getElementById('inv-client')?.value||'';
   const c = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
@@ -3571,7 +3574,7 @@ function renderMilestoneHeader(sym) {
 function renderInvTfoot(type, sym, fixedDays) {
   const tfoot = document.getElementById('inv-tfoot-'+type);
   if (!tfoot) return;
-  const cur = sym || invSym(document.getElementById('inv-currency')?.value||'AED');
+  const cur = sym || invSymPlain(document.getElementById('inv-currency')?.value||'AED');
   const rows = invRows[type]||[];
   let subtotal=0, totalVat=0;
 
@@ -3615,7 +3618,7 @@ function recalcInvoice() {
   const convTo = document.getElementById('inv-conv-to')?.value||'';
   const convRate = parseFloat(document.getElementById('inv-conv-rate')?.value||1)||1;
   const fixedDays = parseInt(document.getElementById('fixed-total-days')?.value||22)||22;
-  const sym = invSym(cur);
+  const sym = invSymPlain(cur);
   const tab = getActiveTab();
 
   // Re-render all tabs
@@ -3641,7 +3644,7 @@ function recalcInvoice() {
   const total=subtotal+totalVat;
   const converted = convTo && convTo!==cur && convRate>0 ? total*convRate : null;
 
-  const convSym = convTo ? invSym(convTo) : '';
+  const convSym = convTo ? invSymPlain(convTo) : '';
 
   // Totals box
   document.getElementById('inv-totals-box').innerHTML = `
@@ -3710,7 +3713,7 @@ function getInvoiceData() {
   const fixedDays = parseInt(document.getElementById('fixed-total-days')?.value||22)||22;
   const clientIdx = document.getElementById('inv-client')?.value||'';
   const client = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
-  const sym = invSym(cur);
+  const sym = invSymPlain(cur);
 
   // Compute rows with totals
   const rows = (invRows[tab]||[]).map((r,i) => {
@@ -4100,6 +4103,11 @@ function buildInvoiceHTML(d, forPDF) {
 
   const footerRows = `
     <tr><td colspan="100" style="padding:0;padding-top:10px">
+      <!-- Amount in Words row — always shown -->
+      <div style="padding:8px 0 10px;display:flex;align-items:flex-start;gap:6px;border-bottom:1px solid #f1f5f9;margin-bottom:6px">
+        <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;white-space:nowrap;padding-top:1px">Amount in Words:</span>
+        <span style="font-size:10px;font-style:italic;color:#475569;line-height:1.5">${d.amtWords}</span>
+      </div>
       <div style="display:flex;justify-content:flex-end">
         <div style="min-width:260px;width:40%">
           <!-- Subtotal row -->
@@ -4256,7 +4264,7 @@ function renderTimesheets() {
   const color = state.settings.template?.color||'#1a7f37';
   el.innerHTML = items.map(ts => {
     const c = state.clients.find(cl=>cl.name===ts.clientName);
-    const sym = invSym(ts.currency||'AED');
+    const sym = invSymPlain(ts.currency||'AED');
     const total = ts.rows?.reduce((s,r)=>s+(r.total||0),0)||0;
     const statusColors = {draft:'#6b7280',ready:'#16a34a',invoiced:'#0284c7'};
     const statusLabels = {draft:'📝 Draft',ready:'✅ Ready',invoiced:'🧾 Invoiced'};
@@ -4306,7 +4314,7 @@ function buildTsRowHeaders(c) {
 }
 
 function buildTsRowDisplay(r, ts, c, i) {
-  const sym = invSym(ts.currency||'AED');
+  const sym = invSymPlain(ts.currency||'AED');
   const invType = c?.invoiceType||'mixed';
   const bg = i%2===1?'background:#f9fafb':'';
   const td = v => `<td style="${bg};padding:7px 10px;font-size:12px">${v||''}</td>`;
@@ -4385,7 +4393,7 @@ function buildTsModalTable(c, existingRows) {
   const invType  = c.invoiceType||'mixed';
   const entryMode= c.entryMode||'simple';
   const color    = state.settings.template?.color||'#1a7f37';
-  const sym      = invSym(c.currency||'AED');
+  const sym      = invSymPlain(c.currency||'AED');
   const vatPct   = c.vat||0;
   const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
   const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
@@ -4440,7 +4448,7 @@ function renderTsModalRows(c) {
   const tfoot = document.getElementById('ts-modal-tfoot');
   if (!tbody) return;
   const invType = c?.invoiceType||'mixed';
-  const sym = invSym(c?.currency||'AED');
+  const sym = invSymPlain(c?.currency||'AED');
   const color = state.settings.template?.color||'#1a7f37';
   const rows = window._tsModalRows||[];
   const totalDays = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
@@ -4535,21 +4543,31 @@ function renderTsModalRows(c) {
 function _tsModalUpdateField(el) {
   const i = parseInt(el.dataset.ridx);
   const field = el.dataset.field;
-  if (!window._tsModalRows || !window._tsModalRows[i]) return;
+  if (isNaN(i) || !window._tsModalRows || !window._tsModalRows[i]) return;
   const val = el.type==='number' ? (parseFloat(el.value)||0) : el.value;
   window._tsModalRows[i][field] = val;
-  // Refresh totals only (don't re-render inputs to avoid losing focus)
+  // For fixed rate: if totalDays or days changed, sync to header field
+  if (field === 'totalDays') {
+    const hdEl = document.getElementById('ts-modal-total-days');
+    if (hdEl && val > 0) hdEl.value = val;
+  }
+  if (field === 'totalHours') {
+    const hdEl = document.getElementById('ts-modal-total-hours');
+    if (hdEl && val > 0) hdEl.value = val;
+  }
+  // Refresh totals
   const clientIdx = document.getElementById('ts-modal-client')?.value||'';
   const c = clientIdx!=='' ? state.clients[parseInt(clientIdx)] : null;
   if (c) _refreshTsModalTotals(c);
 }
 
 function _refreshTsModalTotals(c) {
-  // Just update total cells without re-rendering all inputs
-  const invType = c?.invoiceType||'mixed';
-  const sym = invSym(c?.currency||'AED');
-  const color = state.settings.template?.color||'#1a7f37';
-  const totalDays = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const invType  = c?.invoiceType||'mixed';
+  const sym      = invSymPlain(c?.currency||'AED');
+  const color    = state.settings.template?.color||'#1a7f37';
+  // Always read live from header inputs
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22)||22;
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176)||176;
   const rows = window._tsModalRows||[];
 
   let grandSub=0, grandVat=0;
@@ -4613,7 +4631,7 @@ function saveTsModal(status) {
   if (!clientIdx || !month) return showNotif('Select client and month','error');
   const c = state.clients[parseInt(clientIdx)];
   const rows = window._tsModalRows||[];
-  const sym = invSym(c.currency||'AED');
+  const sym = invSymPlain(c.currency||'AED');
   const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
   const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
 
@@ -4821,7 +4839,7 @@ function renderTmsClients() {
   const statusLabels = {draft:'📝 Draft',ready:'✅ Ready',invoiced:'🧾 Invoiced'};
 
   el.innerHTML = items.map(ts=>{
-    const sym = invSym(ts.currency||'AED');
+    const sym = invSymPlain(ts.currency||'AED');
     const total = (ts.rows||[]).reduce((s,r)=>s+(r.total||0),0);
     const sc = statusColors[ts.status]||'#6b7280';
     const rowCount = ts.rows?.length||0;
