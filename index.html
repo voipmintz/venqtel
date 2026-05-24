@@ -115,7 +115,7 @@ input, select, textarea, button {
 }
 .sidebar-logo {
   padding: 24px 20px 20px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -774,7 +774,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   </nav>
   <div class="sidebar-footer">
     <div id="fb-auth-bar">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">🔐 Secured by Firebase</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Signed in as</div>
+      <div id="auth-email-display" style="font-size:12px;color:var(--ink2);font-weight:700;margin-bottom:8px;word-break:break-all">—</div>
+      <button onclick="fbSignOut()" style="width:100%;padding:7px 0;background:transparent;border:1.5px solid var(--border);color:var(--muted);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px"
+        onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)';this.style.background='var(--red-bg)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)';this.style.background='transparent'">
+        <svg viewBox="0 0 20 20" fill="none" style="width:13px;height:13px"><path d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h7v-2H4V5h6V3H3zm11.293 3.293a1 1 0 011.414 1.414L13.414 10l2.293 2.293a1 1 0 01-1.414 1.414L12 11.414l-2.293 2.293a1 1 0 01-1.414-1.414L10.586 10 8.293 7.707a1 1 0 011.414-1.414L12 8.586l2.293-2.293z" fill="currentColor"/></svg>
+        Sign Out
+      </button>
     </div>
   </div>
 </aside>
@@ -1126,21 +1133,42 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 <!-- ─── INVOICE HISTORY ─── -->
 <div id="page-invoice-history" class="page">
-  <div class="page-header">
-    <div class="page-title">Invoice History</div>
-    <div class="page-sub">All saved and sent invoices</div>
+  <div class="page-header flex justify-between items-center">
+    <div>
+      <div class="page-title">Invoice History</div>
+      <div class="page-sub">All saved invoices · VAT filing · Corporate tax records</div>
+    </div>
+    <div class="flex gap-8">
+      <button class="btn btn-secondary" onclick="openImportInvoice()">📥 Import Old Invoice</button>
+      <button class="btn btn-secondary" onclick="exportVATReport()">📊 Export VAT Report</button>
+      <button class="btn btn-primary" onclick="nav('invoice-new')">+ New Invoice</button>
+    </div>
   </div>
-  <div class="actions-row">
-    <button class="btn btn-primary" onclick="nav('invoice-new')">+ New Invoice</button>
+  <div class="actions-row" style="flex-wrap:wrap;gap:8px;align-items:center">
     <select id="hist-filter-status" onchange="renderHistory()" style="width:auto">
-      <option value="">All Statuses</option>
-      <option value="draft">Draft</option>
-      <option value="sent">Sent</option>
-      <option value="paid">Paid</option>
+      <option value="">All Status</option>
+      <option value="paid">✅ Paid</option>
+      <option value="sent">📤 Sent / Outstanding</option>
+      <option value="draft">📝 Draft</option>
     </select>
     <select id="hist-filter-client" onchange="renderHistory()" style="width:auto">
-      <option value="">All Clients</option>
+      <option value="">All Clients</option>alue="">All Clients</option>
     </select>
+    <select id="hist-filter-year" onchange="renderHistory()" style="width:auto">
+      <option value="">All Years</option>
+      <option value="2026">2026</option>
+      <option value="2025">2025</option>
+      <option value="2024">2024</option>
+      <option value="2023">2023</option>
+    </select>
+    <select id="hist-filter-quarter" onchange="renderHistory()" style="width:auto">
+      <option value="">All Quarters</option>
+      <option value="1">Q1 (Jan–Mar)</option>
+      <option value="2">Q2 (Apr–Jun)</option>
+      <option value="3">Q3 (Jul–Sep)</option>
+      <option value="4">Q4 (Oct–Dec)</option>
+    </select>
+    <div id="hist-summary" style="margin-left:auto;font-size:12px;color:var(--muted);display:flex;gap:16px;align-self:center"></div>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
     <table class="data-table">
@@ -1861,6 +1889,109 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 </div>
 </div>
 
+<!-- Import Old Invoice Modal -->
+<div class="modal-overlay" id="modal-import-invoice">
+<div class="modal" style="max-width:640px">
+  <div class="modal-header">
+    <div class="modal-title">📥 Import Old Invoice</div>
+    <button class="modal-close" onclick="closeModal('modal-import-invoice')">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="info-box mb-16" style="font-size:12.5px">
+      Import invoices issued before using Venqtel — for VAT filing, corporate tax, and P&amp;L records.
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Invoice Number</label>
+        <input type="text" id="imp-number" placeholder="e.g. VTL-001" />
+      </div>
+      <div class="form-group">
+        <label>Invoice Date</label>
+        <input type="date" id="imp-date" />
+      </div>
+      <div class="form-group">
+        <label>Client Name</label>
+        <input type="text" id="imp-client" placeholder="Client company name" />
+      </div>
+      <div class="form-group">
+        <label>Invoice Type</label>
+        <select id="imp-type">
+          <option value="mixed">Mixed (Offshore + Onsite)</option>
+          <option value="day">Day Rate</option>
+          <option value="hour">Hourly Rate</option>
+          <option value="fixed">Fixed Monthly</option>
+          <option value="unit">Unit Price</option>
+          <option value="milestone">Milestone</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Currency</label>
+        <select id="imp-currency">
+          <option value="USD">USD – US Dollar</option>
+          <option value="AED">AED – UAE Dirham</option>
+          <option value="GBP">GBP – British Pound</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Convert To (optional)</label>
+        <select id="imp-conv">
+          <option value="">— None —</option>
+          <option value="AED">AED</option>
+          <option value="USD">USD</option>
+          <option value="GBP">GBP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Subtotal Amount</label>
+        <input type="number" id="imp-subtotal" placeholder="0.00" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>VAT % (0 = not shown)</label>
+        <input type="number" id="imp-vat-pct" value="5" min="0" max="100" />
+      </div>
+      <div class="form-group">
+        <label>VAT Amount</label>
+        <input type="number" id="imp-vat" placeholder="0.00" step="0.01" oninput="" />
+      </div>
+      <div class="form-group">
+        <label>Total Amount</label>
+        <input type="number" id="imp-total" placeholder="0.00" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>Converted Total (if any)</label>
+        <input type="number" id="imp-conv-total" placeholder="0.00" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>Period / Month (optional)</label>
+        <input type="text" id="imp-period" placeholder="e.g. May 2026" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <input type="text" id="imp-notes" placeholder="e.g. SAP Services rendered for Q1 2025" />
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <div class="flex gap-8">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;cursor:pointer">
+          <input type="radio" name="imp-status" value="paid" checked /> Paid / Collected
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;cursor:pointer">
+          <input type="radio" name="imp-status" value="sent" /> Sent / Outstanding
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;cursor:pointer">
+          <input type="radio" name="imp-status" value="draft" /> Draft
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('modal-import-invoice')">Cancel</button>
+    <button class="btn btn-primary" onclick="saveImportedInvoice()">📥 Import Invoice</button>
+  </div>
+</div>
+</div>
+
 <!-- Timesheet View Modal -->
 <div class="modal-overlay" id="modal-ts-view">
 <div class="modal modal-lg">
@@ -2041,19 +2172,10 @@ function initFirebase() {
 }
 
 function updateAuthBar(user) {
-  const bar = document.getElementById('fb-auth-bar');
-  if (!bar) return;
-  bar.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:5px">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Signed in as</div>
-      <div style="font-size:12px;color:var(--ink2);font-weight:700;word-break:break-all">${user.email}</div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
-        <span id="fb-sync-indicator" style="font-size:10px;color:var(--brand)">✓ Synced</span>
-        <button onclick="fbSignOut()" style="margin-left:auto;background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s"
-          onmouseover="this.style.color='var(--brand)';this.style.borderColor='var(--brand)'"
-          onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">Sign Out</button>
-      </div>
-    </div>`;
+  const emailEl = document.getElementById('auth-email-display');
+  if (emailEl) emailEl.textContent = user.email;
+  const syncEl = document.getElementById('fb-sync-indicator');
+  if (syncEl) syncEl.textContent = '✓ Synced';
 }
 
 // ── Auth actions ──────────────────────────────────────
@@ -2987,28 +3109,235 @@ function removeFromResourceList(i) {
 function renderHistory() {
   const el = document.getElementById('inv-history-list');
   if (!el) return;
-  const items = (state.invoices||[]).slice().reverse();
-  if (!items.length) {
+
+  // Populate client filter
+  const cf = document.getElementById('hist-filter-client');
+  if (cf) {
+    const prev = cf.value;
+    const clients = [...new Set(state.invoices.map(i=>i.clientName).filter(Boolean))].sort();
+    cf.innerHTML = '<option value="">All Clients</option>'+
+      clients.map(c=>`<option value="${c}">${c}</option>`).join('');
+    if (prev) cf.value = prev;
+  }
+
+  const fStatus  = document.getElementById('hist-filter-status')?.value||'';
+  const fClient  = document.getElementById('hist-filter-client')?.value||'';
+  const fYear    = document.getElementById('hist-filter-year')?.value||'';
+  const fQuarter = document.getElementById('hist-filter-quarter')?.value||'';
+
+  let items = state.invoices.slice().reverse();
+  const origIdx = i => state.invoices.length - 1 - i;
+  let filteredIndices = items.map((_,i)=>i); // track original indices
+
+  // Apply filters
+  const filtered = items.map((inv,i)=>({inv,realIdx:state.invoices.length-1-i})).filter(({inv})=>{
+    if (fStatus && inv.status!==fStatus) return false;
+    if (fClient && inv.clientName!==fClient) return false;
+    if (fYear || fQuarter) {
+      const parts = (inv.date||'').split('/');
+      if (parts.length < 3) return !fYear && !fQuarter;
+      const [dd, mm, yyyy] = parts.map(Number);
+      if (fYear && yyyy !== parseInt(fYear)) return false;
+      if (fQuarter && Math.ceil(mm/3) !== parseInt(fQuarter)) return false;
+    }
+    return true;
+  });
+
+  // Summary bar
+  const sumEl = document.getElementById('hist-summary');
+  if (sumEl) {
+    const totalVAT = filtered.reduce((s,{inv})=>s+(inv.vat||0),0);
+    const totalRev = filtered.reduce((s,{inv})=>s+(inv.total||0),0);
+    sumEl.innerHTML = `<span>${filtered.length} invoice(s)</span>
+      <span style="color:var(--brand);font-weight:700">Revenue: ${fmt(totalRev)}</span>
+      <span style="color:#d97706;font-weight:700">VAT: ${fmt(totalVAT)}</span>`;
+  }
+
+  if (!filtered.length) {
     el.innerHTML=`<div class="empty-state"><div class="empty-icon">🧾</div>
-      <div class="empty-text">No invoices yet</div>
-      <div class="text-muted">Create your first invoice to see it here</div></div>`;
+      <div class="empty-text">No invoices found</div>
+      <div class="text-muted">Adjust filters or import old invoices</div>
+      <button class="btn btn-primary mt-12" onclick="openImportInvoice()">📥 Import Old Invoice</button></div>`;
     return;
   }
+
   const color = state.settings.template?.color||'#1a7f37';
-  el.innerHTML = items.map((inv,i)=>{
+  const statusBadge = s => {
+    const map = {paid:'✅ Paid',sent:'📤 Outstanding',draft:'📝 Draft',invoiced:'🧾 Invoiced'};
+    const col = {paid:'#16a34a',sent:'#d97706',draft:'#94a3b8',invoiced:'#2563eb'};
+    const sc = col[s]||'#94a3b8';
+    return `<span style="background:${sc}18;color:${sc};border:1px solid ${sc}40;padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:700">${map[s]||s||'Draft'}</span>`;
+  };
+
+  el.innerHTML = filtered.map(({inv, realIdx}) => {
     const sym = invSymPlain(inv.currency||'AED');
-    return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-weight:800;font-size:14px">${inv.number||'—'}</div>
-        <div style="font-size:12px;color:var(--muted)">${inv.clientName||'—'} · ${inv.date||'—'} · ${inv.billingType||'—'}</div>
+    const convSym2 = inv.convertTo ? invSymPlain(inv.convertTo) : '';
+    const imported = inv.imported ? `<span style="font-size:9px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:4px;padding:1px 6px;margin-left:4px">IMPORTED</span>` : '';
+    return `<div style="display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid #f8fafc;transition:background .12s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <div style="width:34px;height:34px;background:${color};border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0;margin-right:14px">${(inv.clientName||'?').charAt(0)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap">
+          <span style="font-family:monospace;font-size:12.5px;font-weight:800;color:${color}">${inv.number||'—'}</span>
+          ${imported}${statusBadge(inv.status)}
+        </div>
+        <div style="font-size:12.5px;font-weight:600;color:#1e293b">${inv.clientName||'—'}</div>
+        <div style="font-size:11px;color:#94a3b8">${inv.date||'—'} · ${inv.billingType||'—'} · ${inv.currency||'—'}${inv.notes?' · '+inv.notes:''}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <div style="font-family:monospace;font-size:16px;font-weight:800;color:${color}">${sym}${fmt(inv.total||0)}</div>
-        <button class="btn btn-secondary btn-sm" onclick="previewHistoryInvoice(${state.invoices.length-1-i})">👁 Preview</button>
-        <button class="btn btn-danger btn-xs" onclick="deleteInvoice(${state.invoices.length-1-i})">🗑</button>
+      <div style="text-align:right;margin-right:12px">
+        <div style="font-family:monospace;font-size:14px;font-weight:800;color:${color}">${sym}${fmt(inv.total||0)}</div>
+        ${inv.convertedTotal?`<div style="font-size:11px;color:#64748b;font-family:monospace">${convSym2}${fmt(inv.convertedTotal)}</div>`:''}
+        ${inv.vat>0?`<div style="font-size:10px;color:#d97706">VAT ${sym}${fmt(inv.vat)}</div>`:''}
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn btn-secondary btn-xs" onclick="previewHistoryInvoice(${realIdx})" title="Preview">👁</button>
+        <select onchange="updateInvoiceStatus(${realIdx},this.value);this.value=''" style="border:1.5px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;cursor:pointer" title="Change status">
+          <option value="">Status…</option>
+          <option value="paid">✅ Paid</option>
+          <option value="sent">📤 Sent</option>
+          <option value="draft">📝 Draft</option>
+        </select>
+        <button class="btn btn-danger btn-xs" onclick="deleteInvoice(${realIdx})" title="Delete">🗑</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function updateInvoiceStatus(idx, status) {
+  if (!status || !state.invoices[idx]) return;
+  state.invoices[idx].status = status;
+  saveState();
+  renderHistory();
+  showNotif('Status updated ✓');
+}
+
+// ── Import Old Invoice ─────────────────────────────────────
+function openImportInvoice() {
+  // Default date to today
+  document.getElementById('imp-date').value = new Date().toISOString().slice(0,10);
+  openModal('modal-import-invoice');
+}
+
+function saveImportedInvoice() {
+  const num     = document.getElementById('imp-number')?.value.trim();
+  const client  = document.getElementById('imp-client')?.value.trim();
+  const date    = document.getElementById('imp-date')?.value;
+  const sub     = parseFloat(document.getElementById('imp-subtotal')?.value)||0;
+  const total   = parseFloat(document.getElementById('imp-total')?.value)||0;
+  const vatAmt  = parseFloat(document.getElementById('imp-vat')?.value)||0;
+  const vatPct  = parseFloat(document.getElementById('imp-vat-pct')?.value)||0;
+  const convTot = parseFloat(document.getElementById('imp-conv-total')?.value)||0;
+  const status  = document.querySelector('input[name="imp-status"]:checked')?.value||'paid';
+  if (!num)    return showNotif('Enter invoice number','error');
+  if (!client) return showNotif('Enter client name','error');
+  if (!total)  return showNotif('Enter total amount','error');
+
+  // Format date from YYYY-MM-DD to DD/MM/YYYY
+  const fmtDate = date ? date.split('-').reverse().join('/') : today();
+
+  const inv = {
+    id:             uid(),
+    number:         num,
+    date:           fmtDate,
+    clientName:     client,
+    billingType:    document.getElementById('imp-type')?.value||'mixed',
+    currency:       document.getElementById('imp-currency')?.value||'USD',
+    convertTo:      document.getElementById('imp-conv')?.value||'',
+    subtotal:       sub,
+    vat:            vatAmt,
+    vatPct:         vatPct,
+    total:          total,
+    convertedTotal: convTot||null,
+    notes:          document.getElementById('imp-notes')?.value||'',
+    period:         document.getElementById('imp-period')?.value||'',
+    status:         status,
+    imported:       true,
+    company:        state.settings.company||{},
+    template:       state.settings.template||{},
+    amtWords:       numToWords(total, document.getElementById('imp-currency')?.value||'USD'),
+    rows:           [],
+    from:           state.settings.company?.name||'Venqtel',
+  };
+
+  // Check for duplicate number
+  if (state.invoices.find(i=>i.number===num)) {
+    return showNotif(`Invoice ${num} already exists`,'error');
+  }
+
+  state.invoices.push(inv);
+  saveState();
+  closeModal('modal-import-invoice');
+  renderHistory();
+  showNotif(`Invoice ${num} imported ✓`);
+}
+
+// ── VAT Report Export ─────────────────────────────────────
+function exportVATReport() {
+  const filterQ = document.getElementById('hist-filter-quarter')?.value||'';
+  const filterY = document.getElementById('hist-filter-year')?.value||'';
+
+  let items = state.invoices.slice();
+  // Filter by quarter/year if selected
+  if (filterQ || filterY) {
+    items = items.filter(inv => {
+      const parts = (inv.date||'').split('/');
+      if (parts.length < 3) return false;
+      const [dd, mm, yyyy] = parts.map(Number);
+      if (filterY && yyyy !== parseInt(filterY)) return false;
+      if (filterQ) {
+        const q = Math.ceil(mm/3);
+        if (q !== parseInt(filterQ)) return false;
+      }
+      return true;
+    });
+  }
+
+  if (!items.length) return showNotif('No invoices found for selected period','error');
+
+  // Build CSV
+  const co = state.settings.company||{};
+  const lines = [
+    `VAT Report — ${co.name||'Venqtel'}`,
+    `TRN: ${co.tax||'—'}`,
+    `Generated: ${today()}`,
+    `Period: ${filterQ?'Q'+filterQ:''} ${filterY||'All Years'}`,
+    '',
+    'Invoice No,Date,Client,Type,Currency,Subtotal,VAT %,VAT Amount,Total,Converted Total,Convert To,Status,Notes',
+    ...items.map(inv => [
+      `"${inv.number||''}"`,
+      `"${inv.date||''}"`,
+      `"${inv.clientName||''}"`,
+      `"${inv.billingType||''}"`,
+      `"${inv.currency||''}"`,
+      fmt(inv.subtotal||0),
+      inv.vatPct||0,
+      fmt(inv.vat||0),
+      fmt(inv.total||0),
+      inv.convertedTotal ? fmt(inv.convertedTotal) : '',
+      `"${inv.convertTo||''}"`,
+      `"${inv.status||''}"`,
+      `"${(inv.notes||'').replace(/"/g,"'")}"`,
+    ].join(','))
+  ];
+
+  // Summary rows
+  const totalVAT   = items.reduce((s,i)=>s+(i.vat||0),0);
+  const totalRev   = items.reduce((s,i)=>s+(i.total||0),0);
+  lines.push('');
+  lines.push('SUMMARY');
+  lines.push(`Total Invoices,${items.length}`);
+  lines.push(`Total Revenue (invoiced currency),,,,,,,,${fmt(totalRev)}`);
+  lines.push(`Total VAT Collected,,,,,,,${fmt(totalVAT)}`);
+
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const period = (filterQ?'Q'+filterQ+'-':'')+(filterY||'All');
+  a.href = url;
+  a.download = `Venqtel-VAT-Report-${period}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showNotif(`VAT Report exported (${items.length} invoices) ✓`);
 }
 
 function previewHistoryInvoice(idx) {
