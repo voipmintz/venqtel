@@ -3582,19 +3582,31 @@ function renderDashboard() {
 
 // ── Init new invoice page ─────────────────────────────────
 function initNewInvoice() {
-  const co = state.settings.company||{};
-  // Always use current nextNum from state (not hardcoded)
-  const prefix = co.prefix||'VTL-';
-  const nextNum = co.nextNum||1;
-  const padded  = String(nextNum).padStart(3,'0');
-  setEl('inv-number', prefix + padded);
-  setEl('inv-from',   co.name||'Venqtel');
-  setEl('inv-date',   today());
-  setEl('inv-vat',    co.defaultVat!==undefined ? co.defaultVat : 5);
+  const co = state.settings.company || {};
+  const prefix  = co.prefix || 'VTL-';
+  const nextNum = co.nextNum || 1;
+  const padded  = String(nextNum).padStart(3, '0');
+
+  // Only set number if the field is empty or being freshly opened
+  // (tsToInvoice sets its own number before calling nav)
+  const numEl = document.getElementById('inv-number');
+  if (numEl && !numEl.dataset.fromTs) {
+    numEl.value = prefix + padded;
+  }
+  if (numEl) delete numEl.dataset.fromTs;
+
+  setEl('inv-from', co.name || 'Venqtel');
+
+  const dateEl = document.getElementById('inv-date');
+  if (dateEl && !dateEl.value) dateEl.value = today();
+
+  setEl('inv-vat', co.defaultVat !== undefined ? co.defaultVat : 5);
+
   // Populate client dropdown
   const sel = document.getElementById('inv-client');
-  if (sel) sel.innerHTML = '<option value="">— Select Client —</option>'+
-    state.clients.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+  if (sel) sel.innerHTML = '<option value="">— Select Client —</option>' +
+    state.clients.map((c,i) => `<option value="${i}">${c.name}</option>`).join('');
+
   renderInvBankSelector();
   recalcInvoice();
 }
@@ -4152,26 +4164,35 @@ function getInvoiceData() {
 
  function saveInvoiceDraft() {
   const d = getInvoiceData();
-  const invNum = document.getElementById('inv-number')?.value||d.number;
-  d.number = invNum; // ensure number is set
-  // Match by number (user-editable) to prevent duplicates
-  const existing = state.invoices.findIndex(inv=>inv.number===d.number);
-  const isNew = existing === -1;
+  const invNum = document.getElementById('inv-number')?.value?.trim() || d.number;
+  if (!invNum) return showNotif('Invoice number is missing','error');
+  d.number = invNum;
+
+  // Match by invoice number — update if exists, create if new
+  const existingIdx = state.invoices.findIndex(inv => inv.number === d.number);
+  const isNew = existingIdx === -1;
+
   if (!isNew) {
-    d.id = state.invoices[existing].id; // preserve ID
-    state.invoices[existing] = d;
+    // Preserve original ID and metadata
+    d.id           = state.invoices[existingIdx].id;
+    d.fromTimesheet= state.invoices[existingIdx].fromTimesheet;
+    d.period       = state.invoices[existingIdx].period;
+    state.invoices[existingIdx] = d;
     saveState();
-    showNotif('Invoice updated ✓');
+    showNotif(`Invoice ${d.number} updated ✓`);
   } else {
+    // Brand new invoice (created manually, not from timesheet)
+    d.id = d.id || uid();
     state.invoices.push(d);
-    // Only increment number for new invoices
+    // Increment number for the NEXT invoice
     const co = state.settings.company;
-    if (!co) return;
-    co.nextNum = (co.nextNum||1) + 1;
-    const newNum = (co.prefix||'VTL-') + String(co.nextNum).padStart(3,'0');
-    document.getElementById('inv-number').value = newNum;
-    saveState();
-    showNotif('Invoice saved ✓');
+    if (co) {
+      co.nextNum = (co.nextNum || 1) + 1;
+      const newNum = (co.prefix || 'VTL-') + String(co.nextNum).padStart(3, '0');
+      setEl('inv-number', newNum);
+      saveState();
+    }
+    showNotif(`Invoice ${d.number} saved ✓`);
   }
 }
 
@@ -5167,11 +5188,123 @@ function tsToInvoice(tsId) {
   const c  = state.clients.find(cl=>cl.name===ts.clientName);
   if (!c)  return showNotif('Client not found','error');
 
+  // ── Check: already invoiced? Ask user ──
+  if (ts.invoicedInvNumber) {
+    const existing = state.invoices.find(i=>i.number===ts.invoicedInvNumber);
+    if (existing && !confirm(
+      `This timesheet was already invoiced as ${ts.invoicedInvNumber}.\n\nGenerate a new invoice anyway?`
+    )) return;
+  }
+
+  // ── Generate next invoice number NOW (before nav) ──
+  const co     = state.settings.company || {};
+  const prefix = co.prefix || 'VTL-';
+  co.nextNum   = (co.nextNum || 1);
+  const invNumber = prefix + String(co.nextNum).padStart(3, '0');
+
+  // ── Build invoice data directly from timesheet ──
+  const invType    = ts.invoiceType || c.invoiceType || 'mixed';
+  const sym        = invSymPlain(ts.currency || 'AED');
+  const totalAmt   = (ts.rows || []).reduce((s,r) => s + (r.total||0), 0);
+  const subTotal   = (ts.rows || []).reduce((s,r) => s + (r.subtotal||0), 0);
+  const vatAmt     = (ts.rows || []).reduce((s,r) => s + (r.vatAmt||0), 0);
+  const vatPct     = ts.rows?.[0]?.vatPct || c.vat || 0;
+  const convRate   = state.settings.exchangeRates?.[
+    (c.currency==='USD'&&c.convCurrency==='AED') ? 'usdAed' :
+    (c.currency==='GBP'&&c.convCurrency==='USD') ? 'gbpUsd' :
+    (c.currency==='GBP'&&c.convCurrency==='AED') ? 'gbpAed' : ''
+  ] || 0;
+  const convertedTotal = c.convCurrency && convRate ? Math.round(totalAmt * convRate * 100) / 100 : null;
+
+  const invData = {
+    id:             uid(),
+    number:         invNumber,
+    date:           today(),
+    from:           co.name || 'Venqtel',
+    company:        { ...co },
+    logo:           state.settings.logo || null,
+    logoWidth:      state.settings.logoWidth || 140,
+    template:       { ...state.settings.template },
+    clientName:     ts.clientName,
+    clientAddr:     c.address || '',
+    clientEmail:    c.email || '',
+    clientTax:      c.tax || '',
+    sectionHeader:  c.sectionHeader || '',
+    poNumber:       '',
+    currency:       ts.currency || c.currency || 'AED',
+    convertTo:      c.convCurrency || '',
+    convertRate:    convRate,
+    convertedTotal: convertedTotal,
+    billingType:    invType,
+    vatPct:         vatPct,
+    subtotal:       subTotal,
+    vat:            vatAmt,
+    total:          totalAmt,
+    amtWords:       numToWords(convertedTotal || totalAmt, c.convCurrency || ts.currency || 'AED'),
+    notes:          `Services rendered for ${monthLabel(ts.month)}`,
+    bank:           co.bankAccounts?.[0]?.details || co.bank || '',
+    bankLabel:      co.bankAccounts?.[0]?.label || '',
+    rows:           (ts.rows || []).map(r => ({...r, id: uid()})),
+    status:         'draft',
+    fromTimesheet:  tsId,
+    period:         ts.month,
+  };
+
+  // ── Save invoice immediately ──
+  state.invoices.push(invData);
+
+  // ── Increment invoice number in state ──
+  co.nextNum = co.nextNum + 1;
+  state.settings.company = co;
+  saveState();
+
+  // ── Mark timesheet as invoiced ──
+  ts.status           = 'invoiced';
+  ts.invoicedAt       = today();
+  ts.invoicedInvNumber = invNumber;
+  saveState();
+
+  // ── Navigate to New Invoice page pre-filled ──
   nav('invoice-new');
 
-  // Set client
-  const clientEl = document.getElementById('inv-client');
-  const ci = state.clients.findIndex(cl=>cl.name===ts.clientName);
+  // Fill the form fields from the saved invoice
+  setTimeout(() => {
+    setEl('inv-number', invNumber);
+    setEl('inv-from',   co.name || 'Venqtel');
+    setEl('inv-date',   invData.date);
+    setEl('inv-vat',    vatPct);
+    if (c.sectionHeader) setEl('inv-section-header', c.sectionHeader);
+    setEl('inv-notes', invData.notes);
+
+    // Set client dropdown
+    const clientEl = document.getElementById('inv-client');
+    const ci = state.clients.findIndex(cl=>cl.name===ts.clientName);
+    if (ci > -1 && clientEl) { clientEl.value = String(ci); onInvClientChange(); }
+
+    // Set currency
+    const curEl = document.getElementById('inv-currency');
+    if (curEl) curEl.value = invData.currency;
+    if (c.convCurrency) {
+      const convEl = document.getElementById('inv-conv-currency');
+      if (convEl) convEl.value = c.convCurrency;
+    }
+
+    // Switch to correct invoice type tab
+    document.querySelectorAll('[data-tab-group="inv"]').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane[id^="inv-tab-"]').forEach(p=>p.classList.remove('active'));
+    const tabEl = document.querySelector(`[data-tab-group="inv"][data-tab="${invType}"]`);
+    if (tabEl) tabEl.classList.add('active');
+    const paneEl = document.getElementById(`inv-tab-${invType}`);
+    if (paneEl) paneEl.classList.add('active');
+
+    // Populate invoice rows
+    invRows[invType] = invData.rows;
+    renderInvRows(invType);
+    recalcInvoice();
+
+    showNotif(`Invoice ${invNumber} created for ${ts.clientName} ✓`);
+  }, 150);
+}
   if (ci>-1) { clientEl.value=String(ci); onInvClientChange(); }
 
   // Set date
@@ -5191,19 +5324,6 @@ function tsToInvoice(tsId) {
   if (tabEl) tabEl.classList.add('active');
   const paneEl = document.getElementById(`inv-tab-${invType}`);
   if (paneEl) paneEl.classList.add('active');
-
-  // Populate invRows from timesheet rows
-  invRows[invType] = ts.rows.map(r=>({...r, id:uid()}));
-  renderInvRows(invType);
-  recalcInvoice();
-
-  // Mark as invoiced
-  ts.status = 'invoiced';
-  ts.invoicedAt = today();
-  saveState();
-
-  showNotif(`Invoice pre-filled from ${ts.clientName} — ${monthLabel(ts.month)} ✓`);
-}
 
 function tsModalToInvoice() {
   saveTsModal('ready');
