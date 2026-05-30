@@ -2160,11 +2160,17 @@ function initFirebase() {
       if (user) {
         _currentUser = user;
         _fbReady = true;
+        // Hide login, show app immediately so user sees loading state
         document.getElementById('fb-login-overlay').style.display = 'none';
         document.getElementById('app-root').style.display = '';
-        loadState();           // pull data from Firestore
-        bootApp();             // init all UI
         updateAuthBar(user);
+        // Load data first, then boot UI
+        loadState().then(() => {
+          bootApp();
+        }).catch(err => {
+          console.error('loadState failed:', err);
+          bootApp(); // boot anyway so app is usable
+        });
       } else {
         _currentUser = null;
         _fbReady = false;
@@ -2192,12 +2198,23 @@ function fbLogin() {
   const err   = document.getElementById('fb-auth-error');
   if (!email || !pass) { err.textContent = 'Please enter email and password.'; return; }
   err.textContent = '';
-  document.getElementById('fb-login-btn').textContent = 'Signing in…';
+  const btn = document.getElementById('fb-login-btn');
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  // Safety: reset button after 10s if nothing happens
+  const resetBtn = setTimeout(() => {
+    btn.textContent = 'Sign In';
+    btn.disabled = false;
+    err.textContent = 'Login timed out. Please try again.';
+  }, 10000);
   _auth.signInWithEmailAndPassword(email, pass)
+    .then(() => clearTimeout(resetBtn))
     .catch(e => {
+      clearTimeout(resetBtn);
       err.textContent = e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password'
-        ? 'Invalid email or password.' : e.message;
-      document.getElementById('fb-login-btn').textContent = 'Sign In';
+        ? 'Invalid email or password.' : (e.message || 'Login failed. Check your connection.');
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
     });
 }
 
@@ -3619,6 +3636,7 @@ function initNewInvoice() {
 // ═══════════════════════════════
 
 function bootApp() {
+  try {
   // Apply theme
   if (state.settings.template?.color) {
     const tc = document.getElementById('tpl-color');
@@ -3670,6 +3688,11 @@ function bootApp() {
 
   // Navigate to dashboard
   nav('dashboard');
+  } catch(err) {
+    console.error('bootApp error:', err);
+    // Still try to show dashboard even if something failed
+    try { nav('dashboard'); } catch(e) {}
+  }
 }
 
 function fbLogout() { fbSignOut(); }
