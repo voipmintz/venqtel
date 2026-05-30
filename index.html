@@ -2179,6 +2179,12 @@ function initFirebase() {
       }
     });
   } catch(err) {
+    console.error('Firebase init failed:', err);
+    // Show visible error on login screen
+    const errEl = document.getElementById('fb-auth-error');
+    if (errEl) errEl.textContent = 'Connection error: ' + (err.message || 'Firebase failed to load. Check your internet connection.');
+    const btn = document.getElementById('fb-login-btn');
+    if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
     console.warn('Firebase init failed — falling back to localStorage:', err);
     _fbReady = false;
     loadState();
@@ -5331,26 +5337,6 @@ function tsToInvoice(tsId) {
     showNotif(`Invoice ${invNumber} created for ${ts.clientName} ✓`);
   }, 150);
 }
-  if (ci>-1) { clientEl.value=String(ci); onInvClientChange(); }
-
-  // Set date
-  document.getElementById('inv-date').value = today();
-
-  // Set section header
-  if (c.sectionHeader) document.getElementById('inv-section-header').value = c.sectionHeader;
-
-  // Set notes
-  document.getElementById('inv-notes').value = `Services rendered for ${monthLabel(ts.month)}`;
-
-  // Switch to correct tab and populate rows
-  const invType = ts.invoiceType || c.invoiceType || 'mixed';
-  document.querySelectorAll('[data-tab-group="inv"]').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-pane[id^="inv-tab-"]').forEach(p=>p.classList.remove('active'));
-  const tabEl = document.querySelector(`[data-tab-group="inv"][data-tab="${invType}"]`);
-  if (tabEl) tabEl.classList.add('active');
-  const paneEl = document.getElementById(`inv-tab-${invType}`);
-  if (paneEl) paneEl.classList.add('active');
-
 function tsModalToInvoice() {
   saveTsModal('ready');
   const clientIdx = document.getElementById('ts-modal-client')?.value||'';
@@ -6662,6 +6648,21 @@ function updateTsEntryAmt(){} // now handled by tsGridInput
 // ═══════════════════════════════
 // APP STARTUP — DO NOT REMOVE
 // ═══════════════════════════════
+// Catch any unhandled JS errors and reset login button
+window.onerror = function(msg, src, line, col, err) {
+  console.error('JS Error:', msg, 'at', src, line, col);
+  const btn = document.getElementById('fb-login-btn');
+  const errEl = document.getElementById('fb-auth-error');
+  if (btn && btn.disabled) {
+    btn.textContent = 'Sign In';
+    btn.disabled = false;
+  }
+  if (errEl && errEl.textContent === '') {
+    errEl.textContent = 'An error occurred. Please refresh and try again.';
+  }
+  return false; // don't suppress error
+};
+
 window.addEventListener('DOMContentLoaded', function() {
   initFirebase();
 });
