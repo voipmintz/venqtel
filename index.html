@@ -4583,48 +4583,62 @@ function buildInvoiceHTML(d, forPDF) {
   // ── Address formatter: comma/newline → array of clean lines ──
   // ── Address: clean into one block, commas → proper line breaks ──
   // ── Address formatter: strips trailing commas THEN joins cleanly ──
+  // ── Address: clean commas/newlines into max 2 lines ──
   const _fmtAddr = str => {
-    if (!str) return '';
-    return str.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).join(', ');
+    if (!str) return ['',''];
+    const parts = str.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+    if (parts.length <= 2) return parts;
+    // Merge into 2 lines: first half / second half
+    const mid = Math.ceil(parts.length / 2);
+    return [parts.slice(0,mid).join(', '), parts.slice(mid).join(', ')];
   };
 
-  // ── PDF-safe bullet: a unicode filled circle — renders in every PDF engine ──
-  const _bul = `<font color="${color}">&#9679;</font>&nbsp;`;
+  // ── Green SVG icons (inline, PDF-safe via data URI approach — rendered as text nodes) ──
+  // Use simple path-only SVGs at 11×11, colour = brand color
+  const _ico = (path) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="11" height="11" style="display:inline-block;vertical-align:middle;margin-right:5px;margin-top:-1px"><path fill="${color}" d="${path}"/></svg>`;
 
-  // ── Detail row: bullet in first cell, text in second ──
-  const _tr = (txt) => txt ? `<tr>
-    <td style="padding:2px 4px 2px 0;vertical-align:top;font-size:11px;line-height:1;width:12px">${_bul}</td>
-    <td style="padding:2px 0;font-size:10px;color:#475569;line-height:1.5;word-break:break-word">${txt}</td>
-  </tr>` : '';
+  const _iPin   = _ico('M10 2a6 6 0 00-6 6c0 4 6 10 6 10s6-6 6-10a6 6 0 00-6-6zm0 8a2 2 0 110-4 2 2 0 010 4z');
+  const _iPhone = _ico('M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z');
+  const _iMail  = _ico('M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884zM18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z');
+  const _iWeb   = _ico('M10 2a8 8 0 100 16A8 8 0 0010 2zm-1 14.93A6 6 0 014.07 11H7a13.5 13.5 0 001.07 5.93zM7 9H4.07A6 6 0 019 4.07V7A13.5 13.5 0 007 9zm2 8.93A13.5 13.5 0 017.07 13H9v4.93zM9 11V7.07A13.5 13.5 0 0011 7v4H9zm2 6.93V13h1.93A13.5 13.5 0 0111 17.93zM13 11V7a13.5 13.5 0 012 2.07V11h-2zm.93 2H13v4.93A13.5 13.5 0 0015.93 13zM11 4.07A6 6 0 0115.93 9H13A13.5 13.5 0 0011 4.07z');
+
+  // ── One detail row: icon + text, each on its own line ──
+  const _row = (ico, txt) => txt
+    ? `<div style="font-size:10px;color:#475569;line-height:1.6;margin-bottom:1px">${ico}${txt}</div>`
+    : '';
 
   // ── TRN pill ──
-  const _trn = (val) => `<div style="display:inline-block;margin-top:5px;padding:2px 8px;border:1px solid #ccc;border-radius:3px;font-size:9px;font-weight:800;font-family:monospace;letter-spacing:.5px"><span style="color:${color}">TRN</span>&nbsp;<span style="color:#111827">${val}</span></div>`;
+  const _trn = (val) => val
+    ? `<div style="margin-top:4px;display:inline-block;border:1px solid ${color}40;border-radius:3px;padding:1px 7px;font-size:8.5px;font-weight:800;font-family:monospace;letter-spacing:.5px;color:${color}">TRN&nbsp;<span style="color:#111827">${val}</span></div>`
+    : '';
 
-  // ── Contact row: phone / email / website — plain text, no icons, same row ──
-  const _contact = (phone, email, website) => {
-    const parts = [phone, email, website].filter(Boolean);
-    return parts.length ? _tr(parts.join('&nbsp;&nbsp;|&nbsp;&nbsp;')) : '';
-  };
-
-  const fromBlock = `<div style="padding-right:18px;border-right:1.5px solid #e2e8f0">
+  const fromBlock = (() => {
+    const addrLines = _fmtAddr(d.company?.address||'');
+    return `<div style="padding-right:18px;border-right:1.5px solid #e2e8f0">
     <div style="font-size:8.5px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:700;margin-bottom:5px">FROM</div>
-    <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:6px;line-height:1.25">${d.from}</div>
-    <table style="border-collapse:collapse;width:100%">
-      ${_tr(_fmtAddr(d.company?.address||''))}
-      ${_contact(d.company?.phone, d.company?.email, d.company?.website)}
-    </table>
-    ${d.company?.tax ? _trn(d.company.tax) : ''}
+    <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:5px;line-height:1.25">${d.from}</div>
+    ${addrLines[0] ? _row(_iPin,   addrLines[0]) : ''}
+    ${addrLines[1] ? _row('',      addrLines[1]) : ''}
+    ${d.company?.phone   ? _row(_iPhone, d.company.phone)   : ''}
+    ${d.company?.email   ? _row(_iMail,  d.company.email)   : ''}
+    ${d.company?.website ? _row(_iWeb,   d.company.website) : ''}
+    ${_trn(d.company?.tax)}
   </div>`;
+  })();
 
-  const billToBlock = `<div style="padding-left:18px">
+  const billToBlock = (() => {
+    const addrLines = _fmtAddr(d.clientAddr||'');
+    return `<div style="padding-left:18px">
     <div style="font-size:8.5px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:700;margin-bottom:5px">BILL TO</div>
-    <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:6px;line-height:1.25">${d.clientName}</div>
-    <table style="border-collapse:collapse;width:100%">
-      ${_tr(_fmtAddr(d.clientAddr||''))}
-      ${d.clientEmail ? _tr(d.clientEmail) : ''}
-    </table>
-    ${d.clientTax ? _trn(d.clientTax) : ''}
+    <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:5px;line-height:1.25">${d.clientName}</div>
+    ${addrLines[0] ? _row(_iPin,  addrLines[0]) : ''}
+    ${addrLines[1] ? _row('',     addrLines[1]) : ''}
+    ${d.clientEmail ? _row(_iMail, d.clientEmail) : ''}
+    ${_trn(d.clientTax)}
   </div>`;
+  })();
+
 
 
   // Section header (e.g. "SAP Services:")
