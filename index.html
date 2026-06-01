@@ -1276,6 +1276,16 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       </div>
     </div>
 
+    <!-- Billing profile selector (shown when client has multiple profiles) -->
+    <div id="ts-modal-profile-row" style="display:none;margin-bottom:12px">
+      <label style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">
+        Billing Profile <span style="font-size:10px;font-weight:400;color:var(--muted);text-transform:none">— select which invoice type to use for this timesheet</span>
+      </label>
+      <select id="ts-modal-profile" onchange="onTsModalClientChange()"
+        style="width:100%;border:2px solid var(--brand);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:600;outline:none;background:var(--brand-50)">
+      </select>
+    </div>
+
     <!-- Client info banner -->
     <div id="ts-modal-client-info" style="display:none" class="info-box mb-16" style="font-size:12px"></div>
 
@@ -1799,45 +1809,21 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         </div>
       </div>
 
-      <!-- Smart Settings Row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px">
-        <div>
-          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Client Type</label>
-          <select id="cl-client-type" onchange="onClientTypeChange()"
-            style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:var(--white)"
-            onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">
-            <option value="resource">👤 Resource-based (has employees)</option>
-            <option value="description">📝 Description-based (services only)</option>
-          </select>
+      <!-- Billing Profiles -->
+      <div style="margin-top:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--ink2)">📋 Billing Profiles</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:1px">One client can have multiple profiles — e.g. Fixed Monthly + Hourly Rate</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addBillingProfile()">+ Add Profile</button>
         </div>
-        <div>
-          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Invoice Type</label>
-          <select id="cl-invoice-type"
-            style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:var(--white)"
-            onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">
-            <option value="mixed">🔀 Mixed (Offshore Hourly + Onsite Day)</option>
-            <option value="day">📅 Day Rate</option>
-            <option value="hour">⏱ Hourly Rate</option>
-            <option value="fixed">📌 Fixed Monthly (Prorated)</option>
-            <option value="unit">💲 Unit Price</option>
-            <option value="milestone">⬡ Milestone</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Entry Mode</label>
-          <select id="cl-entry-mode"
-            style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:var(--white)"
-            onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'">
-            <option value="simple">📋 Simple (total entry per person)</option>
-            <option value="calendar">📆 Calendar (fill day by day)</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-top:12px">
-        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Invoice Section Header <span style="font-weight:400">(e.g. "SAP Services:" or "Onsite & Offshore Resources:")</span></label>
-        <input type="text" id="cl-section-header" placeholder="e.g. SAP Services:"
-          style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:var(--white)"
-          onfocus="this.style.borderColor='var(--g400)'" onblur="this.style.borderColor='var(--border)'" />
+        <div id="cl-billing-profiles" style="display:flex;flex-direction:column;gap:10px"></div>
+        <!-- Hidden single-profile compat fields -->
+        <input type="hidden" id="cl-client-type" value="resource" />
+        <input type="hidden" id="cl-invoice-type" value="mixed" />
+        <input type="hidden" id="cl-entry-mode" value="simple" />
+        <input type="hidden" id="cl-section-header" value="" />
       </div>
     </div>
 
@@ -2491,19 +2477,125 @@ function confirmClearAll() {
 }
 
 
+// ── Billing Profiles ─────────────────────────────────────
+function buildBillingProfileCard(p, idx) {
+  const color = state.settings.template?.color||'#1a7f37';
+  const invTypes = [
+    ['mixed','🔀 Mixed (Offshore+Onsite)'],['day','📅 Day Rate'],
+    ['hour','⏱ Hourly Rate'],['fixed','📌 Fixed Monthly'],
+    ['unit','💲 Unit Price'],['milestone','⬡ Milestone']
+  ];
+  const typeOpts = invTypes.map(([v,l])=>
+    `<option value="${v}" ${p.invoiceType===v?'selected':''}>${l}</option>`).join('');
+  return `<div class="billing-profile-card" style="border:1.5px solid var(--border);border-radius:10px;overflow:hidden;background:var(--white)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${color}12;border-bottom:1px solid var(--border)">
+      <input type="text" class="bp-name" value="${p.name||'Profile '+(idx+1)}"
+        placeholder="e.g. Fixed Monthly – AED, SAP Hourly – USD"
+        style="font-weight:700;font-size:13px;border:none;background:transparent;outline:none;color:var(--ink);flex:1" />
+      <button onclick="removeBillingProfile(this)" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:0 0 0 8px" title="Remove">✕</button>
+    </div>
+    <div style="padding:12px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Invoice Type</label>
+        <select class="bp-inv-type" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none;background:var(--white)" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">${typeOpts}</select>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Currency</label>
+        <select class="bp-currency" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none;background:var(--white)" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">
+          ${['USD','AED','GBP','EUR'].map(c=>`<option ${(p.currency||'USD')===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Convert To</label>
+        <select class="bp-conv" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none;background:var(--white)" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">
+          <option value="">— None —</option>
+          ${['AED','USD','GBP'].map(c=>`<option ${(p.convCurrency||'')===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Day Rate</label>
+        <input type="number" class="bp-day-rate" value="${p.dayRate||''}" placeholder="0"
+          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Hourly Rate</label>
+        <input type="number" class="bp-hour-rate" value="${p.hourRate||''}" placeholder="0"
+          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Fixed Monthly Rate</label>
+        <input type="number" class="bp-fixed-rate" value="${p.fixedRate||''}" placeholder="0"
+          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">VAT %</label>
+        <input type="number" class="bp-vat" value="${p.vat!==undefined?p.vat:5}" placeholder="5" min="0" max="100"
+          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+      <div style="grid-column:span 2">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Section Header on Invoice</label>
+        <input type="text" class="bp-section-header" value="${p.sectionHeader||''}" placeholder="e.g. SAP Services:"
+          style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+    </div>
+  </div>`;
+}
+
+function addBillingProfile(p) {
+  const container = document.getElementById('cl-billing-profiles');
+  if (!container) return;
+  const idx = container.querySelectorAll('.billing-profile-card').length;
+  const div = document.createElement('div');
+  div.innerHTML = buildBillingProfileCard(p||{}, idx);
+  container.appendChild(div.firstElementChild);
+}
+
+function removeBillingProfile(btn) {
+  const card = btn.closest('.billing-profile-card');
+  if (card) {
+    // Don't remove the last profile
+    const container = document.getElementById('cl-billing-profiles');
+    if (container.querySelectorAll('.billing-profile-card').length <= 1) {
+      showNotif('At least one billing profile required','error');
+      return;
+    }
+    card.remove();
+  }
+}
+
+function getBillingProfiles() {
+  return Array.from(document.querySelectorAll('#cl-billing-profiles .billing-profile-card')).map(card => ({
+    name:          card.querySelector('.bp-name')?.value||'',
+    invoiceType:   card.querySelector('.bp-inv-type')?.value||'mixed',
+    currency:      card.querySelector('.bp-currency')?.value||'USD',
+    convCurrency:  card.querySelector('.bp-conv')?.value||'',
+    dayRate:       parseFloat(card.querySelector('.bp-day-rate')?.value)||0,
+    hourRate:      parseFloat(card.querySelector('.bp-hour-rate')?.value)||0,
+    fixedRate:     parseFloat(card.querySelector('.bp-fixed-rate')?.value)||0,
+    vat:           parseFloat(card.querySelector('.bp-vat')?.value)||5,
+    sectionHeader: card.querySelector('.bp-section-header')?.value||'',
+  }));
+}
+
+function renderBillingProfiles(profiles) {
+  const container = document.getElementById('cl-billing-profiles');
+  if (!container) return;
+  container.innerHTML = '';
+  const profs = profiles && profiles.length ? profiles : [{}];
+  profs.forEach((p, i) => addBillingProfile(p));
+}
+
 function onClientTypeChange() {
+  // Legacy compat - billing profiles handle this now
   const type = document.getElementById('cl-client-type')?.value||'resource';
   const empSection = document.getElementById('cl-section-resources');
   const svcSection = document.getElementById('cl-section-services');
-  const label      = document.getElementById('cl-section3-label');
-  if (type === 'description') {
-    if (empSection) empSection.style.display = 'none';
-    if (svcSection) svcSection.style.display = 'block';
-    if (label) label.textContent = 'Service Descriptions';
+  if (type==='description') {
+    if (empSection) empSection.style.display='none';
+    if (svcSection) svcSection.style.display='block';
   } else {
-    if (empSection) empSection.style.display = 'block';
-    if (svcSection) svcSection.style.display = 'none';
-    if (label) label.textContent = 'Employees / Resources';
+    if (empSection) empSection.style.display='block';
+    if (svcSection) svcSection.style.display='none';
   }
 }
 
@@ -2579,6 +2671,7 @@ function openClientModal(idx) {
     if(document.getElementById('cl-invoice-type')){ document.getElementById('cl-invoice-type').value=c.invoiceType||'mixed'; }
     if(document.getElementById('cl-entry-mode')){ document.getElementById('cl-entry-mode').value=c.entryMode||'simple'; }
     if(document.getElementById('cl-section-header')){ document.getElementById('cl-section-header').value=c.sectionHeader||''; }
+    renderBillingProfiles(c.billingProfiles||[]);
     onClientTypeChange();
     document.getElementById('cl-day-rate').value=c.dayRate||'';
     document.getElementById('cl-hour-rate').value=c.hourRate||'';
@@ -2596,6 +2689,7 @@ function openClientModal(idx) {
     if(document.getElementById('cl-invoice-type')) document.getElementById('cl-invoice-type').value='mixed';
     if(document.getElementById('cl-entry-mode')) document.getElementById('cl-entry-mode').value='simple';
     if(document.getElementById('cl-section-header')) document.getElementById('cl-section-header').value='';
+    renderBillingProfiles([]);
     onClientTypeChange();
     document.getElementById('cl-employees').innerHTML='';
     renderClientServices([]);
@@ -2768,6 +2862,7 @@ function saveClient() {
     invoiceType:document.getElementById('cl-invoice-type')?.value||'mixed',
     entryMode:document.getElementById('cl-entry-mode')?.value||'simple',
     sectionHeader:document.getElementById('cl-section-header')?.value||'',
+    billingProfiles: getBillingProfiles(),
     dayRate:parseFloat(document.getElementById('cl-day-rate').value)||0,
     hourRate:parseFloat(document.getElementById('cl-hour-rate').value)||0,
     fixedRate:parseFloat(document.getElementById('cl-fixed-rate').value)||0,
@@ -4889,22 +4984,52 @@ function onTsModalClientChange(existingRows) {
   const c = state.clients[parseInt(clientIdx)];
   if (!c) return;
 
+  // If client has multiple billing profiles, show profile picker
+  const profiles = c.billingProfiles && c.billingProfiles.length > 0
+    ? c.billingProfiles
+    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
+         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
+         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
+         vat: c.vat||5, sectionHeader: c.sectionHeader||'' }];
+
+  // Build profile selector if multiple profiles
+  const profileDiv = document.getElementById('ts-modal-profile-row');
+  if (profileDiv) {
+    if (profiles.length > 1) {
+      profileDiv.style.display = 'block';
+      const sel = document.getElementById('ts-modal-profile');
+      if (sel) {
+        sel.innerHTML = profiles.map((p,i)=>
+          `<option value="${i}">${p.name||'Profile '+(i+1)} — ${p.invoiceType} · ${p.currency}</option>`
+        ).join('');
+      }
+    } else {
+      profileDiv.style.display = 'none';
+    }
+  }
+
+  // Get selected profile (default to first)
+  const profIdx = parseInt(document.getElementById('ts-modal-profile')?.value||'0')||0;
+  const prof = profiles[profIdx] || profiles[0];
+
+  // Merge profile into a pseudo-client object for buildTsModalTable
+  const effectiveClient = { ...c, ...prof };
+
   // Show client info banner
   const infoEl = document.getElementById('ts-modal-client-info');
   if (infoEl) {
     infoEl.style.display = 'block';
-    infoEl.innerHTML = `<strong>${c.name}</strong> · 
-      <span style="color:var(--g600)">${c.invoiceType||'mixed'} invoice</span> · 
-      ${c.clientType==='description'?'📝 Description-based':'👤 Resource-based'} · 
-      ${c.entryMode==='calendar'?'📆 Calendar mode':'📋 Simple mode'} · 
-      Currency: <strong>${c.currency||'AED'}</strong>
-      ${c.sectionHeader?` · Section: <em>${c.sectionHeader}</em>`:''}`;
+    infoEl.innerHTML = `<strong>${c.name}</strong> &nbsp;·&nbsp;
+      <span style="color:var(--brand)"><strong>${prof.name||'Default'}</strong></span> &nbsp;·&nbsp;
+      ${prof.invoiceType} invoice &nbsp;·&nbsp;
+      Currency: <strong>${prof.currency||'AED'}</strong>
+      ${prof.convCurrency ? ` → ${prof.convCurrency}` : ''}
+      ${prof.sectionHeader ? ` &nbsp;·&nbsp; <em>"${prof.sectionHeader}"</em>` : ''}`;
   }
 
-  // Build table headers + rows based on client invoice type
-  buildTsModalTable(c, existingRows||null);
+  buildTsModalTable(effectiveClient, existingRows||null);
   document.getElementById('ts-modal-title').textContent =
-    `${_editingTsId ? 'Edit' : 'New'} Timesheet — ${c.name}`;
+    `${_editingTsId?'Edit':'New'} Timesheet — ${c.name}${profiles.length>1?' ('+prof.name+')':''}`;
 }
 
 function buildTsModalTable(c, existingRows) {
