@@ -4582,24 +4582,28 @@ function buildInvoiceHTML(d, forPDF) {
   // From / Bill To
   // ── Address formatter: comma/newline → array of clean lines ──
   // ── Address: clean into one block, commas → proper line breaks ──
-  const _fmtAddr = str => str.split(/\n/).map(s=>s.trim()).filter(Boolean).join(', ');
+  // ── Address formatter: strips trailing commas THEN joins cleanly ──
+  const _fmtAddr = str => {
+    if (!str) return '';
+    return str.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).join(', ');
+  };
 
-  // ── PDF-safe icon: tiny coloured square bullet ──
-  const _bul = `<span style="display:inline-block;width:6px;height:6px;background:${color};border-radius:1px;margin-right:5px;vertical-align:middle"></span>`;
+  // ── PDF-safe bullet: a unicode filled circle — renders in every PDF engine ──
+  const _bul = `<font color="${color}">&#9679;</font>&nbsp;`;
 
-  // ── Detail row via table row — works in every PDF renderer ──
-  const _tr = (txt) => txt ? `<tr><td style="padding:1px 5px 1px 0;vertical-align:top;width:10px">${_bul}</td><td style="padding:1px 0;font-size:10px;color:#475569;line-height:1.5;word-break:break-word">${txt}</td></tr>` : '';
+  // ── Detail row: bullet in first cell, text in second ──
+  const _tr = (txt) => txt ? `<tr>
+    <td style="padding:2px 4px 2px 0;vertical-align:top;font-size:11px;line-height:1;width:12px">${_bul}</td>
+    <td style="padding:2px 0;font-size:10px;color:#475569;line-height:1.5;word-break:break-word">${txt}</td>
+  </tr>` : '';
 
   // ── TRN pill ──
-  const _trn = (val) => `<div style="display:inline-block;margin-top:4px"><span style="background:${color}18;border:1px solid ${color}40;border-radius:3px;padding:2px 7px;font-size:8.5px;font-weight:800;color:${color};letter-spacing:.6px;font-family:monospace">TRN</span>&nbsp;<span style="font-size:10px;font-weight:700;color:#111827;font-family:monospace">${val}</span></div>`;
+  const _trn = (val) => `<div style="display:inline-block;margin-top:5px;padding:2px 8px;border:1px solid #ccc;border-radius:3px;font-size:9px;font-weight:800;font-family:monospace;letter-spacing:.5px"><span style="color:${color}">TRN</span>&nbsp;<span style="color:#111827">${val}</span></div>`;
 
-  // ── Contact row: phone · email · website side by side ──
+  // ── Contact row: phone / email / website — plain text, no icons, same row ──
   const _contact = (phone, email, website) => {
-    const parts = [];
-    if (phone)   parts.push(phone);
-    if (email)   parts.push(email);
-    if (website) parts.push(website);
-    return parts.length ? _tr(parts.join('&nbsp;&nbsp;&nbsp;')) : '';
+    const parts = [phone, email, website].filter(Boolean);
+    return parts.length ? _tr(parts.join('&nbsp;&nbsp;|&nbsp;&nbsp;')) : '';
   };
 
   const fromBlock = `<div style="padding-right:18px;border-right:1.5px solid #e2e8f0">
