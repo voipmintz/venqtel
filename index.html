@@ -4579,7 +4579,7 @@ function buildInvoiceHTML(d, forPDF) {
   // From / Bill To
   // ── Address formatter: comma/newline → array of clean lines ──
   // ── Address: clean into one block, commas → proper line breaks ──
-  const _fmtAddr = str => str.split(/\n/).map(s=>s.trim()).filter(Boolean).join('<br/>');
+  const _fmtAddr = str => str.split(/\n/).map(s=>s.trim()).filter(Boolean).join(', ');
 
   // ── Icon SVGs (14×14, colour-tinted) ──
   const _svg = (path, color) => `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:12px;height:12px;flex-shrink:0;margin-top:1px">${path}</svg>`;
