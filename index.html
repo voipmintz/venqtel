@@ -4995,10 +4995,13 @@ function openCreateTimesheet() {
   if (thEl) thEl.value = wHours;
 
   document.getElementById('ts-modal-title').textContent    = 'New Timesheet';
-  document.getElementById('ts-modal-subtitle').textContent = 'Fill in hours worked for this month';
-  document.getElementById('ts-modal-tbody').innerHTML      = '';
-  document.getElementById('ts-modal-tfoot').innerHTML      = '';
-  document.getElementById('ts-modal-client-info').style.display = 'none';
+  document.getElementById('ts-modal-subtitle').textContent = 'Pick client and month — all profiles load below';
+  // Reset profile panels area
+  const area = document.getElementById('ts-modal-profiles-area');
+  if (area) area.innerHTML = '<div style="font-size:13px;color:var(--muted);font-style:italic;padding:20px;text-align:center">Select a client to load profiles</div>';
+  // Reset client dropdown selection
+  const cSel = document.getElementById('ts-modal-client');
+  if (cSel) cSel.value = '';
   openModal('modal-timesheet');
 }
 
@@ -5012,6 +5015,9 @@ function onTsModalMonthChange() {
   const thEl = document.getElementById('ts-modal-total-hours');
   if (tdEl) tdEl.value = wDays;
   if (thEl) thEl.value = wHours;
+  // Rebuild profile panels so fixed-row "Month Days" displays the updated value
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  if (clientIdx) onTsModalClientChange();
   // Show info
   const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const [yr, mo] = month.split('-').map(Number);
@@ -5134,7 +5140,7 @@ function buildTsProfilePanel(c, prof, profIdx, existingRows, totalDays, totalHou
   if (invType==='mixed')    theadHtml = `${th('Sr')}${th('Description')}${th('Offshore/Onsite')}${th('Days Worked')}${th('Hours Worked')}${th('VAT %')}${th('VAT Amt')}${th('Rate')}${th('Total')}${th('','32px')}`;
   else if (invType==='day')  theadHtml = `${th('Sr')}${th('Resource')}${th('Offshore/Onsite')}${th('Days Worked')}${th('VAT %')}${th('VAT Amt')}${th('Day Rate')}${th('Total')}${th('','32px')}`;
   else if (invType==='hour') theadHtml = `${th('Sr')}${th('Description')}${th('Offshore/Onsite')}${th('Total Hrs')}${th('Hrs Worked')}${th('VAT %')}${th('VAT Amt')}${th('Hourly Rate')}${th('Total')}${th('','32px')}`;
-  else if (invType==='fixed')theadHtml = `${th('Sr')}${th('Resource')}${th('Offshore/Onsite')}${th('Total Days')}${th('Days Worked')}${th('VAT %')}${th('VAT Amt')}${th('Monthly Rate')}${th('Total')}${th('','32px')}`;
+  else if (invType==='fixed')theadHtml = `${th('Sr')}${th('Resource')}${th('Offshore/Onsite')}${th('Month Days')}${th('Days Worked')}${th('VAT %')}${th('VAT Amt')}${th('Monthly Rate')}${th('Total')}${th('','32px')}`;
   else if (invType==='unit') theadHtml = `${th('Sr')}${th('Description')}${th('Unit Price')}${th('VAT %')}${th('VAT Amt')}${th('Total')}${th('','32px')}`;
   else                       theadHtml = `${th('Sr')}${th('Description')}${th('Amount')}${th('VAT %')}${th('VAT Amt')}${th('Total')}${th('','32px')}`;
 
@@ -5214,7 +5220,11 @@ function buildTsTableRow(r, ri, invType, vatPct, sym, totalDays, totalHours, col
     ${srTd}
     ${td(`<input type="text" class="ts-desc" value="${r.desc||r.name||''}" placeholder="Resource name" ${istr()} style="font-weight:600;min-width:120px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none" />`)}
     ${td(typeSel)}
-    ${td(`<input type="number" class="ts-total-days" value="${r.totalDays||totalDays}" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(`<div style="text-align:center;padding:5px 0">
+      <div style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--ink)">${totalDays}</div>
+      <div style="font-size:9px;color:var(--muted)">auto</div>
+      <input type="hidden" class="ts-total-days" value="${totalDays}" />
+    </div>`)}
     ${td(`<input type="number" class="ts-days" value="${r.days||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
     ${td(vatInput)}
     ${td(`<span style="font-size:11px;color:var(--muted)">—</span>`)}
@@ -5281,7 +5291,7 @@ function _computeTsRows(rawRows, invType, totalDays, totalHours) {
     if      (invType==='mixed')   { const d=r.days||0,h=r.hours||0,rt=r.rate||0; sub = d>0 ? d*rt : h*rt; }
     else if (invType==='day')     { sub = (r.days||0)*(r.rate||0); }
     else if (invType==='hour')    { sub = (r.hours||0)*(r.rate||0); }
-    else if (invType==='fixed')   { const td2=r.totalDays||totalDays,dw=r.days||0,rt=r.rate||0; sub = td2>0 ? rt*dw/td2 : 0; }
+    else if (invType==='fixed')   { const monthTotal=r.totalDays||totalDays, daysWorked=r.days||0, monthlyRate=r.rate||0; sub = monthTotal>0 ? monthlyRate * daysWorked / monthTotal : 0; }
     else if (invType==='unit')    { sub = r.rate||0; }
     else if (invType==='milestone'){ sub = r.rate||0; }
     const vatAmt = sub*vp/100;
