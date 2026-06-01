@@ -4833,381 +4833,324 @@ function downloadInvoicePDF() {
 }
 
 function _drawInvoicePDF(doc, d) {
-  // ── Page dimensions (A4) ──
-  const PW = 210, PH = 297;
-  const ML = 14, MR = 14, MT = 14;   // margins
-  const CW = PW - ML - MR;            // content width = 182mm
-  const color = d.template?.color || '#1a7f37';
+  const PW=210, PH=297, ML=14, MR=14, MT=14;
+  const CW=PW-ML-MR;
+  const color=d.template?.color||'#1a7f37';
+  const hexRgb=h=>{const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[26,127,55];};
+  const [cr,cg,cb]=hexRgb(color);
+  const setC  =()=>doc.setTextColor(cr,cg,cb);
+  const setK  =()=>doc.setTextColor(15,23,42);
+  const setGr =()=>doc.setTextColor(100,116,139);
+  const setMd =()=>doc.setTextColor(51,65,85);
+  const setW  =()=>doc.setTextColor(255,255,255);
+  const fc=(r,g,b)=>doc.setFillColor(r,g,b);
+  const dc=(r,g,b)=>doc.setDrawColor(r,g,b);
+  const sym =invSymPlain(d.currency||'AED');
+  const csym=d.convertTo?invSymPlain(d.convertTo):'';
+  const fmt =n=>(parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let y=MT;
 
-  // ── Colour helpers ──
-  const hexToRgb = h => {
-    const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
-    return r ? [parseInt(r[1],16), parseInt(r[2],16), parseInt(r[3],16)] : [26,127,55];
-  };
-  const [cr,cg,cb] = hexToRgb(color);
-  const setColor  = () => doc.setTextColor(cr,cg,cb);
-  const setBlack  = () => doc.setTextColor(15,23,42);
-  const setGray   = () => doc.setTextColor(100,116,139);
-  const setDkGray = () => doc.setTextColor(51,65,85);
-  const setWhite  = () => doc.setTextColor(255,255,255);
-  const fillColor = (r,g,b) => doc.setFillColor(r,g,b);
-  const drawColor = (r,g,b) => doc.setDrawColor(r,g,b);
+  // ── HEADER ──────────────────────────────────────────────
+  const hH=30;
+  fc(255,255,255); dc(226,232,240); doc.setLineWidth(0.3);
+  doc.roundedRect(ML,y,CW,hH,3,3,'FD');
+  fc(cr,cg,cb); doc.rect(ML,y,5,hH,'F');
 
-  // ── Currency symbol (plain text) ──
-  const sym  = invSymPlain(d.currency  ||'AED');
-  const csym = d.convertTo ? invSymPlain(d.convertTo) : '';
-  const fmt  = (n) => (parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-
-  let y = MT; // current Y cursor
-
-  // ══════════════════════════════════════════════════
-  // HEADER: green stripe + logo + TAX INVOICE
-  // ══════════════════════════════════════════════════
-  const hH = 28;
-  // White header box
-  fillColor(255,255,255); drawColor(226,232,240);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(ML, y, CW, hH, 3, 3, 'FD');
-  // Green left stripe
-  fillColor(cr,cg,cb); drawColor(cr,cg,cb);
-  doc.rect(ML, y, 5, hH, 'F');
-
-  // Logo or company name
-  const logoX = ML + 9;
-  if (d.logo) {
-    try {
-      const ext = d.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(d.logo, ext, logoX, y+4, Math.min(d.logoWidth||40,50), 20, '', 'FAST');
-    } catch(e) {
-      setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(13);
-      doc.text(d.from||'', logoX, y+16);
-    }
+  if(d.logo){
+    try{
+      const ext=d.logo.startsWith('data:image/png')?'PNG':'JPEG';
+      doc.addImage(d.logo,ext,ML+9,y+3,Math.min((d.logoWidth||140)*0.28,52),24,'','FAST');
+    }catch(e){setC();doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(d.from||'',ML+9,y+17);}
   } else {
-    setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(13);
-    doc.text(d.from||'', logoX, y+16);
+    setC();doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(d.from||'',ML+9,y+17);
   }
 
-  // TAX INVOICE right side
-  setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(18);
-  doc.text('TAX INVOICE', PW-MR, y+11, {align:'right'});
-  setGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-  doc.text(`Invoice No: ${d.number||''}  ·  ${d.date||''}`, PW-MR, y+18, {align:'right'});
-  if (d.poNumber) doc.text(`PO: ${d.poNumber}`, PW-MR, y+23, {align:'right'});
+  setC();doc.setFont('helvetica','bold');doc.setFontSize(20);
+  doc.text('TAX INVOICE',PW-MR,y+13,{align:'right'});
+  setGr();doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+  doc.text(`Invoice No: ${d.number||''}  ·  ${d.date||''}`,PW-MR,y+20,{align:'right'});
+  if(d.poNumber){doc.text(`PO: ${d.poNumber}`,PW-MR,y+25,{align:'right'});}
+  y+=hH+7;
 
-  y += hH + 6;
-
-  // ══════════════════════════════════════════════════
-  // FROM / BILL TO — two columns, each item on own line
-  // ══════════════════════════════════════════════════
-  const colW  = CW/2 - 4;
-  const fromX = ML;
-  const billX = ML + CW/2 + 2;
-  const icoW  = 4;   // icon column width
-  const txtX  = (baseX) => baseX + icoW + 1;
+  // ── FROM / BILL TO ───────────────────────────────────────
+  const half=CW/2;
+  const fromX=ML, billX=ML+half+3;
+  const colW=half-5;
 
   // Section labels
-  setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(7);
-  doc.text('FROM', fromX, y); doc.text('BILL TO', billX, y);
-  y += 4;
+  setGr();doc.setFont('helvetica','bold');doc.setFontSize(7);
+  doc.text('FROM',fromX,y); doc.text('BILL TO',billX,y);
+  y+=4.5;
 
-  // Company name / Client name
-  setBlack(); doc.setFont('helvetica','bold'); doc.setFontSize(11);
-  const fromNameLines = doc.splitTextToSize(d.from||'', colW-2);
-  const billNameLines = doc.splitTextToSize(d.clientName||'', colW-2);
-  doc.text(fromNameLines, fromX, y);
-  doc.text(billNameLines, billX, y);
-  y += Math.max(fromNameLines.length, billNameLines.length) * 5 + 2;
+  // Names
+  setK();doc.setFont('helvetica','bold');doc.setFontSize(11);
+  const fNL=doc.splitTextToSize((d.from||'').toUpperCase(),colW);
+  const bNL=doc.splitTextToSize((d.clientName||'').toUpperCase(),colW);
+  doc.text(fNL,fromX,y); doc.text(bNL,billX,y);
+  y+=Math.max(fNL.length,bNL.length)*5.5+3;
 
-  // Draw each contact line: green dot icon + text
-  const drawContactLine = (x, text, startY) => {
-    if (!text) return startY;
-    // Green filled circle as icon
-    fillColor(cr,cg,cb);
-    doc.circle(x + 1.5, startY - 1.2, 1.2, 'F');
-    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-    const lines = doc.splitTextToSize(text, colW - icoW - 3);
-    doc.text(lines, txtX(x), startY);
-    return startY + lines.length * 4;
+  // ── Draw SVG-style icons using jsPDF vector paths ──
+  // Each icon is drawn at (ix, iy) = top-left of icon box (4×4mm)
+  const drawIcon = (type, ix, iy) => {
+    const s = 0.22; // scale: 20px viewBox → ~4.4mm
+    const tx = ix, ty = iy; // translate
+    fc(cr,cg,cb); dc(cr,cg,cb); doc.setLineWidth(0);
+    const p = (pts) => { // draw filled polygon from array of [x,y] pairs (in viewBox units)
+      const scaled = pts.map(([px,py]) => [tx + px*s, ty + py*s]);
+      doc.lines(
+        scaled.slice(1).map(([px,py],i) => [px - scaled[i][0], py - scaled[i][1]]),
+        scaled[0][0], scaled[0][1], [1,1], 'F', true
+      );
+    };
+    if (type === 'pin') {
+      // Location pin: filled teardrop + white inner circle
+      // Outer body approximated as polygon
+      p([[10,1],[13.5,4.5],[13.5,8],[10,18],[6.5,8],[6.5,4.5]]);
+      // White hole
+      fc(255,255,255);
+      doc.circle(tx+10*s, ty+7.5*s, 1.8*s, 'F');
+      fc(cr,cg,cb);
+    } else if (type === 'phone') {
+      // Phone handset shape
+      p([[6,1],[8.5,1],[9.5,4],[8,5.5],[10.5,8],[12,6.5],[15,7.5],[15,10],[11,10.5],[5,4.5]]);
+    } else if (type === 'email') {
+      // Envelope rectangle
+      p([[2,4],[18,4],[18,16],[2,16]]);
+      // White triangle flap
+      fc(255,255,255);
+      p([[2,4],[10,11],[18,4]]);
+      fc(cr,cg,cb);
+    } else if (type === 'web') {
+      // Globe — draw as circle outline filled, then white lines
+      doc.circle(tx+10*s, ty+10*s, 8.5*s, 'F');
+      fc(255,255,255);
+      // Horizontal line
+      doc.rect(tx+1.5*s, ty+9.2*s, 17*s, 1.6*s, 'F');
+      // Vertical oval suggestion — two thin rects
+      doc.rect(tx+8.8*s, ty+1.5*s, 2.4*s, 17*s, 'F');
+      fc(cr,cg,cb);
+    }
   };
 
-  // Address — split into max 2 lines
-  const splitAddr = (str) => {
-    if (!str) return [];
-    const parts = str.split(/\n|,/).map(s=>s.trim()).filter(Boolean);
-    if (parts.length <= 2) return parts;
-    const mid = Math.ceil(parts.length/2);
-    return [parts.slice(0,mid).join(', '), parts.slice(mid).join(', ')];
+  // Contact row: icon + text, each item on its own line
+  const drawRow=(x, text, startY, iconType)=>{
+    if(!text) return startY;
+    if(iconType) drawIcon(iconType, x, startY-3.2);
+    setMd(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    const lines = doc.splitTextToSize(text, colW-6);
+    doc.text(lines, x+5.2, startY);
+    return startY + lines.length*4.2 + 0.8;
   };
 
-  const fromAddr = splitAddr(d.company?.address||'');
-  const billAddr = splitAddr(d.clientAddr||'');
+  const splitAddr=str=>{
+    if(!str)return[];
+    const parts=str.split(/\n|,/).map(s=>s.trim()).filter(Boolean);
+    if(parts.length<=2)return parts;
+    const mid=Math.ceil(parts.length/2);
+    return[parts.slice(0,mid).join(', '),parts.slice(mid).join(', ')];
+  };
 
-  // Track Y independently for each column
-  let fy = y, by = y;
+  const fAddr=splitAddr(d.company?.address||'');
+  const bAddr=splitAddr(d.clientAddr||'');
+  let fy=y, by=y;
 
-  // FROM details
-  if (fromAddr[0]) fy = drawContactLine(fromX, fromAddr[0], fy);
-  if (fromAddr[1]) {
-    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-    const l2 = doc.splitTextToSize(fromAddr[1], colW - icoW - 3);
-    doc.text(l2, txtX(fromX), fy); fy += l2.length * 4;
+  // FROM
+  if(fAddr[0]) fy=drawRow(fromX,fAddr[0],fy,'pin');
+  if(fAddr[1]){
+    setMd();doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+    const l2=doc.splitTextToSize(fAddr[1],colW-6);
+    doc.text(l2,fromX+5.2,fy); fy+=l2.length*4.2+0.8;
   }
-  if (d.company?.phone)   fy = drawContactLine(fromX, d.company.phone,   fy);
-  if (d.company?.email)   fy = drawContactLine(fromX, d.company.email,   fy);
-  if (d.company?.website) fy = drawContactLine(fromX, d.company.website, fy);
-  if (d.company?.tax) {
-    fy += 1;
-    fillColor(cr,cg,cb); drawColor(cr,cg,cb);
-    doc.setLineWidth(0.1);
-    doc.roundedRect(fromX, fy-3, 7, 4, 0.5, 0.5, 'F');
-    setWhite(); doc.setFont('helvetica','bold'); doc.setFontSize(6);
-    doc.text('TRN', fromX+3.5, fy, {align:'center'});
-    setBlack(); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-    doc.text(d.company.tax, fromX+9, fy);
-    fy += 5;
-  }
-
-  // BILL TO details
-  if (billAddr[0]) by = drawContactLine(billX, billAddr[0], by);
-  if (billAddr[1]) {
-    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-    const l2 = doc.splitTextToSize(billAddr[1], colW - icoW - 3);
-    doc.text(l2, txtX(billX), by); by += l2.length * 4;
-  }
-  if (d.clientEmail) by = drawContactLine(billX, d.clientEmail, by);
-  if (d.clientTax) {
-    by += 1;
-    fillColor(cr,cg,cb); drawColor(cr,cg,cb);
-    doc.roundedRect(billX, by-3, 7, 4, 0.5, 0.5, 'F');
-    setWhite(); doc.setFont('helvetica','bold'); doc.setFontSize(6);
-    doc.text('TRN', billX+3.5, by, {align:'center'});
-    setBlack(); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-    doc.text(d.clientTax, billX+9, by);
-    by += 5;
+  if(d.company?.phone)   fy=drawRow(fromX,d.company.phone,  fy,'phone');
+  if(d.company?.email)   fy=drawRow(fromX,d.company.email,  fy,'email');
+  if(d.company?.website) fy=drawRow(fromX,d.company.website,fy,'web');
+  if(d.company?.tax){
+    fy+=1;
+    fc(cr,cg,cb);dc(cr,cg,cb);doc.setLineWidth(0.1);
+    doc.roundedRect(fromX,fy-3,8,4.2,0.8,0.8,'F');
+    setW();doc.setFont('helvetica','bold');doc.setFontSize(6);
+    doc.text('TRN',fromX+4,fy,{align:'center'});
+    setK();doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.text(String(d.company.tax),fromX+10,fy);
+    fy+=5.5;
   }
 
-  y = Math.max(fy, by) + 6;
-
-  // Divider line
-  drawColor(226,232,240); doc.setLineWidth(0.3);
-  doc.line(ML, y-3, ML+CW, y-3);
-
-  // ══════════════════════════════════════════════════
-  // SECTION HEADER (if set)
-  // ══════════════════════════════════════════════════
-  if (d.sectionHeader) {
-    setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-    doc.text(d.sectionHeader, ML, y+3);
-    y += 8;
+  // BILL TO
+  if(bAddr[0]) by=drawRow(billX,bAddr[0],by,'pin');
+  if(bAddr[1]){
+    setMd();doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+    const l2=doc.splitTextToSize(bAddr[1],colW-6);
+    doc.text(l2,billX+5.2,by); by+=l2.length*4.2+0.8;
+  }
+  if(d.clientEmail) by=drawRow(billX,d.clientEmail,by,'email');
+  if(d.clientTax){
+    by+=1;
+    fc(cr,cg,cb);dc(cr,cg,cb);doc.setLineWidth(0.1);
+    doc.roundedRect(billX,by-3,8,4.2,0.8,0.8,'F');
+    setW();doc.setFont('helvetica','bold');doc.setFontSize(6);
+    doc.text('TRN',billX+4,by,{align:'center'});
+    setK();doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.text(String(d.clientTax),billX+10,by);
+    by+=5.5;
   }
 
-  // ══════════════════════════════════════════════════
-  // INVOICE TABLE
-  // ══════════════════════════════════════════════════
-  const bt = d.billingType||'day';
-  const hasVat = (d.rows||[]).some(r=>r.vatPct>0);
+  y=Math.max(fy,by)+5;
+  // Divider
+  dc(226,232,240);doc.setLineWidth(0.3);
+  doc.line(ML,y-2,ML+CW,y-2);
 
-  // Column definitions per billing type
-  const cols = (() => {
-    if (bt==='day'||bt==='mixed') return [
-      {h:'SR.NO',       w:10, align:'center', key:'index'},
-      {h:'NAME OF THE RESOURCE', w:42, align:'left',   key:'name'},
-      {h:'OFFSHORE/ONSITE',      w:24, align:'center', key:'locType'},
-      {h:'DAYS WORKED',          w:20, align:'center', key:'days'},
-      {h:'VAT %',      w:14, align:'center', key:'vatPct'},
-      {h:'VAT AMOUNT', w:22, align:'right',  key:'vatAmt', fmt:true},
-      {h:`DAY RATES IN ${sym}`,  w:26, align:'right',  key:'rate',  fmt:true},
-      {h:'TOTAL',      w:24, align:'right',  key:'total', fmt:true},
-    ];
-    if (bt==='hour') return [
-      {h:'SR.NO',  w:10, align:'center', key:'index'},
-      {h:'DESCRIPTION', w:46, align:'left',   key:'name'},
-      {h:'OFFSHORE/ONSITE', w:24, align:'center', key:'locType'},
-      {h:'HRS WORKED', w:20, align:'center', key:'hours'},
-      {h:'VAT %',      w:14, align:'center', key:'vatPct'},
-      {h:'VAT AMOUNT', w:22, align:'right',  key:'vatAmt', fmt:true},
-      {h:`HOURLY RATE ${sym}`, w:24, align:'right', key:'rate', fmt:true},
-      {h:'TOTAL',      w:22, align:'right',  key:'total', fmt:true},
-    ];
-    if (bt==='fixed') return [
-      {h:'SR.NO',  w:10, align:'center', key:'index'},
-      {h:'RESOURCE', w:46, align:'left',  key:'name'},
-      {h:'OFFSHORE/ONSITE', w:24, align:'center', key:'locType'},
-      {h:'DAYS WORKED', w:20, align:'center', key:'days'},
-      {h:'VAT %',      w:14, align:'center', key:'vatPct'},
-      {h:'VAT AMOUNT', w:22, align:'right',  key:'vatAmt', fmt:true},
-      {h:`MONTHLY RATE ${sym}`, w:24, align:'right', key:'rate', fmt:true},
-      {h:'TOTAL',      w:22, align:'right',  key:'total', fmt:true},
-    ];
-    // unit / milestone / fallback
-    return [
-      {h:'SR.NO',  w:10, align:'center', key:'index'},
-      {h:'DESCRIPTION', w:80, align:'left', key:'name'},
-      {h:'VAT %',      w:16, align:'center', key:'vatPct'},
-      {h:'VAT AMOUNT', w:28, align:'right',  key:'vatAmt', fmt:true},
-      {h:'AMOUNT',     w:48, align:'right',  key:'total',  fmt:true},
-    ];
+  // ── SECTION HEADER ───────────────────────────────────────
+  if(d.sectionHeader){
+    setC();doc.setFont('helvetica','bold');doc.setFontSize(9);
+    doc.text(d.sectionHeader,ML,y+3);
+    y+=8;
+  }
+
+  // ── TABLE ────────────────────────────────────────────────
+  const bt=d.billingType||'day';
+  const hasVat=(d.rows||[]).some(r=>(r.vatPct||0)>0);
+
+  // Column definitions — widths in mm, will be normalised to CW
+  const cols=(()=>{
+    const srCol   ={h:'SR.\nNO',      w:8,  align:'center',key:'index'};
+    const nameCol ={h:'NAME OF THE\nRESOURCE', w:36,align:'left',  key:'name'};
+    const locCol  ={h:'OFFSHORE/\nONSITE',     w:22,align:'center',key:'locType'};
+    const daysCol ={h:'DAYS\nWORKED', w:16, align:'center',key:'days'};
+    const hrsCol  ={h:'HRS\nWORKED',  w:16, align:'center',key:'hours'};
+    const vatPCol ={h:'VAT\n%',       w:10, align:'center',key:'vatPct', hideZero:true};
+    const vatACol ={h:'VAT\nAMOUNT',  w:22, align:'right', key:'vatAmt', fmt:true, hideZero:true};
+    const rateCol ={h:`DAY RATES\nIN ${sym}`, w:24,align:'right',key:'rate',fmt:true};
+    const hrRCol  ={h:`HOURLY\nRATE ${sym}`,  w:24,align:'right',key:'rate',fmt:true};
+    const fixRCol ={h:`MONTHLY\nRATE ${sym}`, w:24,align:'right',key:'rate',fmt:true};
+    const totCol  ={h:'TOTAL',        w:24, align:'right', key:'total',fmt:true};
+    const descCol ={h:'DESCRIPTION',  w:58, align:'left',  key:'name'};
+    const amtCol  ={h:`AMOUNT\n${sym}`,w:30,align:'right', key:'total',fmt:true};
+    if(bt==='day'||bt==='mixed')return[srCol,nameCol,locCol,daysCol,vatPCol,vatACol,rateCol,totCol];
+    if(bt==='hour')             return[srCol,nameCol,locCol,hrsCol, vatPCol,vatACol,hrRCol, totCol];
+    if(bt==='fixed')            return[srCol,nameCol,locCol,daysCol,vatPCol,vatACol,fixRCol,totCol];
+    return[srCol,descCol,vatPCol,vatACol,amtCol];
   })();
 
-  // Scale columns to fit CW exactly
-  const totalColW = cols.reduce((s,c)=>s+c.w,0);
-  const scale = CW / totalColW;
-  cols.forEach(c => c.w = c.w * scale);
+  // Scale to CW
+  const rawW=cols.reduce((s,c)=>s+c.w,0);
+  cols.forEach(c=>c.w=c.w/rawW*CW);
 
-  const rowH  = 7;
-  const thH   = 9;
+  const thH=11, rowH=7.5;
 
-  // Table header
-  fillColor(cr,cg,cb); doc.rect(ML, y, CW, thH, 'F');
-  let cx = ML;
-  setWhite(); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-  cols.forEach(col => {
-    // Split header text that has newline
-    const hLines = col.h.split(' ');
-    if (hLines.length > 3) {
-      // Two-line header
-      const mid = Math.ceil(hLines.length/2);
-      const l1 = hLines.slice(0,mid).join(' ');
-      const l2 = hLines.slice(mid).join(' ');
-      const tx = col.align==='right' ? cx+col.w-1 : col.align==='center' ? cx+col.w/2 : cx+1;
-      doc.text(l1, tx, y+3.5, {align:col.align==='right'?'right':col.align==='center'?'center':'left'});
-      doc.text(l2, tx, y+7,   {align:col.align==='right'?'right':col.align==='center'?'center':'left'});
-    } else {
-      const tx = col.align==='right' ? cx+col.w-1 : col.align==='center' ? cx+col.w/2 : cx+1;
-      doc.text(col.h, tx, y+5.5, {align:col.align==='right'?'right':col.align==='center'?'center':'left'});
-    }
-    cx += col.w;
+  // Header
+  fc(cr,cg,cb);doc.rect(ML,y,CW,thH,'F');
+  let cx=ML;
+  setW();doc.setFont('helvetica','bold');doc.setFontSize(7);
+  cols.forEach(col=>{
+    const lines=col.h.split('\n');
+    const tx=col.align==='right'?cx+col.w-1.5:col.align==='center'?cx+col.w/2:cx+1.5;
+    const al=col.align==='right'?'right':col.align==='center'?'center':'left';
+    if(lines.length===2){doc.text(lines[0],tx,y+4,{align:al});doc.text(lines[1],tx,y+8.5,{align:al});}
+    else{doc.text(lines[0],tx,y+6.5,{align:al});}
+    cx+=col.w;
   });
-  y += thH;
+  y+=thH;
 
-  // Table rows
-  (d.rows||[]).forEach((row, ri) => {
-    const bg = ri%2===0 ? [255,255,255] : [248,250,252];
-    fillColor(...bg); doc.rect(ML, y, CW, rowH, 'F');
-    // Bottom border
-    drawColor(241,245,249); doc.setLineWidth(0.2);
-    doc.line(ML, y+rowH, ML+CW, y+rowH);
-
-    cx = ML;
-    cols.forEach(col => {
-      let val = row[col.key];
-      if (col.fmt) val = sym + fmt(val||0);
-      else if (val===undefined||val===null) val='';
-      else val = String(val);
-      const tx = col.align==='right' ? cx+col.w-1.5 : col.align==='center' ? cx+col.w/2 : cx+1.5;
-      const isName = col.key==='name';
-      setBlack();
-      doc.setFont('helvetica', isName ? 'bold' : 'normal');
-      doc.setFontSize(8.5);
-      // Clip long text
-      const fitted = doc.splitTextToSize(val, col.w-2)[0]||'';
-      doc.text(fitted, tx, y+4.8, {align:col.align==='right'?'right':col.align==='center'?'center':'left'});
-      cx += col.w;
+  // Rows
+  (d.rows||[]).forEach((row,ri)=>{
+    if(ri%2===0)fc(255,255,255);else fc(248,250,252);
+    doc.rect(ML,y,CW,rowH,'F');
+    dc(226,232,240);doc.setLineWidth(0.15);
+    doc.line(ML,y+rowH,ML+CW,y+rowH);
+    cx=ML;
+    cols.forEach(col=>{
+      let val=row[col.key];
+      if(col.hideZero&&!(parseFloat(val)||0)){val='';}
+      else if(col.fmt){val=sym+fmt(val||0);}
+      else if(val===undefined||val===null)val='';
+      else val=String(val);
+      const tx=col.align==='right'?cx+col.w-1.5:col.align==='center'?cx+col.w/2:cx+1.5;
+      const al=col.align==='right'?'right':col.align==='center'?'center':'left';
+      setK();doc.setFont('helvetica',col.key==='name'?'bold':'normal');doc.setFontSize(8.5);
+      // Clip to column width
+      const fitted=(doc.splitTextToSize(val,col.w-2.5)[0])||'';
+      doc.text(fitted,tx,y+5,{align:al});
+      cx+=col.w;
     });
-    y += rowH;
+    y+=rowH;
   });
+  // Table outer border
+  dc(200,210,220);doc.setLineWidth(0.3);
+  doc.rect(ML,y-(d.rows||[]).length*rowH-thH,CW,(d.rows||[]).length*rowH+thH);
+  y+=6;
 
-  // Table border
-  drawColor(226,232,240); doc.setLineWidth(0.3);
-  doc.rect(ML, y - (d.rows||[]).length*rowH - thH, CW, (d.rows||[]).length*rowH + thH);
-  y += 5;
+  // ── TOTALS + AMOUNT IN WORDS ──────────────────────────────
+  const wordsX=ML, wordsW=CW*0.5;
+  const totX=ML+CW*0.52, totW=CW*0.48;
 
-  // ══════════════════════════════════════════════════
-  // TOTALS + AMOUNT IN WORDS (two columns)
-  // ══════════════════════════════════════════════════
-  const wordsX = ML;
-  const totalsX = ML + CW*0.55;
-  const totalsW = CW*0.45;
+  setC();doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+  doc.text('AMOUNT IN WORDS',wordsX,y+4);
+  setMd();doc.setFont('helvetica','italic');doc.setFontSize(8.5);
+  const wLines=doc.splitTextToSize(d.amtWords||'',wordsW-4);
+  doc.text(wLines,wordsX,y+9);
 
-  // Amount in words
-  setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-  doc.text('AMOUNT IN WORDS', wordsX, y+4);
-  setDkGray(); doc.setFont('helvetica','italic'); doc.setFontSize(8.5);
-  const wordLines = doc.splitTextToSize(d.amtWords||'', CW*0.52);
-  doc.text(wordLines, wordsX, y+9);
-
-  // Totals box
-  const totY = y;
-  // Subtotal row
-  if (d.vat>0) {
-    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(9);
-    doc.text('Subtotal', totalsX, totY+5);
-    setBlack(); doc.setFont('helvetica','normal');
-    doc.text(sym+fmt(d.subtotal), totalsX+totalsW, totY+5, {align:'right'});
-    // VAT row
-    doc.text(`VAT (${d.rows?.[0]?.vatPct||0}%)`, totalsX, totY+11);
-    doc.text(sym+fmt(d.vat), totalsX+totalsW, totY+11, {align:'right'});
+  let ty=y;
+  // Subtotal (only if VAT exists)
+  if((d.vat||0)>0){
+    setMd();doc.setFont('helvetica','normal');doc.setFontSize(9);
+    doc.text('Subtotal',totX,ty+5);
+    setK();doc.text(sym+fmt(d.subtotal),totX+totW,ty+5,{align:'right'});
+    ty+=7;
+    doc.text(`VAT (${d.rows?.[0]?.vatPct||0}%)`,totX,ty+5);
+    doc.text(sym+fmt(d.vat),totX+totW,ty+5,{align:'right'});
+    ty+=7;
   }
-
   // TOTAL box
-  const totBoxY = d.vat>0 ? totY+13 : totY;
-  fillColor(cr,cg,cb); doc.roundedRect(totalsX-2, totBoxY+1, totalsW+2, 9, 1, 1, 'F');
-  setWhite(); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-  doc.text('TOTAL', totalsX+1, totBoxY+6.5);
-  doc.text(sym+fmt(d.total), totalsX+totalsW, totBoxY+6.5, {align:'right'});
-
+  fc(cr,cg,cb);doc.roundedRect(totX-1,ty+1,totW+1,8.5,1,1,'F');
+  setW();doc.setFont('helvetica','bold');doc.setFontSize(9.5);
+  doc.text('TOTAL',totX+1,ty+6.5);
+  doc.text(sym+fmt(d.total),totX+totW,ty+6.5,{align:'right'});
+  ty+=10;
   // Converted total
-  let totalBlockBottom = totBoxY + 11;
-  if (d.convertedTotal && d.convertTo) {
-    drawColor(cr,cg,cb); fillColor(255,255,255);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(totalsX-2, totBoxY+11, totalsW+2, 9, 1, 1, 'FD');
-    setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-    doc.text(`TOTAL IN ${d.convertTo}`, totalsX+1, totBoxY+16.5);
+  if(d.convertedTotal&&d.convertTo){
+    fc(255,255,255);dc(cr,cg,cb);doc.setLineWidth(0.6);
+    doc.roundedRect(totX-1,ty,totW+1,9,1,1,'FD');
+    setC();doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.text(`TOTAL IN ${d.convertTo}`,totX+1,ty+6);
     doc.setFontSize(11);
-    doc.text(csym+fmt(d.convertedTotal), totalsX+totalsW, totBoxY+16.5, {align:'right'});
-    totalBlockBottom = totBoxY + 21;
+    doc.text(csym+fmt(d.convertedTotal),totX+totW,ty+6,{align:'right'});
+    ty+=11;
   }
 
-  y = Math.max(y + wordLines.length*4 + 14, totalBlockBottom) + 6;
+  y=Math.max(y+wLines.length*4+14,ty)+5;
 
-  // ══════════════════════════════════════════════════
-  // NOTES
-  // ══════════════════════════════════════════════════
-  if (d.notes) {
-    drawColor(cr,cg,cb); doc.setLineWidth(1.5);
-    doc.line(ML, y, ML, y+7);
-    setBlack(); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-    doc.text('Notes: ', ML+3, y+4.5);
-    setDkGray(); doc.setFont('helvetica','normal');
-    const noteLines = doc.splitTextToSize(d.notes, CW-20);
-    doc.text(noteLines, ML+18, y+4.5);
-    y += noteLines.length*4 + 8;
+  // ── NOTES ────────────────────────────────────────────────
+  if(d.notes){
+    fc(cr,cg,cb);doc.rect(ML,y,1.5,7,'F');
+    setK();doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.text('Notes:',ML+3.5,y+5);
+    setMd();doc.setFont('helvetica','normal');
+    const nLines=doc.splitTextToSize(d.notes,CW-22);
+    doc.text(nLines,ML+20,y+5);
+    y+=nLines.length*4.5+8;
   }
 
-  // ══════════════════════════════════════════════════
-  // BANK DETAILS
-  // ══════════════════════════════════════════════════
-  if (d.bank) {
-    // Header
-    fillColor(cr,cg,cb); fillColor(240,250,244);
-    drawColor(cr,cg,cb); doc.setLineWidth(0.3);
-    doc.roundedRect(ML, y, CW, 7, 1, 1, 'FD');
-    setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-    doc.text(`PAYMENT DETAILS${d.bankLabel?' — '+d.bankLabel.toUpperCase():''}`, ML+3, y+4.5);
-    y += 8;
-
-    // Bank lines
-    const bankLines = d.bank.split('\n').filter(l=>l.trim());
-    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-    doc.setFont('courier','normal');
-    bankLines.forEach(line => {
-      doc.text(line.trim(), ML+3, y+3);
-      y += 4.5;
-    });
-    y += 3;
+  // ── BANK DETAILS ─────────────────────────────────────────
+  if(d.bank){
+    fc(cr,cg,cb);fc(240,250,244);dc(cr,cg,cb);doc.setLineWidth(0.4);
+    doc.roundedRect(ML,y,CW,6.5,1,1,'FD');
+    setC();doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+    doc.text(`PAYMENT DETAILS${d.bankLabel?' — '+d.bankLabel.toUpperCase():''}`,ML+3,y+4.5);
+    y+=8;
+    const bLines=d.bank.split('\\n').filter(l=>l.trim());
+    doc.setFont('courier','normal');doc.setFontSize(8.5);setMd();
+    bLines.forEach(line=>{doc.text(line.trim(),ML+3,y+3.5);y+=4.8;});
+    y+=3;
   }
 
-  // ══════════════════════════════════════════════════
-  // FOOTER
-  // ══════════════════════════════════════════════════
-  const footerY = PH - 10;
-  drawColor(226,232,240); doc.setLineWidth(0.3);
-  doc.line(ML, footerY-2, ML+CW, footerY-2);
-  setGray(); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-  const footerText = `Thank you for your business  ·  Payment due within 30 days${d.company?.website?' · '+d.company.website:''}`;
-  doc.text(footerText, ML+CW/2, footerY+2, {align:'center'});
+  // ── FOOTER ───────────────────────────────────────────────
+  const fY=PH-10;
+  dc(226,232,240);doc.setLineWidth(0.3);
+  doc.line(ML,fY-2,ML+CW,fY-2);
+  setGr();doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+  doc.text(`Thank you for your business  ·  Payment due within 30 days${d.company?.website?' · '+d.company.website:''}`,ML+CW/2,fY+2,{align:'center'});
 }
+
 
 function openSendModal() {
   document.getElementById('send-to').value = document.getElementById('inv-client-email').value||'';
