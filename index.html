@@ -4340,8 +4340,8 @@ function buildInvoiceHTML(d, forPDF) {
     : `<div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:900;color:${style==='executive'||style==='bold'?'#fff':color}">${d.from}</div>`;
 
   const numBadge = `<div style="text-align:right">
-    <div style="font-size:${forPDF?'20px':'24px'};font-weight:900;letter-spacing:-1px;color:${['executive','bold','corporate'].includes(style)?'#fff':color}">INVOICE</div>
-    <div style="font-size:11px;color:${['executive','bold','corporate'].includes(style)?'rgba(255,255,255,.7)':'#64748b'};margin-top:2px">${d.number}</div>
+    <div style="font-size:${forPDF?'18px':'22px'};font-weight:900;letter-spacing:-.5px;color:${['executive','bold','corporate'].includes(style)?'#fff':color}">TAX INVOICE</div>
+    <div style="font-size:11px;color:${['executive','bold','corporate'].includes(style)?'rgba(255,255,255,.7)':'#64748b'};margin-top:3px;font-weight:600">Invoice No: ${d.number}</div>
     <div style="font-size:11px;color:${['executive','bold','corporate'].includes(style)?'rgba(255,255,255,.7)':'#64748b'}">${d.date}</div>
     ${d.poNumber?`<div style="font-size:10px;font-weight:700;margin-top:4px;color:${['executive','bold','corporate'].includes(style)?'rgba(255,255,255,.8)':'#94a3b8'}">PO: ${d.poNumber}</div>`:''}
   </div>`;
@@ -4356,8 +4356,8 @@ function buildInvoiceHTML(d, forPDF) {
       <div style="flex:1;background:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
         ${logoImg}
         <div style="text-align:right">
-          <div style="font-size:${forPDF?'22px':'28px'};font-weight:900;letter-spacing:-1px;color:${color}">INVOICE</div>
-          <div style="font-size:11px;color:#64748b;margin-top:3px;font-weight:500">${d.number} &nbsp;·&nbsp; ${d.date}</div>
+          <div style="font-size:${forPDF?'22px':'28px'};font-weight:900;letter-spacing:-1px;color:${color}">TAX INVOICE</div>
+          <div style="font-size:11px;color:#64748b;margin-top:3px;font-weight:600">Invoice No: ${d.number} &nbsp;·&nbsp; ${d.date}</div>
           ${d.poNumber?`<div style="font-size:10px;color:#94a3b8;margin-top:2px;font-weight:600">Purchase Order: ${d.poNumber}</div>`:''}
         </div>
       </div>
@@ -4372,7 +4372,7 @@ function buildInvoiceHTML(d, forPDF) {
         ${logoImg}
         <div style="text-align:right">
           <div style="display:inline-block;background:${color};color:#fff;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">TAX INVOICE</div>
-          <div style="font-size:${forPDF?'22px':'26px'};font-weight:900;color:#0f172a;letter-spacing:-1.5px;line-height:1">${d.number}</div>
+          <div style="font-size:${forPDF?'22px':'26px'};font-weight:900;color:#0f172a;letter-spacing:-1.5px;line-height:1">Invoice No: ${d.number}</div>
           <div style="font-size:11px;color:#94a3b8;margin-top:3px;font-weight:500">${d.date}${d.poNumber?' &nbsp;·&nbsp; PO: '+d.poNumber:''}</div>
         </div>
       </div>
@@ -4393,8 +4393,8 @@ function buildInvoiceHTML(d, forPDF) {
           </div>
           <!-- Invoice details on dark -->
           <div style="text-align:right">
-            <div style="font-size:${forPDF?'24px':'28px'};font-weight:900;color:#fff;letter-spacing:-1.5px;line-height:1">INVOICE</div>
-            <div style="font-size:11px;color:${color};font-weight:700;margin-top:4px;letter-spacing:.5px">${d.number}</div>
+            <div style="font-size:${forPDF?'24px':'28px'};font-weight:900;color:#fff;letter-spacing:-1.5px;line-height:1">TAX INVOICE</div>
+            <div style="font-size:11px;color:${color};font-weight:700;margin-top:4px;letter-spacing:.5px">Invoice No: ${d.number}</div>
             <div style="font-size:10.5px;color:rgba(255,255,255,.5);margin-top:2px">${d.date}</div>
             ${d.poNumber?`<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">PO: ${d.poNumber}</div>`:''}
           </div>
@@ -4410,8 +4410,8 @@ function buildInvoiceHTML(d, forPDF) {
       <div style="display:flex;justify-content:space-between;align-items:center">
         ${logoImg}
         <div style="text-align:right">
-          <div style="font-size:${forPDF?'20px':'24px'};font-weight:900;color:#0f172a;letter-spacing:-1px">INVOICE</div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:3px">${d.number} · ${d.date}</div>
+          <div style="font-size:${forPDF?'20px':'24px'};font-weight:900;color:#0f172a;letter-spacing:-1px">TAX INVOICE</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;font-weight:600">Invoice No: ${d.number} · ${d.date}</div>
           ${d.poNumber?`<div style="font-size:10px;color:#cbd5e1;margin-top:2px">PO: ${d.poNumber}</div>`:''}
         </div>
       </div>
@@ -4424,8 +4424,8 @@ function buildInvoiceHTML(d, forPDF) {
       <div style="flex:1;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;background:#fff">
         ${logoImg}
         <div style="text-align:right">
-          <div style="font-size:${forPDF?'18px':'22px'};font-weight:900;color:${color};letter-spacing:-0.5px">INVOICE</div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:3px">${d.number} · ${d.date}</div>
+          <div style="font-size:${forPDF?'18px':'22px'};font-weight:900;color:${color};letter-spacing:-0.5px">TAX INVOICE</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;font-weight:600">Invoice No: ${d.number} · ${d.date}</div>
           ${d.poNumber?`<div style="font-size:10px;color:#cbd5e1;margin-top:2px">PO: ${d.poNumber}</div>`:''}
         </div>
       </div>
@@ -4436,7 +4436,7 @@ function buildInvoiceHTML(d, forPDF) {
       ${logoImg}
       <div style="text-align:right">
         <div style="font-size:${forPDF?'18px':'22px'};font-weight:900;color:${color};border-bottom:2px solid ${color};padding-bottom:4px;margin-bottom:6px">TAX INVOICE</div>
-        <div style="font-size:11px;color:#64748b">${d.number}</div>
+        <div style="font-size:11px;color:#64748b;font-weight:600">Invoice No: ${d.number}</div>
         <div style="font-size:11px;color:#64748b">${d.date}</div>
         ${d.poNumber?`<div style="font-size:10px;color:#94a3b8">PO: ${d.poNumber}</div>`:''}
       </div>
@@ -4446,7 +4446,7 @@ function buildInvoiceHTML(d, forPDF) {
     headerHtml = `<div style="text-align:center;margin-bottom:20px;padding-bottom:16px">
       <div style="margin-bottom:12px">${logoImg}</div>
       <div style="height:1px;background:${color};margin:0 40px 8px"></div>
-      <div style="font-size:${forPDF?'14px':'17px'};font-weight:800;letter-spacing:4px;color:#0f172a;margin-bottom:4px">TAX INVOICE</div>
+      <div style="font-size:${forPDF?'14px':'17px'};font-weight:800;letter-spacing:3px;color:#0f172a;margin-bottom:4px">TAX INVOICE</div>
       <div style="font-size:11px;color:#64748b">${d.number} · ${d.date}</div>
       ${d.poNumber?`<div style="font-size:10px;color:#94a3b8">PO: ${d.poNumber}</div>`:''}
       <div style="height:1px;background:${color}44;margin:8px 40px 0"></div>
@@ -4465,7 +4465,7 @@ function buildInvoiceHTML(d, forPDF) {
           </div>
           <!-- Invoice number floats right in white pill -->
           <div style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:10px 16px;text-align:right;backdrop-filter:blur(10px)">
-            <div style="font-size:${forPDF?'20px':'24px'};font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">INVOICE</div>
+            <div style="font-size:${forPDF?'20px':'24px'};font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">TAX INVOICE</div>
             <div style="font-size:10.5px;color:rgba(255,255,255,.8);margin-top:4px;font-weight:600">${d.number}</div>
             <div style="font-size:10px;color:rgba(255,255,255,.65);">${d.date}</div>
             ${d.poNumber?`<div style="font-size:9.5px;color:rgba(255,255,255,.55);">PO: ${d.poNumber}</div>`:''}
@@ -4480,8 +4480,8 @@ function buildInvoiceHTML(d, forPDF) {
     headerHtml = `<div style="background:${color}12;border-radius:16px;padding:18px 22px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;border:1.5px solid ${color}25">
       ${logoImg}
       <div style="text-align:right">
-        <div style="font-size:${forPDF?'18px':'22px'};font-weight:900;color:${color}">INVOICE</div>
-        <div style="font-size:11px;color:#64748b">${d.number} · ${d.date}</div>
+        <div style="font-size:${forPDF?'18px':'22px'};font-weight:900;color:${color}">TAX INVOICE</div>
+        <div style="font-size:11px;color:#64748b;font-weight:600">Invoice No: ${d.number} · ${d.date}</div>
         ${d.poNumber?`<div style="font-size:10px;color:#94a3b8">PO: ${d.poNumber}</div>`:''}
       </div>
     </div>`;
@@ -4498,9 +4498,9 @@ function buildInvoiceHTML(d, forPDF) {
         </div>
         <!-- Right: Dark panel with invoice meta -->
         <div style="background:#1e293b;padding:18px 24px;display:flex;flex-direction:column;justify-content:center;gap:3px">
-          <div style="font-size:${forPDF?'22px':'26px'};font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">INVOICE</div>
+          <div style="font-size:${forPDF?'22px':'26px'};font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">TAX INVOICE</div>
           <div style="height:2px;width:40px;background:${color};border-radius:1px;margin:6px 0 4px"></div>
-          <div style="font-size:11px;color:${color};font-weight:700;letter-spacing:.3px">${d.number}</div>
+          <div style="font-size:11px;color:${color};font-weight:700;letter-spacing:.3px">Invoice No: ${d.number}</div>
           <div style="font-size:10.5px;color:rgba(255,255,255,.55)">${d.date}</div>
           ${d.poNumber?`<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">Purchase Order: ${d.poNumber}</div>`:''}
         </div>
@@ -4512,8 +4512,8 @@ function buildInvoiceHTML(d, forPDF) {
     headerHtml = `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid ${color}">
       ${logoImg}
       <div style="text-align:right">
-        <div style="font-size:22px;font-weight:900;color:${color}">INVOICE</div>
-        <div style="font-size:11px;color:#64748b">${d.number} · ${d.date}</div>
+        <div style="font-size:22px;font-weight:900;color:${color}">TAX INVOICE</div>
+        <div style="font-size:11px;color:#64748b;font-weight:600">Invoice No: ${d.number} · ${d.date}</div>
       </div>
     </div>`;
   }
