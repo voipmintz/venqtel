@@ -5104,7 +5104,11 @@ function onTsModalClientChange(existingRows) {
 
   // Build all profile panels (stacked, only active is visible)
   const panelsHtml = profiles.map((p,pi) => {
-    const effectiveClient = {...c, ...p, employees: p.employees||c.employees||[]};
+    // Employees for this profile: prefer prof.employees, else filter aggregated list by profileName
+    const profEmps = (p.employees && p.employees.length > 0)
+      ? p.employees
+      : (c.employees||[]).filter(e => !e.profileName || e.profileName === p.name);
+    const effectiveClient = {...c, ...p, employees: profEmps};
     const existingTs = month ? state.timesheets.find(t => t.clientName===c.name && t.billingProfileName===p.name && t.month===month) : null;
     const rows = existingTs ? existingTs.rows : null;
     return `<div id="ts-ppanel-${pi}" style="display:${pi===0?'block':'none'};margin-top:0">
@@ -5485,11 +5489,17 @@ function buildDefaultRow(invType, nameOrDesc, emp, c, totalDays, totalHours) {
   const id = uid();
   const vatPct = c.vat||0;
   const base = { id, vatPct };
-  if (invType==='mixed')    return {...base, desc:nameOrDesc, locType:emp?.type||'Offshore', days:'', hours:'', rate: emp?.hourRate||emp?.dayRate||c.hourRate||c.dayRate||0 };
-  if (invType==='day')      return {...base, name:nameOrDesc, locType:emp?.type||'Offshore', days:'', rate: emp?.dayRate||c.dayRate||0 };
-  if (invType==='hour')     return {...base, name:nameOrDesc, locType:emp?.type||'Offshore', totalHours, hours:'', rate: emp?.hourRate||c.hourRate||0 };
-  if (invType==='fixed')    return {...base, name:nameOrDesc, locType:emp?.type||'Offshore', totalDays, days:'', rate: emp?.fixedRate||c.fixedRate||0 };
-  if (invType==='unit')     return {...base, desc:nameOrDesc, unitPrice: c.dayRate||0 };
+  // Rate resolution: employee-specific rate → profile-level rate → 0
+  // Use explicit checks (not ||) so a rate of 0 doesn't fall through to wrong field
+  const empDay   = emp && emp.dayRate   > 0 ? emp.dayRate   : (c.dayRate   || 0);
+  const empHour  = emp && emp.hourRate  > 0 ? emp.hourRate  : (c.hourRate  || 0);
+  const empFixed = emp && emp.fixedRate > 0 ? emp.fixedRate : (c.fixedRate || 0);
+  const locType  = emp?.type || emp?.locType || 'Offshore';
+  if (invType==='mixed')    return {...base, desc:nameOrDesc, locType, days:'', hours:'', rate: empHour||empDay };
+  if (invType==='day')      return {...base, name:nameOrDesc, locType, days:'', rate: empDay };
+  if (invType==='hour')     return {...base, name:nameOrDesc, locType, totalHours, hours:'', rate: empHour };
+  if (invType==='fixed')    return {...base, name:nameOrDesc, locType, totalDays, days:'', rate: empFixed };
+  if (invType==='unit')     return {...base, desc:nameOrDesc, unitPrice: empDay };
   if (invType==='milestone')return {...base, desc:nameOrDesc, details:'', manDays:'', amount:0 };
   return {...base, desc:nameOrDesc, rate:0};
 }
