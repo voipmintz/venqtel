@@ -4577,23 +4577,26 @@ function buildInvoiceHTML(d, forPDF) {
   }
 
   // From / Bill To
-  const fromBlock = `<div style="padding-right:20px;border-right:1px solid #e2e8f0">
-    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:700;margin-bottom:5px">FROM</div>
-    <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:5px;line-height:1.25">${d.from}</div>
-    ${d.company?.address?`<div style="font-size:10.5px;color:#64748b;line-height:1.55;margin-bottom:3px;display:flex;gap:4px;align-items:flex-start"><span style="flex-shrink:0;color:#94a3b8;margin-top:1px">📍</span><span>${d.company.address.split('\n').filter(l=>l.trim()).map(l=>l.replace(/,\s*$/,'')).join(',\n')}</span></div>`:''}
-    <div style="display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:3px">
-      ${d.company?.phone?`<span style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px"><svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" fill="#94a3b8"/></svg>${d.company.phone}</span>`:''}
-      ${d.company?.email?`<span style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px"><svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" fill="#94a3b8"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" fill="#94a3b8"/></svg>${d.company.email}</span>`:''}
-      ${d.company?.website?`<span style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px"><svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0"><circle cx="10" cy="10" r="8" stroke="#94a3b8" stroke-width="1.5"/><path d="M10 2C10 2 7 6 7 10s3 8 3 8M10 2c0 0 3 4 3 8s-3 8-3 8M2 10h16" stroke="#94a3b8" stroke-width="1.5"/></svg>${d.company.website}</span>`:''}
-    </div>
-    ${d.company?.tax?`<div style="font-size:10px;color:#64748b;margin-top:4px;font-weight:700;display:flex;align-items:center;gap:4px"><span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 6px;font-family:monospace;font-size:9.5px;color:#475569">TRN</span>${d.company.tax}</div>`:''}
+  const _icoPin  = '<svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0;margin-top:1px"><path d="M10 2a6 6 0 00-6 6c0 4 6 10 6 10s6-6 6-10a6 6 0 00-6-6zm0 8a2 2 0 110-4 2 2 0 010 4z" fill="#94a3b8"/></svg>';
+  const _icoPhone= '<svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0;margin-top:1px"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" fill="#94a3b8"/></svg>';
+  const _icoEmail= '<svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0;margin-top:1px"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" fill="#94a3b8"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" fill="#94a3b8"/></svg>';
+  const _icoWeb  = '<svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0;margin-top:1px"><circle cx="10" cy="10" r="8" stroke="#94a3b8" stroke-width="1.5"/><path d="M10 2C10 2 7 6 7 10s3 8 3 8M10 2c0 0 3 4 3 8s-3 8-3 8M2 10h16" stroke="#94a3b8" stroke-width="1.5"/></svg>';
+  const _row = (ico, txt, extra='') => `<div style="font-size:10px;color:#64748b;display:flex;align-items:flex-start;gap:4px;margin-bottom:3px${extra}">${ico}<span style="line-height:1.45">${txt}</span></div>`;
+  const fromBlock = `<div style="padding-right:20px;border-right:1px solid #e2e8f0;min-width:0">
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:700;margin-bottom:6px">FROM</div>
+    <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:6px;line-height:1.25">${d.from}</div>
+    ${d.company?.address?_row(_icoPin, d.company.address.split('\n').filter(l=>l.trim()).map(l=>l.replace(/,\s*$/,'')).join('<br/>')):''}
+    ${d.company?.phone?_row(_icoPhone, d.company.phone):''}
+    ${d.company?.email?_row(_icoEmail, d.company.email):''}
+    ${d.company?.website?_row(_icoWeb, d.company.website):''}
+    ${d.company?.tax?`<div style="display:inline-flex;align-items:center;gap:4px;margin-top:2px"><span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:2px 7px;font-family:monospace;font-size:9px;font-weight:700;color:#475569;letter-spacing:.3px">TRN</span><span style="font-size:10px;font-weight:700;color:#0f172a;font-family:monospace">${d.company.tax}</span></div>`:''}
   </div>`;
-  const billToBlock = `<div style="padding-left:20px">
+  const billToBlock = `<div style="padding-left:20px;min-width:0">
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:700;margin-bottom:6px">BILL TO</div>
-    <div style="font-weight:800;font-size:13.5px;color:#0f172a;margin-bottom:5px;line-height:1.2">${d.clientName}</div>
-    ${d.clientAddr?`<div style="font-size:10.5px;color:#64748b;line-height:1.6;margin-bottom:3px;display:flex;gap:4px;align-items:flex-start"><span style="flex-shrink:0;margin-top:1px">📍</span><span style="white-space:pre-line">${d.clientAddr.replace(/,\s*\n/g,",\n").replace(/,\s*$/,"")}</span></div>`:''}
-    ${d.clientEmail?`<div style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;margin-top:2px"><svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" fill="#94a3b8"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" fill="#94a3b8"/></svg>${d.clientEmail}</div>`:''}
-    ${d.clientTax?`<div style="font-size:10px;color:#64748b;margin-top:4px;font-weight:700;display:flex;align-items:center;gap:4px"><span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 6px;font-family:monospace;font-size:9.5px;color:#475569">TRN</span>${d.clientTax}</div>`:''}
+    <div style="font-weight:800;font-size:13.5px;color:#0f172a;margin-bottom:6px;line-height:1.2">${d.clientName}</div>
+    ${d.clientAddr?_row(_icoPin, d.clientAddr.split('\n').filter(l=>l.trim()).map(l=>l.replace(/,\s*$/,'')).join('<br/>')):''}
+    ${d.clientEmail?_row(_icoEmail, d.clientEmail):''}
+    ${d.clientTax?`<div style="display:inline-flex;align-items:center;gap:4px;margin-top:2px"><span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:2px 7px;font-family:monospace;font-size:9px;font-weight:700;color:#475569;letter-spacing:.3px">TRN</span><span style="font-size:10px;font-weight:700;color:#0f172a;font-family:monospace">${d.clientTax}</span></div>`:''}
   </div>`;
 
   // Section header (e.g. "SAP Services:")
