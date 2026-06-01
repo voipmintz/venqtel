@@ -4578,32 +4578,41 @@ function buildInvoiceHTML(d, forPDF) {
 
   // From / Bill To
   // ── Address formatter: comma/newline → array of clean lines ──
-  const _addrLines = str => str.replace(/,\s*\n/g,'\n').replace(/,(?=\s*[A-Z])/g,'\n').split('\n').map(s=>s.trim()).filter(Boolean);
+  // ── Address: clean into one block, commas → proper line breaks ──
+  const _fmtAddr = str => str.split(/\n/).map(s=>s.trim()).filter(Boolean).join('<br/>');
 
-  // ── Coloured dot icon (uses brand color) ──
-  const _dot = (clr) => `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${clr};flex-shrink:0;margin-top:3px"></span>`;
+  // ── Icon SVGs (14×14, colour-tinted) ──
+  const _svg = (path, color) => `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:12px;height:12px;flex-shrink:0;margin-top:1px">${path}</svg>`;
+  const _iPin  = c=>`<svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0;margin-top:2px"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" fill="${c}"/></svg>`;
+  const _iPhone= c=>`<svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0;margin-top:2px"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" fill="${c}"/></svg>`;
+  const _iMail = c=>`<svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0;margin-top:2px"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" fill="${c}"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" fill="${c}"/></svg>`;
+  const _iWeb  = c=>`<svg viewBox="0 0 20 20" fill="none" style="width:11px;height:11px;flex-shrink:0;margin-top:2px"><circle cx="10" cy="10" r="8" stroke="${c}" stroke-width="1.6"/><path d="M10 2s-3 4-3 8 3 8 3 8M10 2s3 4 3 8-3 8-3 8M2 10h16" stroke="${c}" stroke-width="1.6"/></svg>`;
 
-  // ── A single detail row: coloured dot + text ──
-  const _drow = (clr, txt) => `<div style="display:flex;align-items:flex-start;gap:5px;margin-bottom:2px;font-size:10px;color:#4b5563;line-height:1.4">${_dot(clr)}<span>${txt}</span></div>`;
+  // ── Detail row: icon + text, consistent alignment ──
+  const _drow = (ico, txt) => `<div style="display:flex;align-items:flex-start;gap:5px;font-size:10px;color:#475569;line-height:1.45;margin-bottom:3px">${ico}<span>${txt}</span></div>`;
+
+  // ── Inline pair: two items side by side (phone + email) ──
+  const _dpair= (ico1,txt1,ico2,txt2) => `<div style="display:flex;align-items:center;gap:14px;font-size:10px;color:#475569;line-height:1.45;margin-bottom:3px"><span style="display:flex;align-items:center;gap:4px">${ico1}<span>${txt1}</span></span><span style="display:flex;align-items:center;gap:4px">${ico2}<span>${txt2}</span></span></div>`;
 
   // ── TRN pill ──
-  const _trn = (val) => `<div style="display:inline-flex;align-items:center;gap:5px;margin-top:4px"><span style="background:${color}18;border:1px solid ${color}40;border-radius:3px;padding:1px 6px;font-size:8.5px;font-weight:800;color:${color};letter-spacing:.5px;font-family:monospace">TRN</span><span style="font-size:10px;font-weight:700;color:#111827;font-family:monospace;letter-spacing:.3px">${val}</span></div>`;
+  const _trn = (val) => `<div style="display:inline-flex;align-items:center;gap:5px;margin-top:3px"><span style="background:${color}15;border:1px solid ${color}35;border-radius:3px;padding:1px 7px;font-size:8.5px;font-weight:800;color:${color};letter-spacing:.6px;font-family:monospace">TRN</span><span style="font-size:10px;font-weight:700;color:#111827;font-family:monospace">${val}</span></div>`;
 
-  const fromBlock = `<div style="padding-right:16px;border-right:2px solid ${color}20;min-width:0">
-    <div style="font-size:8px;text-transform:uppercase;letter-spacing:2px;color:${color};font-weight:800;margin-bottom:5px">From</div>
-    <div style="font-weight:800;font-size:12.5px;color:#111827;margin-bottom:5px;line-height:1.3">${d.from}</div>
-    ${d.company?.address ? _addrLines(d.company.address).map(l=>_drow(color,l)).join('') : ''}
-    ${d.company?.phone   ? _drow(color, d.company.phone)   : ''}
-    ${d.company?.email   ? _drow(color, d.company.email)   : ''}
-    ${d.company?.website ? _drow(color, d.company.website) : ''}
-    ${d.company?.tax     ? _trn(d.company.tax) : ''}
+  const fromBlock = `<div style="padding-right:20px;border-right:1.5px solid #e2e8f0;min-width:0">
+    <div style="font-size:8.5px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:700;margin-bottom:5px">FROM</div>
+    <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:6px;line-height:1.25">${d.from}</div>
+    ${d.company?.address ? _drow(_iPin(color), `<span style="white-space:pre-line">${_fmtAddr(d.company.address)}</span>`) : ''}
+    ${(d.company?.phone && d.company?.email) ? _dpair(_iPhone(color), d.company.phone, _iMail(color), d.company.email) : ''}
+    ${(d.company?.phone && !d.company?.email) ? _drow(_iPhone(color), d.company.phone) : ''}
+    ${(!d.company?.phone && d.company?.email) ? _drow(_iMail(color), d.company.email) : ''}
+    ${d.company?.website ? _drow(_iWeb(color), d.company.website) : ''}
+    ${d.company?.tax ? _trn(d.company.tax) : ''}
   </div>`;
 
   const billToBlock = `<div style="padding-left:20px;min-width:0">
-    <div style="font-size:8px;text-transform:uppercase;letter-spacing:2px;color:${color};font-weight:800;margin-bottom:5px">Bill To</div>
-    <div style="font-weight:800;font-size:12.5px;color:#111827;margin-bottom:5px;line-height:1.3">${d.clientName}</div>
-    ${d.clientAddr  ? _addrLines(d.clientAddr).map(l=>_drow(color,l)).join('') : ''}
-    ${d.clientEmail ? _drow(color, d.clientEmail) : ''}
+    <div style="font-size:8.5px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:700;margin-bottom:5px">BILL TO</div>
+    <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:6px;line-height:1.25">${d.clientName}</div>
+    ${d.clientAddr  ? _drow(_iPin(color), `<span style="white-space:pre-line">${_fmtAddr(d.clientAddr)}</span>`) : ''}
+    ${d.clientEmail ? _drow(_iMail(color), d.clientEmail) : ''}
     ${d.clientTax   ? _trn(d.clientTax) : ''}
   </div>`;
 
