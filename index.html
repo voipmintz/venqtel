@@ -2614,6 +2614,21 @@ function renderClients() {
     const sym = invSymPlain(c.currency||'AED');
     const empCount = (c.employees||[]).length;
     const svcCount = (c.services||[]).length;
+    const bpList   = c.billingProfiles && c.billingProfiles.length > 0 ? c.billingProfiles : null;
+    const bpHtml   = bpList
+      ? `<div class="client-detail" style="margin-top:6px">
+           <strong style="color:var(--brand);font-size:11px;text-transform:uppercase;letter-spacing:.5px">📋 Billing Profiles (${bpList.length})</strong>
+           <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">
+             ${bpList.map(p=>`<span style="background:var(--g50);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:11px;color:var(--ink2)">
+               <strong>${p.name||'Default'}</strong> · ${invTypeLabels[p.invoiceType]||'Mixed'} · ${p.currency||'AED'}${p.convCurrency?' → '+p.convCurrency:''}
+             </span>`).join('')}
+           </div>
+         </div>`
+      : `<div class="client-detail">
+           ${c.dayRate?`📅 ${sym}${fmt(c.dayRate)}/day`:''}
+           ${c.hourRate?` &nbsp; ⏱ ${sym}${fmt(c.hourRate)}/hr`:''}
+           ${c.fixedRate?` &nbsp; 📌 ${sym}${fmt(c.fixedRate)}/mo`:''}
+         </div>`;
     return `<div class="client-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div class="client-name">${c.name}</div>
@@ -2622,18 +2637,14 @@ function renderClients() {
       ${c.contact?`<div class="client-detail">👤 ${c.contact}</div>`:''}
       ${c.email?`<div class="client-detail">✉️ ${c.email}</div>`:''}
       <div class="client-detail" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-        ${invTypeLabels[c.invoiceType]||'🔀 Mixed'} &nbsp;·&nbsp;
-        ${c.clientType==='description'?'📝 Desc-based':'👤 Resource-based'} &nbsp;·&nbsp;
-        ${c.entryMode==='calendar'?'📆 Calendar':'📋 Simple'}
+        ${c.clientType==='description'?'📝 Description-based':'👤 Resource-based'} &nbsp;·&nbsp;
+        ${c.entryMode==='calendar'?'📆 Calendar':'📋 Simple'} &nbsp;·&nbsp;
+        VAT ${c.vat||0}%
       </div>
       ${c.sectionHeader?`<div class="client-detail" style="color:${color};font-weight:600;font-style:italic">"${c.sectionHeader}"</div>`:''}
-      <div class="client-detail">
-        ${c.dayRate?`📅 ${sym}${fmt(c.dayRate)}/day`:''}
-        ${c.hourRate?` &nbsp; ⏱ ${sym}${fmt(c.hourRate)}/hr`:''}
-        ${c.fixedRate?` &nbsp; 📌 ${sym}${fmt(c.fixedRate)}/mo`:''}
-      </div>
-      <div class="client-detail">VAT: ${c.vat||0}% · ${empCount?`${empCount} employee(s)`:svcCount?`${svcCount} service(s)`:'No entries'}</div>
-      ${c.convCurrency?`<div class="client-detail">💱 → ${c.convCurrency}</div>`:''}
+      ${bpHtml}
+      <div class="client-detail">👥 ${empCount?empCount+' employee(s)':svcCount?svcCount+' service(s)':'No entries'}</div>
+      ${c.convCurrency&&!bpList?`<div class="client-detail">💱 → ${c.convCurrency}</div>`:''}
       <div class="flex gap-8 mt-12">
         <button class="btn btn-secondary btn-xs" onclick="openClientModal(${i})">✏️ Edit</button>
         <button class="btn btn-primary btn-xs" onclick="quickCreateTs(${i})">+ Timesheet</button>
@@ -3836,17 +3847,92 @@ function onInvClientChange() {
   if (idx==='') return;
   const c = state.clients[parseInt(idx)];
   if (!c) return;
-  document.getElementById('inv-client-addr').value = c.address||'';
+
+  // ── Always fill contact details from client ──
+  document.getElementById('inv-client-addr').value  = c.address||'';
   document.getElementById('inv-client-email').value = c.email||'';
-  document.getElementById('inv-vat').value = c.vat!==undefined ? c.vat : 5;
-  // Section header from client
-  if (c.sectionHeader) document.getElementById('inv-section-header').value = c.sectionHeader;
+
+  // ── Build effective billing profiles list ──
+  const profiles = (c.billingProfiles && c.billingProfiles.length > 0)
+    ? c.billingProfiles
+    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
+         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
+         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
+         vat: c.vat!==undefined ? c.vat : 5, sectionHeader: c.sectionHeader||'' }];
+
+  // ── Show/hide billing profile picker on New Invoice page ──
+  let profilePickerRow = document.getElementById('inv-billing-profile-row');
+  if (!profilePickerRow) {
+    // Inject the picker right after the client dropdown row
+    const clientRow = document.getElementById('inv-client')?.closest('.form-group');
+    if (clientRow) {
+      const row = document.createElement('div');
+      row.id = 'inv-billing-profile-row';
+      row.className = 'form-group';
+      row.innerHTML = `<label style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700">Billing Profile</label>
+        <select id="inv-billing-profile" onchange="onInvBillingProfileChange()"
+          style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;background:var(--white);color:var(--ink2)">
+        </select>`;
+      clientRow.insertAdjacentElement('afterend', row);
+    }
+    profilePickerRow = document.getElementById('inv-billing-profile-row');
+  }
+
+  const profSel = document.getElementById('inv-billing-profile');
+  if (profiles.length > 1) {
+    if (profilePickerRow) profilePickerRow.style.display = 'block';
+    if (profSel) {
+      profSel.innerHTML = profiles.map((p,i)=>
+        `<option value="${i}">${p.name||'Profile '+(i+1)} — ${p.invoiceType} · ${p.currency}</option>`
+      ).join('');
+    }
+  } else {
+    if (profilePickerRow) profilePickerRow.style.display = 'none';
+  }
+
+  // ── Apply the first (or selected) profile ──
+  const profIdx = parseInt(profSel?.value||'0')||0;
+  _applyInvBillingProfile(c, profiles[profIdx] || profiles[0]);
+}
+
+function onInvBillingProfileChange() {
+  const clientIdx = document.getElementById('inv-client')?.value;
+  if (!clientIdx) return;
+  const c = state.clients[parseInt(clientIdx)];
+  if (!c) return;
+  const profiles = (c.billingProfiles && c.billingProfiles.length > 0)
+    ? c.billingProfiles
+    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
+         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
+         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
+         vat: c.vat!==undefined ? c.vat : 5, sectionHeader: c.sectionHeader||'' }];
+  const profIdx = parseInt(document.getElementById('inv-billing-profile')?.value||'0')||0;
+  _applyInvBillingProfile(c, profiles[profIdx] || profiles[0]);
+}
+
+function _applyInvBillingProfile(c, prof) {
+  // VAT + section header
+  document.getElementById('inv-vat').value = prof.vat!==undefined ? prof.vat : (c.vat!==undefined ? c.vat : 5);
+  const sh = prof.sectionHeader || c.sectionHeader || '';
+  if (sh) document.getElementById('inv-section-header').value = sh;
+
   // Currency
   const curEl = document.getElementById('inv-currency');
-  if (c.currency) curEl.value = c.currency;
-  // Conversion
+  if (curEl && (prof.currency || c.currency)) curEl.value = prof.currency || c.currency || 'AED';
+
+  // Conversion currency
   const convEl = document.getElementById('inv-conv-to');
-  if (c.convCurrency) convEl.value = c.convCurrency;
+  if (convEl) convEl.value = prof.convCurrency || c.convCurrency || '';
+
+  // ── Switch invoice type tab to match profile ──
+  const invType = prof.invoiceType || c.invoiceType || 'mixed';
+  document.querySelectorAll('[data-tab-group="inv"]').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane[id^="inv-tab-"]').forEach(p=>p.classList.remove('active'));
+  const tabEl = document.querySelector(`[data-tab-group="inv"][data-tab="${invType}"]`);
+  if (tabEl) tabEl.classList.add('active');
+  const paneEl = document.getElementById(`inv-tab-${invType}`);
+  if (paneEl) paneEl.classList.add('active');
+
   invAutoRate();
   updateInvCurLabels();
   recalcInvoice();
@@ -5292,13 +5378,28 @@ function saveTsModal(status) {
     return {...r, subtotal:sub, vatAmt:sub*vp/100, total:sub+sub*vp/100};
   });
 
+  // ── Capture which billing profile was active when saving ──
+  const tsProfIdx = parseInt(document.getElementById('ts-modal-profile')?.value||'0')||0;
+  const tsProfiles = (c.billingProfiles && c.billingProfiles.length > 0)
+    ? c.billingProfiles
+    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
+         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
+         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
+         vat: c.vat||5, sectionHeader: c.sectionHeader||'' }];
+  const activeProf = tsProfiles[tsProfIdx] || tsProfiles[0];
+
   const ts = {
     id: _editingTsId||uid(),
     clientName: c.name,
     month, totalDays, totalHours,
-    currency: c.currency||'AED',
-    invoiceType: c.invoiceType||'mixed',
-    milestoneType: c.invoiceType==='milestone'?(document.getElementById('inv-milestone-type')?.value||'detailed'):'',
+    currency:          activeProf.currency      || c.currency      || 'AED',
+    convCurrency:      activeProf.convCurrency  || c.convCurrency  || '',
+    invoiceType:       activeProf.invoiceType   || c.invoiceType   || 'mixed',
+    billingProfileIdx: tsProfIdx,
+    billingProfileName:activeProf.name || 'Default',
+    sectionHeader:     activeProf.sectionHeader || c.sectionHeader || '',
+    vat:               activeProf.vat           !== undefined ? activeProf.vat : (c.vat||5),
+    milestoneType: (activeProf.invoiceType||c.invoiceType)==='milestone'?(document.getElementById('inv-milestone-type')?.value||'detailed'):'',
     rows: processedRows,
     status,
     createdAt: today(),
@@ -5359,19 +5460,32 @@ function tsToInvoice(tsId) {
   co.nextNum   = (co.nextNum || 1);
   const invNumber = prefix + String(co.nextNum).padStart(3, '0');
 
-  // ── Build invoice data directly from timesheet ──
-  const invType    = ts.invoiceType || c.invoiceType || 'mixed';
-  const sym        = invSymPlain(ts.currency || 'AED');
+  // ── Resolve billing profile used when timesheet was saved ──
+  const tsProfiles = (c.billingProfiles && c.billingProfiles.length > 0)
+    ? c.billingProfiles
+    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
+         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
+         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
+         vat: c.vat||5, sectionHeader: c.sectionHeader||'' }];
+  const profIdx  = ts.billingProfileIdx !== undefined ? ts.billingProfileIdx : 0;
+  const tsProf   = tsProfiles[profIdx] || tsProfiles[0];
+
+  // ── Build invoice data from timesheet + resolved profile ──
+  const invType    = ts.invoiceType   || tsProf.invoiceType  || c.invoiceType || 'mixed';
+  const invCur     = ts.currency      || tsProf.currency     || c.currency    || 'AED';
+  const invConvTo  = ts.convCurrency  || tsProf.convCurrency || c.convCurrency || '';
+  const invVatPct  = ts.vat !== undefined ? ts.vat : (tsProf.vat !== undefined ? tsProf.vat : (c.vat || 0));
+  const invSecHdr  = ts.sectionHeader || tsProf.sectionHeader|| c.sectionHeader || '';
+  const sym        = invSymPlain(invCur);
   const totalAmt   = (ts.rows || []).reduce((s,r) => s + (r.total||0), 0);
   const subTotal   = (ts.rows || []).reduce((s,r) => s + (r.subtotal||0), 0);
   const vatAmt     = (ts.rows || []).reduce((s,r) => s + (r.vatAmt||0), 0);
-  const vatPct     = ts.rows?.[0]?.vatPct || c.vat || 0;
   const convRate   = state.settings.exchangeRates?.[
-    (c.currency==='USD'&&c.convCurrency==='AED') ? 'usdAed' :
-    (c.currency==='GBP'&&c.convCurrency==='USD') ? 'gbpUsd' :
-    (c.currency==='GBP'&&c.convCurrency==='AED') ? 'gbpAed' : ''
+    (invCur==='USD'&&invConvTo==='AED') ? 'usdAed' :
+    (invCur==='GBP'&&invConvTo==='USD') ? 'gbpUsd' :
+    (invCur==='GBP'&&invConvTo==='AED') ? 'gbpAed' : ''
   ] || 0;
-  const convertedTotal = c.convCurrency && convRate ? Math.round(totalAmt * convRate * 100) / 100 : null;
+  const convertedTotal = invConvTo && convRate ? Math.round(totalAmt * convRate * 100) / 100 : null;
 
   const invData = {
     id:             uid(),
@@ -5386,18 +5500,18 @@ function tsToInvoice(tsId) {
     clientAddr:     c.address || '',
     clientEmail:    c.email || '',
     clientTax:      c.tax || '',
-    sectionHeader:  c.sectionHeader || '',
+    sectionHeader:  invSecHdr,
     poNumber:       '',
-    currency:       ts.currency || c.currency || 'AED',
-    convertTo:      c.convCurrency || '',
+    currency:       invCur,
+    convertTo:      invConvTo,
     convertRate:    convRate,
     convertedTotal: convertedTotal,
     billingType:    invType,
-    vatPct:         vatPct,
+    vatPct:         invVatPct,
     subtotal:       subTotal,
     vat:            vatAmt,
     total:          totalAmt,
-    amtWords:       numToWords(convertedTotal || totalAmt, c.convCurrency || ts.currency || 'AED'),
+    amtWords:       numToWords(convertedTotal || totalAmt, invConvTo || invCur),
     notes:          `Services rendered for ${monthLabel(ts.month)}`,
     bank:           co.bankAccounts?.[0]?.details || co.bank || '',
     bankLabel:      co.bankAccounts?.[0]?.label || '',
@@ -5405,6 +5519,7 @@ function tsToInvoice(tsId) {
     status:         'draft',
     fromTimesheet:  tsId,
     period:         ts.month,
+    billingProfileName: ts.billingProfileName || tsProf.name || 'Default',
   };
 
   // ── Save invoice immediately ──
@@ -5433,17 +5548,28 @@ function tsToInvoice(tsId) {
     if (c.sectionHeader) setEl('inv-section-header', c.sectionHeader);
     setEl('inv-notes', invData.notes);
 
-    // Set client dropdown
+    // Set client dropdown — this triggers onInvClientChange which shows profile picker
     const clientEl = document.getElementById('inv-client');
     const ci = state.clients.findIndex(cl=>cl.name===ts.clientName);
-    if (ci > -1 && clientEl) { clientEl.value = String(ci); onInvClientChange(); }
+    if (ci > -1 && clientEl) {
+      clientEl.value = String(ci);
+      onInvClientChange(); // populates address, email, profile picker etc.
+    }
 
-    // Set currency
+    // If client has multiple profiles, select the one used for this timesheet
+    const profPickerEl = document.getElementById('inv-billing-profile');
+    if (profPickerEl && ts.billingProfileIdx !== undefined) {
+      profPickerEl.value = String(ts.billingProfileIdx);
+    }
+
+    // Override currency + conversion from the resolved invoice data
     const curEl = document.getElementById('inv-currency');
     if (curEl) curEl.value = invData.currency;
-    if (c.convCurrency) {
-      const convEl = document.getElementById('inv-conv-currency');
-      if (convEl) convEl.value = c.convCurrency;
+    const convEl = document.getElementById('inv-conv-to');
+    if (convEl) convEl.value = invData.convertTo || '';
+    if (invData.vatPct !== undefined) {
+      const vatEl = document.getElementById('inv-vat');
+      if (vatEl) vatEl.value = invData.vatPct;
     }
 
     // Switch to correct invoice type tab
@@ -5453,6 +5579,7 @@ function tsToInvoice(tsId) {
     if (tabEl) tabEl.classList.add('active');
     const paneEl = document.getElementById(`inv-tab-${invType}`);
     if (paneEl) paneEl.classList.add('active');
+    invAutoRate(); updateInvCurLabels();
 
     // Populate invoice rows
     invRows[invType] = invData.rows;
@@ -5583,7 +5710,12 @@ function renderTmsClients() {
         <div style="width:44px;height:44px;background:${color};border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px">${ts.clientName.charAt(0)}</div>
         <div>
           <div style="font-family:var(--font-display);font-size:15px;font-weight:800">${ts.clientName}</div>
-          <div style="font-size:12px;color:var(--muted)">${monthLabel(ts.month)} · ${rowCount} row(s) · ${ts.invoiceType||c?.invoiceType||'—'} · ${ts.currency||'AED'}</div>
+          <div style="font-size:12px;color:var(--muted)">${monthLabel(ts.month)} · ${rowCount} row(s) · ${ts.currency||'AED'}${ts.convCurrency?' → '+ts.convCurrency:''}</div>
+          <div style="margin-top:3px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+            <span style="background:${color}18;color:${color};border:1px solid ${color}40;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700">${ts.invoiceType||c?.invoiceType||'mixed'}</span>
+            ${ts.billingProfileName&&ts.billingProfileName!=='Default'?`<span style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:600">📋 ${ts.billingProfileName}</span>`:''}
+            ${ts.sectionHeader?`<span style="font-size:10px;color:var(--muted);font-style:italic">"${ts.sectionHeader}"</span>`:''}
+          </div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:16px">
