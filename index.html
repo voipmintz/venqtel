@@ -1373,7 +1373,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       <div id="qc-result" class="highlight-amount" style="max-width:320px">0.00 USD</div>
     </div>
     <div class="card">
-      <div class="card-title">Reference Rates (Update Manually)</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="card-title" style="margin:0">Reference Rates (Update Manually)</div>
+        <button class="btn btn-primary btn-sm" onclick="saveCurrencyRates()">💾 Save Rates</button>
+      </div>
       <div class="form-group mb-12">
         <label>GBP → USD</label>
         <div class="input-with-prefix"><span class="input-prefix">$</span>
@@ -1398,7 +1401,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <input type="number" id="ref-aed-usd" value="0.2723" step="0.0001" oninput="quickConvert()" />
         </div>
       </div>
-      <div class="text-muted">Update rates from Google Finance or XE.com</div>
+      <div class="text-muted">Source: Google Finance or XE.com · click Save Rates to persist</div>
     </div>
   </div>
 </div>
@@ -5779,18 +5782,20 @@ function tsToInvoice(tsId) {
 
   // ── Build invoice data directly from timesheet ──
   const invType    = ts.invoiceType || c.invoiceType || 'mixed';
-  const sym        = invSymPlain(ts.currency || 'AED');
+  const invCur     = ts.currency     || c.currency    || 'AED';
+  const invConvTo  = ts.convCurrency || c.convCurrency || '';
+  const sym        = invSymPlain(invCur);
   const totalAmt   = (ts.rows || []).reduce((s,r) => s + (r.total||0), 0);
   const subTotal   = (ts.rows || []).reduce((s,r) => s + (r.subtotal||0), 0);
   const vatAmt     = (ts.rows || []).reduce((s,r) => s + (r.vatAmt||0), 0);
-  const vatPct     = ts.rows?.[0]?.vatPct || c.vat || 0;
-  // Universal 6-pair rate lookup
+  const vatPct     = ts.vat !== undefined ? ts.vat : (ts.rows?.[0]?.vatPct || c.vat || 0);
+  // Universal 6-pair exchange rate lookup using SAVED rates
   const _er0 = state.settings.exchangeRates||{};
   const _br0 = {'GBP-USD':_er0.gbpUsd||1.3295,'USD-AED':_er0.usdAed||3.6725,'GBP-AED':_er0.gbpAed||4.8812};
   _br0['USD-GBP']=1/_br0['GBP-USD']; _br0['AED-USD']=1/_br0['USD-AED']; _br0['AED-GBP']=1/_br0['GBP-AED'];
   _br0['AED-AED']=1; _br0['USD-USD']=1; _br0['GBP-GBP']=1;
-  const convRate   = (invConvTo&&invConvTo!==invCur) ? (_br0[invCur+'-'+invConvTo]||0) : 0;
-  const convertedTotal = convRate>0 ? Math.round(totalAmt*convRate*100)/100 : null;
+  const convRate   = (invConvTo && invConvTo !== invCur) ? (_br0[invCur+'-'+invConvTo] || 0) : 0;
+  const convertedTotal = convRate > 0 ? Math.round(totalAmt * convRate * 100) / 100 : null;
 
   const invData = {
     id:             uid(),
@@ -5807,8 +5812,8 @@ function tsToInvoice(tsId) {
     clientTax:      c.tax || '',
     sectionHeader:  ts.sectionHeader || c.sectionHeader || '',
     poNumber:       '',
-    currency:       ts.currency || c.currency || 'AED',
-    convertTo:      c.convCurrency || '',
+    currency:       invCur,
+    convertTo:      invConvTo,
     convertRate:    convRate,
     convertedTotal: convertedTotal,
     billingType:    invType,
