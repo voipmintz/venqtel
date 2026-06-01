@@ -4820,33 +4820,393 @@ function generateInvoicePreview() {
 
 function downloadInvoicePDF() {
   const d = getInvoiceData();
-  const html = buildInvoiceHTML(d, true);
-  // Open in new window for printing/saving as PDF
-  const win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) { showNotif('Allow popups to download PDF', 'error'); return; }
-  win.document.write(`<!DOCTYPE html><html><head>
-    <meta charset="UTF-8">
-    <title>Invoice ${d.number||''}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-      *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:'Inter',Arial,sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:11px}
-      @page{size:A4 portrait;margin:10mm 10mm 12mm}
-      @media print{.no-print{display:none!important}.inv-wrap{padding:0!important;box-shadow:none!important}}
-      .inv-wrap{max-width:100%;padding:0}
-      table{border-collapse:collapse;width:100%;font-size:10.5px}
-      th,td{padding:5px 6px}
-      img{max-width:100%;height:auto}
-    </style>
-  </head><body>
-    <div class="inv-wrap">${html}</div>
-    <div class="no-print" style="position:fixed;bottom:20px;right:20px;display:flex;gap:10px">
-      <button onclick="window.print()" style="background:#29963a;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2)">🖨 Print / Save PDF</button>
-      <button onclick="window.close()" style="background:#f1f5f9;border:none;padding:12px 18px;border-radius:10px;font-size:14px;cursor:pointer">✕ Close</button>
-    </div>
-  </body></html>`);
-  win.document.close();
-  showNotif('PDF window opened — click "Print / Save PDF" ✓');
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    _drawInvoicePDF(doc, d);
+    doc.save(`Invoice_${(d.number||'draft').replace(/[^a-zA-Z0-9_-]/g,'_')}.pdf`);
+    showNotif('PDF downloaded ✓');
+  } catch(e) {
+    console.error('jsPDF error:', e);
+    showNotif('PDF error — ' + e.message, 'error');
+  }
+}
+
+function _drawInvoicePDF(doc, d) {
+  // ── Page dimensions (A4) ──
+  const PW = 210, PH = 297;
+  const ML = 14, MR = 14, MT = 14;   // margins
+  const CW = PW - ML - MR;            // content width = 182mm
+  const color = d.template?.color || '#1a7f37';
+
+  // ── Colour helpers ──
+  const hexToRgb = h => {
+    const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+    return r ? [parseInt(r[1],16), parseInt(r[2],16), parseInt(r[3],16)] : [26,127,55];
+  };
+  const [cr,cg,cb] = hexToRgb(color);
+  const setColor  = () => doc.setTextColor(cr,cg,cb);
+  const setBlack  = () => doc.setTextColor(15,23,42);
+  const setGray   = () => doc.setTextColor(100,116,139);
+  const setDkGray = () => doc.setTextColor(51,65,85);
+  const setWhite  = () => doc.setTextColor(255,255,255);
+  const fillColor = (r,g,b) => doc.setFillColor(r,g,b);
+  const drawColor = (r,g,b) => doc.setDrawColor(r,g,b);
+
+  // ── Currency symbol (plain text) ──
+  const sym  = invSymPlain(d.currency  ||'AED');
+  const csym = d.convertTo ? invSymPlain(d.convertTo) : '';
+  const fmt  = (n) => (parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  let y = MT; // current Y cursor
+
+  // ══════════════════════════════════════════════════
+  // HEADER: green stripe + logo + TAX INVOICE
+  // ══════════════════════════════════════════════════
+  const hH = 28;
+  // White header box
+  fillColor(255,255,255); drawColor(226,232,240);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(ML, y, CW, hH, 3, 3, 'FD');
+  // Green left stripe
+  fillColor(cr,cg,cb); drawColor(cr,cg,cb);
+  doc.rect(ML, y, 5, hH, 'F');
+
+  // Logo or company name
+  const logoX = ML + 9;
+  if (d.logo) {
+    try {
+      const ext = d.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(d.logo, ext, logoX, y+4, Math.min(d.logoWidth||40,50), 20, '', 'FAST');
+    } catch(e) {
+      setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+      doc.text(d.from||'', logoX, y+16);
+    }
+  } else {
+    setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.text(d.from||'', logoX, y+16);
+  }
+
+  // TAX INVOICE right side
+  setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(18);
+  doc.text('TAX INVOICE', PW-MR, y+11, {align:'right'});
+  setGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  doc.text(`Invoice No: ${d.number||''}  ·  ${d.date||''}`, PW-MR, y+18, {align:'right'});
+  if (d.poNumber) doc.text(`PO: ${d.poNumber}`, PW-MR, y+23, {align:'right'});
+
+  y += hH + 6;
+
+  // ══════════════════════════════════════════════════
+  // FROM / BILL TO — two columns, each item on own line
+  // ══════════════════════════════════════════════════
+  const colW  = CW/2 - 4;
+  const fromX = ML;
+  const billX = ML + CW/2 + 2;
+  const icoW  = 4;   // icon column width
+  const txtX  = (baseX) => baseX + icoW + 1;
+
+  // Section labels
+  setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(7);
+  doc.text('FROM', fromX, y); doc.text('BILL TO', billX, y);
+  y += 4;
+
+  // Company name / Client name
+  setBlack(); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  const fromNameLines = doc.splitTextToSize(d.from||'', colW-2);
+  const billNameLines = doc.splitTextToSize(d.clientName||'', colW-2);
+  doc.text(fromNameLines, fromX, y);
+  doc.text(billNameLines, billX, y);
+  y += Math.max(fromNameLines.length, billNameLines.length) * 5 + 2;
+
+  // Draw each contact line: green dot icon + text
+  const drawContactLine = (x, text, startY) => {
+    if (!text) return startY;
+    // Green filled circle as icon
+    fillColor(cr,cg,cb);
+    doc.circle(x + 1.5, startY - 1.2, 1.2, 'F');
+    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    const lines = doc.splitTextToSize(text, colW - icoW - 3);
+    doc.text(lines, txtX(x), startY);
+    return startY + lines.length * 4;
+  };
+
+  // Address — split into max 2 lines
+  const splitAddr = (str) => {
+    if (!str) return [];
+    const parts = str.split(/\n|,/).map(s=>s.trim()).filter(Boolean);
+    if (parts.length <= 2) return parts;
+    const mid = Math.ceil(parts.length/2);
+    return [parts.slice(0,mid).join(', '), parts.slice(mid).join(', ')];
+  };
+
+  const fromAddr = splitAddr(d.company?.address||'');
+  const billAddr = splitAddr(d.clientAddr||'');
+
+  // Track Y independently for each column
+  let fy = y, by = y;
+
+  // FROM details
+  if (fromAddr[0]) fy = drawContactLine(fromX, fromAddr[0], fy);
+  if (fromAddr[1]) {
+    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    const l2 = doc.splitTextToSize(fromAddr[1], colW - icoW - 3);
+    doc.text(l2, txtX(fromX), fy); fy += l2.length * 4;
+  }
+  if (d.company?.phone)   fy = drawContactLine(fromX, d.company.phone,   fy);
+  if (d.company?.email)   fy = drawContactLine(fromX, d.company.email,   fy);
+  if (d.company?.website) fy = drawContactLine(fromX, d.company.website, fy);
+  if (d.company?.tax) {
+    fy += 1;
+    fillColor(cr,cg,cb); drawColor(cr,cg,cb);
+    doc.setLineWidth(0.1);
+    doc.roundedRect(fromX, fy-3, 7, 4, 0.5, 0.5, 'F');
+    setWhite(); doc.setFont('helvetica','bold'); doc.setFontSize(6);
+    doc.text('TRN', fromX+3.5, fy, {align:'center'});
+    setBlack(); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text(d.company.tax, fromX+9, fy);
+    fy += 5;
+  }
+
+  // BILL TO details
+  if (billAddr[0]) by = drawContactLine(billX, billAddr[0], by);
+  if (billAddr[1]) {
+    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    const l2 = doc.splitTextToSize(billAddr[1], colW - icoW - 3);
+    doc.text(l2, txtX(billX), by); by += l2.length * 4;
+  }
+  if (d.clientEmail) by = drawContactLine(billX, d.clientEmail, by);
+  if (d.clientTax) {
+    by += 1;
+    fillColor(cr,cg,cb); drawColor(cr,cg,cb);
+    doc.roundedRect(billX, by-3, 7, 4, 0.5, 0.5, 'F');
+    setWhite(); doc.setFont('helvetica','bold'); doc.setFontSize(6);
+    doc.text('TRN', billX+3.5, by, {align:'center'});
+    setBlack(); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text(d.clientTax, billX+9, by);
+    by += 5;
+  }
+
+  y = Math.max(fy, by) + 6;
+
+  // Divider line
+  drawColor(226,232,240); doc.setLineWidth(0.3);
+  doc.line(ML, y-3, ML+CW, y-3);
+
+  // ══════════════════════════════════════════════════
+  // SECTION HEADER (if set)
+  // ══════════════════════════════════════════════════
+  if (d.sectionHeader) {
+    setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(d.sectionHeader, ML, y+3);
+    y += 8;
+  }
+
+  // ══════════════════════════════════════════════════
+  // INVOICE TABLE
+  // ══════════════════════════════════════════════════
+  const bt = d.billingType||'day';
+  const hasVat = (d.rows||[]).some(r=>r.vatPct>0);
+
+  // Column definitions per billing type
+  const cols = (() => {
+    if (bt==='day'||bt==='mixed') return [
+      {h:'SR.NO',       w:10, align:'center', key:'index'},
+      {h:'NAME OF THE RESOURCE', w:42, align:'left',   key:'name'},
+      {h:'OFFSHORE/ONSITE',      w:24, align:'center', key:'locType'},
+      {h:'DAYS WORKED',          w:20, align:'center', key:'days'},
+      {h:'VAT %',      w:14, align:'center', key:'vatPct'},
+      {h:'VAT AMOUNT', w:22, align:'right',  key:'vatAmt', fmt:true},
+      {h:`DAY RATES IN ${sym}`,  w:26, align:'right',  key:'rate',  fmt:true},
+      {h:'TOTAL',      w:24, align:'right',  key:'total', fmt:true},
+    ];
+    if (bt==='hour') return [
+      {h:'SR.NO',  w:10, align:'center', key:'index'},
+      {h:'DESCRIPTION', w:46, align:'left',   key:'name'},
+      {h:'OFFSHORE/ONSITE', w:24, align:'center', key:'locType'},
+      {h:'HRS WORKED', w:20, align:'center', key:'hours'},
+      {h:'VAT %',      w:14, align:'center', key:'vatPct'},
+      {h:'VAT AMOUNT', w:22, align:'right',  key:'vatAmt', fmt:true},
+      {h:`HOURLY RATE ${sym}`, w:24, align:'right', key:'rate', fmt:true},
+      {h:'TOTAL',      w:22, align:'right',  key:'total', fmt:true},
+    ];
+    if (bt==='fixed') return [
+      {h:'SR.NO',  w:10, align:'center', key:'index'},
+      {h:'RESOURCE', w:46, align:'left',  key:'name'},
+      {h:'OFFSHORE/ONSITE', w:24, align:'center', key:'locType'},
+      {h:'DAYS WORKED', w:20, align:'center', key:'days'},
+      {h:'VAT %',      w:14, align:'center', key:'vatPct'},
+      {h:'VAT AMOUNT', w:22, align:'right',  key:'vatAmt', fmt:true},
+      {h:`MONTHLY RATE ${sym}`, w:24, align:'right', key:'rate', fmt:true},
+      {h:'TOTAL',      w:22, align:'right',  key:'total', fmt:true},
+    ];
+    // unit / milestone / fallback
+    return [
+      {h:'SR.NO',  w:10, align:'center', key:'index'},
+      {h:'DESCRIPTION', w:80, align:'left', key:'name'},
+      {h:'VAT %',      w:16, align:'center', key:'vatPct'},
+      {h:'VAT AMOUNT', w:28, align:'right',  key:'vatAmt', fmt:true},
+      {h:'AMOUNT',     w:48, align:'right',  key:'total',  fmt:true},
+    ];
+  })();
+
+  // Scale columns to fit CW exactly
+  const totalColW = cols.reduce((s,c)=>s+c.w,0);
+  const scale = CW / totalColW;
+  cols.forEach(c => c.w = c.w * scale);
+
+  const rowH  = 7;
+  const thH   = 9;
+
+  // Table header
+  fillColor(cr,cg,cb); doc.rect(ML, y, CW, thH, 'F');
+  let cx = ML;
+  setWhite(); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+  cols.forEach(col => {
+    // Split header text that has newline
+    const hLines = col.h.split(' ');
+    if (hLines.length > 3) {
+      // Two-line header
+      const mid = Math.ceil(hLines.length/2);
+      const l1 = hLines.slice(0,mid).join(' ');
+      const l2 = hLines.slice(mid).join(' ');
+      const tx = col.align==='right' ? cx+col.w-1 : col.align==='center' ? cx+col.w/2 : cx+1;
+      doc.text(l1, tx, y+3.5, {align:col.align==='right'?'right':col.align==='center'?'center':'left'});
+      doc.text(l2, tx, y+7,   {align:col.align==='right'?'right':col.align==='center'?'center':'left'});
+    } else {
+      const tx = col.align==='right' ? cx+col.w-1 : col.align==='center' ? cx+col.w/2 : cx+1;
+      doc.text(col.h, tx, y+5.5, {align:col.align==='right'?'right':col.align==='center'?'center':'left'});
+    }
+    cx += col.w;
+  });
+  y += thH;
+
+  // Table rows
+  (d.rows||[]).forEach((row, ri) => {
+    const bg = ri%2===0 ? [255,255,255] : [248,250,252];
+    fillColor(...bg); doc.rect(ML, y, CW, rowH, 'F');
+    // Bottom border
+    drawColor(241,245,249); doc.setLineWidth(0.2);
+    doc.line(ML, y+rowH, ML+CW, y+rowH);
+
+    cx = ML;
+    cols.forEach(col => {
+      let val = row[col.key];
+      if (col.fmt) val = sym + fmt(val||0);
+      else if (val===undefined||val===null) val='';
+      else val = String(val);
+      const tx = col.align==='right' ? cx+col.w-1.5 : col.align==='center' ? cx+col.w/2 : cx+1.5;
+      const isName = col.key==='name';
+      setBlack();
+      doc.setFont('helvetica', isName ? 'bold' : 'normal');
+      doc.setFontSize(8.5);
+      // Clip long text
+      const fitted = doc.splitTextToSize(val, col.w-2)[0]||'';
+      doc.text(fitted, tx, y+4.8, {align:col.align==='right'?'right':col.align==='center'?'center':'left'});
+      cx += col.w;
+    });
+    y += rowH;
+  });
+
+  // Table border
+  drawColor(226,232,240); doc.setLineWidth(0.3);
+  doc.rect(ML, y - (d.rows||[]).length*rowH - thH, CW, (d.rows||[]).length*rowH + thH);
+  y += 5;
+
+  // ══════════════════════════════════════════════════
+  // TOTALS + AMOUNT IN WORDS (two columns)
+  // ══════════════════════════════════════════════════
+  const wordsX = ML;
+  const totalsX = ML + CW*0.55;
+  const totalsW = CW*0.45;
+
+  // Amount in words
+  setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+  doc.text('AMOUNT IN WORDS', wordsX, y+4);
+  setDkGray(); doc.setFont('helvetica','italic'); doc.setFontSize(8.5);
+  const wordLines = doc.splitTextToSize(d.amtWords||'', CW*0.52);
+  doc.text(wordLines, wordsX, y+9);
+
+  // Totals box
+  const totY = y;
+  // Subtotal row
+  if (d.vat>0) {
+    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    doc.text('Subtotal', totalsX, totY+5);
+    setBlack(); doc.setFont('helvetica','normal');
+    doc.text(sym+fmt(d.subtotal), totalsX+totalsW, totY+5, {align:'right'});
+    // VAT row
+    doc.text(`VAT (${d.rows?.[0]?.vatPct||0}%)`, totalsX, totY+11);
+    doc.text(sym+fmt(d.vat), totalsX+totalsW, totY+11, {align:'right'});
+  }
+
+  // TOTAL box
+  const totBoxY = d.vat>0 ? totY+13 : totY;
+  fillColor(cr,cg,cb); doc.roundedRect(totalsX-2, totBoxY+1, totalsW+2, 9, 1, 1, 'F');
+  setWhite(); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('TOTAL', totalsX+1, totBoxY+6.5);
+  doc.text(sym+fmt(d.total), totalsX+totalsW, totBoxY+6.5, {align:'right'});
+
+  // Converted total
+  let totalBlockBottom = totBoxY + 11;
+  if (d.convertedTotal && d.convertTo) {
+    drawColor(cr,cg,cb); fillColor(255,255,255);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(totalsX-2, totBoxY+11, totalsW+2, 9, 1, 1, 'FD');
+    setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text(`TOTAL IN ${d.convertTo}`, totalsX+1, totBoxY+16.5);
+    doc.setFontSize(11);
+    doc.text(csym+fmt(d.convertedTotal), totalsX+totalsW, totBoxY+16.5, {align:'right'});
+    totalBlockBottom = totBoxY + 21;
+  }
+
+  y = Math.max(y + wordLines.length*4 + 14, totalBlockBottom) + 6;
+
+  // ══════════════════════════════════════════════════
+  // NOTES
+  // ══════════════════════════════════════════════════
+  if (d.notes) {
+    drawColor(cr,cg,cb); doc.setLineWidth(1.5);
+    doc.line(ML, y, ML, y+7);
+    setBlack(); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text('Notes: ', ML+3, y+4.5);
+    setDkGray(); doc.setFont('helvetica','normal');
+    const noteLines = doc.splitTextToSize(d.notes, CW-20);
+    doc.text(noteLines, ML+18, y+4.5);
+    y += noteLines.length*4 + 8;
+  }
+
+  // ══════════════════════════════════════════════════
+  // BANK DETAILS
+  // ══════════════════════════════════════════════════
+  if (d.bank) {
+    // Header
+    fillColor(cr,cg,cb); fillColor(240,250,244);
+    drawColor(cr,cg,cb); doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y, CW, 7, 1, 1, 'FD');
+    setColor(); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+    doc.text(`PAYMENT DETAILS${d.bankLabel?' — '+d.bankLabel.toUpperCase():''}`, ML+3, y+4.5);
+    y += 8;
+
+    // Bank lines
+    const bankLines = d.bank.split('\n').filter(l=>l.trim());
+    setDkGray(); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    doc.setFont('courier','normal');
+    bankLines.forEach(line => {
+      doc.text(line.trim(), ML+3, y+3);
+      y += 4.5;
+    });
+    y += 3;
+  }
+
+  // ══════════════════════════════════════════════════
+  // FOOTER
+  // ══════════════════════════════════════════════════
+  const footerY = PH - 10;
+  drawColor(226,232,240); doc.setLineWidth(0.3);
+  doc.line(ML, footerY-2, ML+CW, footerY-2);
+  setGray(); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  const footerText = `Thank you for your business  ·  Payment due within 30 days${d.company?.website?' · '+d.company.website:''}`;
+  doc.text(footerText, ML+CW/2, footerY+2, {align:'center'});
 }
 
 function openSendModal() {
