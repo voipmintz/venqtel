@@ -4601,10 +4601,13 @@ function buildInvoiceHTML(d, forPDF) {
     <div style="font-size:8.5px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:700;margin-bottom:5px">FROM</div>
     <div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:6px;line-height:1.25">${d.from}</div>
     ${d.company?.address ? _drow(_iPin(color), `<span style="white-space:pre-line">${_fmtAddr(d.company.address)}</span>`) : ''}
-    ${(d.company?.phone && d.company?.email) ? _dpair(_iPhone(color), d.company.phone, _iMail(color), d.company.email) : ''}
-    ${(d.company?.phone && !d.company?.email) ? _drow(_iPhone(color), d.company.phone) : ''}
-    ${(!d.company?.phone && d.company?.email) ? _drow(_iMail(color), d.company.email) : ''}
-    ${d.company?.website ? _drow(_iWeb(color), d.company.website) : ''}
+    ${(()=>{
+      const p = d.company?.phone ? `<span style="display:inline-flex;align-items:center;gap:4px">${_iPhone(color)}<span>${d.company.phone}</span></span>` : '';
+      const e = d.company?.email ? `<span style="display:inline-flex;align-items:center;gap:4px">${_iMail(color)}<span>${d.company.email}</span></span>` : '';
+      const w = d.company?.website ? `<span style="display:inline-flex;align-items:center;gap:4px">${_iWeb(color)}<span>${d.company.website}</span></span>` : '';
+      const items = [p,e,w].filter(Boolean);
+      return items.length ? `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:#475569;margin-bottom:3px">${items.join('')}</div>` : '';
+    })()}
     ${d.company?.tax ? _trn(d.company.tax) : ''}
   </div>`;
 
