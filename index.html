@@ -1232,17 +1232,18 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 <!-- ─── CREATE / EDIT TIMESHEET MODAL ─── -->
 <div class="modal-overlay" id="modal-timesheet">
-<div class="modal" style="max-width:1000px;width:96vw;max-height:90vh;overflow-y:auto">
-  <div class="modal-header" style="position:sticky;top:0;z-index:10;background:var(--g500);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+<div class="modal" style="max-width:1060px;width:96vw;max-height:92vh;overflow-y:auto">
+  <!-- Sticky header -->
+  <div style="position:sticky;top:0;z-index:10;background:var(--g500);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
     <div>
       <div style="font-family:var(--font-display);font-size:17px;font-weight:800" id="ts-modal-title">New Timesheet</div>
-      <div style="font-size:12px;opacity:.8" id="ts-modal-subtitle">Fill in hours worked for this month</div>
+      <div style="font-size:12px;opacity:.8" id="ts-modal-subtitle">Pick client and month — all profiles load below</div>
     </div>
-    <button class="modal-close" onclick="closeModal('modal-timesheet')" style="color:#fff;background:rgba(255,255,255,.2);border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px">✕</button>
+    <button onclick="closeModal('modal-timesheet')" style="color:#fff;background:rgba(255,255,255,.2);border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px">✕</button>
   </div>
-  <div style="padding:24px">
-    <!-- Header row: client/month/days -->
-    <div class="form-grid mb-16" id="ts-modal-meta" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px">
+  <div style="padding:20px 24px">
+    <!-- Client + Month + Days -->
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px">
       <div class="form-group" style="margin:0">
         <label>Client</label>
         <select id="ts-modal-client" onchange="onTsModalClientChange()" style="width:100%">
@@ -1265,60 +1266,32 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         </select>
       </div>
       <div class="form-group" style="margin:0">
-        <label>Total Working Days <span style="font-size:9px;color:var(--brand);font-weight:600">AUTO</span></label>
-        <input type="number" id="ts-modal-total-days" value="22" title="Auto-calculated (Mon-Fri only). You can override." />
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">Mon–Fri only · auto-filled by month</div>
+        <label>Working Days <span style="font-size:9px;color:var(--brand);font-weight:600">AUTO</span></label>
+        <input type="number" id="ts-modal-total-days" value="22" />
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Mon–Fri · auto-filled</div>
       </div>
       <div class="form-group" style="margin:0">
-        <label>Total Working Hours <span style="font-size:9px;color:var(--brand);font-weight:600">AUTO</span></label>
-        <input type="number" id="ts-modal-total-hours" value="176" title="Auto-calculated (working days × 8hrs). You can override." />
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">Days × 8 hrs · auto-filled by month</div>
+        <label>Working Hours <span style="font-size:9px;color:var(--brand);font-weight:600">AUTO</span></label>
+        <input type="number" id="ts-modal-total-hours" value="176" />
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Days × 8 hrs</div>
       </div>
     </div>
 
-    <!-- Billing profile selector (shown when client has multiple profiles) -->
-    <div id="ts-modal-profile-row" style="display:none;margin-bottom:12px">
-      <label style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">
-        Billing Profile <span style="font-size:10px;font-weight:400;color:var(--muted);text-transform:none">— select which invoice type to use for this timesheet</span>
-      </label>
-      <select id="ts-modal-profile" onchange="onTsModalClientChange()"
-        style="width:100%;border:2px solid var(--brand);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:600;outline:none;background:var(--brand-50)">
-      </select>
-    </div>
-
-    <!-- Client info banner -->
-    <div id="ts-modal-client-info" style="display:none" class="info-box mb-16" style="font-size:12px"></div>
-
-    <!-- Simple entry table -->
-    <div id="ts-modal-simple">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-weight:700;font-size:14px" id="ts-modal-table-title">Resource Entries</div>
-        <button class="btn btn-secondary btn-sm" onclick="addTsModalRow()">+ Add Row</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="data-table" id="ts-modal-table">
-          <thead id="ts-modal-thead"></thead>
-          <tbody id="ts-modal-tbody"></tbody>
-          <tfoot id="ts-modal-tfoot"></tfoot>
-        </table>
-      </div>
-    </div>
-
-    <!-- Calendar entry (for calendar mode) -->
-    <div id="ts-modal-calendar" style="display:none">
-      <div id="ts-modal-calendar-grid"></div>
+    <!-- Profile tabs area — populated by onTsModalClientChange -->
+    <div id="ts-modal-profiles-area">
+      <div style="font-size:13px;color:var(--muted);font-style:italic;padding:20px;text-align:center">Select a client to load profiles</div>
     </div>
   </div>
-  <div style="padding:16px 24px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:10px;justify-content:space-between;position:sticky;bottom:0">
+
+  <!-- Footer: Save All Drafts / Mark All Ready -->
+  <div style="padding:14px 24px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:10px;justify-content:space-between;align-items:center;position:sticky;bottom:0">
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn btn-secondary" onclick="saveTsModal('draft')">💾 Save Draft</button>
-      <button class="btn btn-primary" onclick="saveTsModal('ready')">✅ Mark Ready for Invoice</button>
-      <span style="font-size:10px;color:var(--muted);max-width:180px;line-height:1.4">Saves timesheet · won't generate invoice yet</span>
+      <button class="btn btn-secondary" onclick="saveAllTsProfiles('draft')">💾 Save All Drafts</button>
+      <button class="btn btn-primary" onclick="saveAllTsProfiles('ready')">✅ Mark All Ready</button>
+      <span style="font-size:10px;color:var(--muted);max-width:200px;line-height:1.4">Saves timesheets for all profiles</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span style="font-size:10px;color:var(--muted);text-align:right;max-width:160px;line-height:1.4">Saves + opens New Invoice pre-filled</span>
-      <button class="btn btn-ghost" style="color:#16a34a;border-color:#86efac;font-weight:700" onclick="tsModalToInvoice()">→ Generate Invoice</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-timesheet')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-timesheet')">Close</button>
     </div>
   </div>
 </div>
@@ -1709,7 +1682,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     </div>
 
     <!-- ── SECTION 2: Billing Settings ── -->
-    <div style="margin-bottom:28px">
+    <div style="margin-bottom:28px;display:none">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">💰</div>
         <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px">Billing Settings</span>
@@ -1827,8 +1800,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       </div>
     </div>
 
-    <!-- ── SECTION 3: Resources / Employees ── -->
-    <div id="cl-section-resources">
+    <!-- ── SECTION 3: Resources / Employees (legacy - hidden, employees now in profiles) ── -->
+    <div id="cl-section-resources" style="display:none">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">👥</div>
         <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px" id="cl-section3-label">Employees / Resources</span>
@@ -2487,14 +2460,20 @@ function buildBillingProfileCard(p, idx) {
   ];
   const typeOpts = invTypes.map(([v,l])=>
     `<option value="${v}" ${p.invoiceType===v?'selected':''}>${l}</option>`).join('');
-  return `<div class="billing-profile-card" style="border:1.5px solid var(--border);border-radius:10px;overflow:hidden;background:var(--white)">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${color}12;border-bottom:1px solid var(--border)">
-      <input type="text" class="bp-name" value="${p.name||'Profile '+(idx+1)}"
-        placeholder="e.g. Fixed Monthly – AED, SAP Hourly – USD"
-        style="font-weight:700;font-size:13px;border:none;background:transparent;outline:none;color:var(--ink);flex:1" />
-      <button onclick="removeBillingProfile(this)" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:0 0 0 8px" title="Remove">✕</button>
+  const empRows = (p.employees||[]).map((e,ei) => buildBpEmployeeRow(e, ei, color)).join('');
+  const noEmpMsg = (p.employees&&p.employees.length) ? '' :
+    `<div class="bp-no-emp" style="font-size:11px;color:var(--muted);font-style:italic;padding:4px 0">No employees yet — click + Add Employee</div>`;
+  return `<div class="billing-profile-card" style="border:2px solid var(--border);border-radius:12px;overflow:hidden;background:var(--white)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:${color}15;border-bottom:1.5px solid ${color}30">
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <div style="width:26px;height:26px;background:${color};border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;flex-shrink:0">${idx+1}</div>
+        <input type="text" class="bp-name" value="${p.name||'Profile '+(idx+1)}"
+          placeholder="e.g. SAP Fixed Monthly, IT Hourly Support"
+          style="font-weight:700;font-size:13px;border:none;background:transparent;outline:none;color:var(--ink);flex:1" />
+      </div>
+      <button onclick="removeBillingProfile(this)" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);color:#dc2626;width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center" title="Remove">✕</button>
     </div>
-    <div style="padding:12px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;border-bottom:1px solid var(--border)">
       <div>
         <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Invoice Type</label>
         <select class="bp-inv-type" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none;background:var(--white)" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">${typeOpts}</select>
@@ -2509,7 +2488,7 @@ function buildBillingProfileCard(p, idx) {
         <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Convert To</label>
         <select class="bp-conv" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none;background:var(--white)" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">
           <option value="">— None —</option>
-          ${['AED','USD','GBP'].map(c=>`<option ${(p.convCurrency||'')===c?'selected':''}>${c}</option>`).join('')}
+          ${['AED','USD','GBP'].map(c=>`<option ${(p.convCurrency||'')==c?'selected':''}>${c}</option>`).join('')}
         </select>
       </div>
       <div>
@@ -2538,7 +2517,69 @@ function buildBillingProfileCard(p, idx) {
           style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
       </div>
     </div>
+    <!-- Employees owned by this profile -->
+    <div style="padding:12px 16px;background:var(--surface)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${color}">👥 Employees in this profile</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">exclusive to this profile</span>
+        </div>
+        <button onclick="addBpEmployee(this)" style="background:${color};color:#fff;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700">+ Add Employee</button>
+      </div>
+      <div class="bp-employees" style="display:flex;flex-direction:column;gap:6px">${empRows}</div>
+      ${noEmpMsg}
+    </div>
   </div>`;
+}
+
+function buildBpEmployeeRow(e, ei, color) {
+  color = color || state.settings.template?.color||'#1a7f37';
+  return `<div class="bp-emp-row" style="background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;display:grid;grid-template-columns:1fr 90px 90px 90px 90px 28px;gap:8px;align-items:end">
+    <div>
+      <label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px">Employee Name</label>
+      <input type="text" class="bp-emp-name" value="${e?.name||''}" placeholder="e.g. John Smith"
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;font-weight:600;outline:none"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+    <div>
+      <label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px">Type</label>
+      <select class="bp-emp-type" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;outline:none;background:var(--white)">
+        <option ${(e?.type||'Offshore')==='Offshore'?'selected':''}>Offshore</option>
+        <option ${e?.type==='Onsite'?'selected':''}>Onsite</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px">Day Rate</label>
+      <input type="number" class="bp-emp-day" value="${e?.dayRate||''}" placeholder="0"
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;outline:none;font-family:var(--font-mono)"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+    <div>
+      <label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px">Hourly</label>
+      <input type="number" class="bp-emp-hour" value="${e?.hourRate||''}" placeholder="0"
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;outline:none;font-family:var(--font-mono)"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+    <div>
+      <label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px">Fixed/Mo</label>
+      <input type="number" class="bp-emp-fixed" value="${e?.fixedRate||''}" placeholder="0"
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;outline:none;font-family:var(--font-mono)"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+    <button onclick="this.closest('.bp-emp-row').remove()"
+      style="background:#fff1f0;border:1px solid #fdd;color:#dc2626;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+  </div>`;
+}
+
+function addBpEmployee(btn) {
+  const card = btn.closest('.billing-profile-card');
+  const container = card.querySelector('.bp-employees');
+  const noEmp = card.querySelector('.bp-no-emp');
+  if (noEmp) noEmp.style.display='none';
+  const color = state.settings.template?.color||'#1a7f37';
+  const div = document.createElement('div');
+  div.innerHTML = buildBpEmployeeRow({}, container.querySelectorAll('.bp-emp-row').length, color);
+  container.appendChild(div.firstElementChild);
 }
 
 function addBillingProfile(p) {
@@ -2574,6 +2615,14 @@ function getBillingProfiles() {
     fixedRate:     parseFloat(card.querySelector('.bp-fixed-rate')?.value)||0,
     vat:           parseFloat(card.querySelector('.bp-vat')?.value)||5,
     sectionHeader: card.querySelector('.bp-section-header')?.value||'',
+    // Employees are now owned by the profile
+    employees: Array.from(card.querySelectorAll('.bp-emp-row')).map(row => ({
+      name:      row.querySelector('.bp-emp-name')?.value.trim()||'',
+      type:      row.querySelector('.bp-emp-type')?.value||'Offshore',
+      dayRate:   parseFloat(row.querySelector('.bp-emp-day')?.value)||0,
+      hourRate:  parseFloat(row.querySelector('.bp-emp-hour')?.value)||0,
+      fixedRate: parseFloat(row.querySelector('.bp-emp-fixed')?.value)||0,
+    })).filter(e => e.name),
   }));
 }
 
@@ -2614,21 +2663,6 @@ function renderClients() {
     const sym = invSymPlain(c.currency||'AED');
     const empCount = (c.employees||[]).length;
     const svcCount = (c.services||[]).length;
-    const bpList   = c.billingProfiles && c.billingProfiles.length > 0 ? c.billingProfiles : null;
-    const bpHtml   = bpList
-      ? `<div class="client-detail" style="margin-top:6px">
-           <strong style="color:var(--brand);font-size:11px;text-transform:uppercase;letter-spacing:.5px">📋 Billing Profiles (${bpList.length})</strong>
-           <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">
-             ${bpList.map(p=>`<span style="background:var(--g50);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:11px;color:var(--ink2)">
-               <strong>${p.name||'Default'}</strong> · ${invTypeLabels[p.invoiceType]||'Mixed'} · ${p.currency||'AED'}${p.convCurrency?' → '+p.convCurrency:''}
-             </span>`).join('')}
-           </div>
-         </div>`
-      : `<div class="client-detail">
-           ${c.dayRate?`📅 ${sym}${fmt(c.dayRate)}/day`:''}
-           ${c.hourRate?` &nbsp; ⏱ ${sym}${fmt(c.hourRate)}/hr`:''}
-           ${c.fixedRate?` &nbsp; 📌 ${sym}${fmt(c.fixedRate)}/mo`:''}
-         </div>`;
     return `<div class="client-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div class="client-name">${c.name}</div>
@@ -2637,14 +2671,18 @@ function renderClients() {
       ${c.contact?`<div class="client-detail">👤 ${c.contact}</div>`:''}
       ${c.email?`<div class="client-detail">✉️ ${c.email}</div>`:''}
       <div class="client-detail" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-        ${c.clientType==='description'?'📝 Description-based':'👤 Resource-based'} &nbsp;·&nbsp;
-        ${c.entryMode==='calendar'?'📆 Calendar':'📋 Simple'} &nbsp;·&nbsp;
-        VAT ${c.vat||0}%
+        ${invTypeLabels[c.invoiceType]||'🔀 Mixed'} &nbsp;·&nbsp;
+        ${c.clientType==='description'?'📝 Desc-based':'👤 Resource-based'} &nbsp;·&nbsp;
+        ${c.entryMode==='calendar'?'📆 Calendar':'📋 Simple'}
       </div>
       ${c.sectionHeader?`<div class="client-detail" style="color:${color};font-weight:600;font-style:italic">"${c.sectionHeader}"</div>`:''}
-      ${bpHtml}
-      <div class="client-detail">👥 ${empCount?empCount+' employee(s)':svcCount?svcCount+' service(s)':'No entries'}</div>
-      ${c.convCurrency&&!bpList?`<div class="client-detail">💱 → ${c.convCurrency}</div>`:''}
+      <div class="client-detail">
+        ${c.dayRate?`📅 ${sym}${fmt(c.dayRate)}/day`:''}
+        ${c.hourRate?` &nbsp; ⏱ ${sym}${fmt(c.hourRate)}/hr`:''}
+        ${c.fixedRate?` &nbsp; 📌 ${sym}${fmt(c.fixedRate)}/mo`:''}
+      </div>
+      <div class="client-detail">VAT: ${c.vat||0}% · ${empCount?`${empCount} employee(s)`:svcCount?`${svcCount} service(s)`:'No entries'}</div>
+      ${c.convCurrency?`<div class="client-detail">💱 → ${c.convCurrency}</div>`:''}
       <div class="flex gap-8 mt-12">
         <button class="btn btn-secondary btn-xs" onclick="openClientModal(${i})">✏️ Edit</button>
         <button class="btn btn-primary btn-xs" onclick="quickCreateTs(${i})">+ Timesheet</button>
@@ -2848,37 +2886,32 @@ function updateClCurrSyms() {
 function saveClient() {
   const name=document.getElementById('cl-name').value.trim();
   if(!name) return showNotif('Enter company name','error');
-  const emps=[];
-  document.querySelectorAll('#cl-employees .emp-card').forEach(card=>{
-    const n=card.querySelector('.emp-name')?.value.trim();
-    if(!n)return;
-    emps.push({
-      name:n,
-      type:card.querySelector('.emp-type')?.value||'Offshore',
-      rateType:card.querySelector('.emp-rate-type')?.value||'day',
-      dayRate:parseFloat(card.querySelector('.emp-day')?.value)||0,
-      hourRate:parseFloat(card.querySelector('.emp-hour')?.value)||0,
-      fixedRate:parseFloat(card.querySelector('.emp-fixed')?.value)||0
-    });
-  });
+  const profiles = getBillingProfiles();
+  // Validate: each profile needs at least a name
+  for (const p of profiles) {
+    if (!p.name.trim()) return showNotif('Each profile needs a name','error');
+  }
   const c={
-    name, contact:document.getElementById('cl-contact').value,
-    email:document.getElementById('cl-email').value,
-    address:document.getElementById('cl-address').value,
-    currency:document.getElementById('cl-currency').value,
-    convCurrency:document.getElementById('cl-conv-currency').value||'',
-    vat:parseFloat(document.getElementById('cl-vat').value)||0,
-    tax:document.getElementById('cl-tax')?.value||'',
-    clientType:document.getElementById('cl-client-type')?.value||'resource',
-    invoiceType:document.getElementById('cl-invoice-type')?.value||'mixed',
-    entryMode:document.getElementById('cl-entry-mode')?.value||'simple',
-    sectionHeader:document.getElementById('cl-section-header')?.value||'',
-    billingProfiles: getBillingProfiles(),
-    dayRate:parseFloat(document.getElementById('cl-day-rate').value)||0,
-    hourRate:parseFloat(document.getElementById('cl-hour-rate').value)||0,
-    fixedRate:parseFloat(document.getElementById('cl-fixed-rate').value)||0,
-    employees:emps,
-    services:getClientServices()
+    name,
+    contact: document.getElementById('cl-contact').value,
+    email:   document.getElementById('cl-email').value,
+    address: document.getElementById('cl-address').value,
+    // Legacy top-level fields (kept for compat) — real data lives in billingProfiles
+    currency:     profiles[0]?.currency     || 'AED',
+    convCurrency: profiles[0]?.convCurrency || '',
+    vat:          profiles[0]?.vat          || 0,
+    tax:          document.getElementById('cl-tax')?.value||'',
+    invoiceType:  profiles[0]?.invoiceType  || 'mixed',
+    sectionHeader:profiles[0]?.sectionHeader|| '',
+    dayRate:      profiles[0]?.dayRate      || 0,
+    hourRate:     profiles[0]?.hourRate     || 0,
+    fixedRate:    profiles[0]?.fixedRate    || 0,
+    // Employees now live inside each profile — aggregate for legacy compat
+    employees: profiles.flatMap(p => (p.employees||[]).map(e => ({...e, profileName: p.name}))),
+    billingProfiles: profiles,
+    services: getClientServices(),
+    clientType: 'resource',
+    entryMode:  'simple',
   };
   if(editingClientIdx!==null) state.clients[editingClientIdx]=c;
   else state.clients.push(c);
@@ -3847,92 +3880,17 @@ function onInvClientChange() {
   if (idx==='') return;
   const c = state.clients[parseInt(idx)];
   if (!c) return;
-
-  // ── Always fill contact details from client ──
-  document.getElementById('inv-client-addr').value  = c.address||'';
+  document.getElementById('inv-client-addr').value = c.address||'';
   document.getElementById('inv-client-email').value = c.email||'';
-
-  // ── Build effective billing profiles list ──
-  const profiles = (c.billingProfiles && c.billingProfiles.length > 0)
-    ? c.billingProfiles
-    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
-         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
-         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
-         vat: c.vat!==undefined ? c.vat : 5, sectionHeader: c.sectionHeader||'' }];
-
-  // ── Show/hide billing profile picker on New Invoice page ──
-  let profilePickerRow = document.getElementById('inv-billing-profile-row');
-  if (!profilePickerRow) {
-    // Inject the picker right after the client dropdown row
-    const clientRow = document.getElementById('inv-client')?.closest('.form-group');
-    if (clientRow) {
-      const row = document.createElement('div');
-      row.id = 'inv-billing-profile-row';
-      row.className = 'form-group';
-      row.innerHTML = `<label style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700">Billing Profile</label>
-        <select id="inv-billing-profile" onchange="onInvBillingProfileChange()"
-          style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;background:var(--white);color:var(--ink2)">
-        </select>`;
-      clientRow.insertAdjacentElement('afterend', row);
-    }
-    profilePickerRow = document.getElementById('inv-billing-profile-row');
-  }
-
-  const profSel = document.getElementById('inv-billing-profile');
-  if (profiles.length > 1) {
-    if (profilePickerRow) profilePickerRow.style.display = 'block';
-    if (profSel) {
-      profSel.innerHTML = profiles.map((p,i)=>
-        `<option value="${i}">${p.name||'Profile '+(i+1)} — ${p.invoiceType} · ${p.currency}</option>`
-      ).join('');
-    }
-  } else {
-    if (profilePickerRow) profilePickerRow.style.display = 'none';
-  }
-
-  // ── Apply the first (or selected) profile ──
-  const profIdx = parseInt(profSel?.value||'0')||0;
-  _applyInvBillingProfile(c, profiles[profIdx] || profiles[0]);
-}
-
-function onInvBillingProfileChange() {
-  const clientIdx = document.getElementById('inv-client')?.value;
-  if (!clientIdx) return;
-  const c = state.clients[parseInt(clientIdx)];
-  if (!c) return;
-  const profiles = (c.billingProfiles && c.billingProfiles.length > 0)
-    ? c.billingProfiles
-    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
-         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
-         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
-         vat: c.vat!==undefined ? c.vat : 5, sectionHeader: c.sectionHeader||'' }];
-  const profIdx = parseInt(document.getElementById('inv-billing-profile')?.value||'0')||0;
-  _applyInvBillingProfile(c, profiles[profIdx] || profiles[0]);
-}
-
-function _applyInvBillingProfile(c, prof) {
-  // VAT + section header
-  document.getElementById('inv-vat').value = prof.vat!==undefined ? prof.vat : (c.vat!==undefined ? c.vat : 5);
-  const sh = prof.sectionHeader || c.sectionHeader || '';
-  if (sh) document.getElementById('inv-section-header').value = sh;
-
+  document.getElementById('inv-vat').value = c.vat!==undefined ? c.vat : 5;
+  // Section header from client
+  if (c.sectionHeader) document.getElementById('inv-section-header').value = c.sectionHeader;
   // Currency
   const curEl = document.getElementById('inv-currency');
-  if (curEl && (prof.currency || c.currency)) curEl.value = prof.currency || c.currency || 'AED';
-
-  // Conversion currency
+  if (c.currency) curEl.value = c.currency;
+  // Conversion
   const convEl = document.getElementById('inv-conv-to');
-  if (convEl) convEl.value = prof.convCurrency || c.convCurrency || '';
-
-  // ── Switch invoice type tab to match profile ──
-  const invType = prof.invoiceType || c.invoiceType || 'mixed';
-  document.querySelectorAll('[data-tab-group="inv"]').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-pane[id^="inv-tab-"]').forEach(p=>p.classList.remove('active'));
-  const tabEl = document.querySelector(`[data-tab-group="inv"][data-tab="${invType}"]`);
-  if (tabEl) tabEl.classList.add('active');
-  const paneEl = document.getElementById(`inv-tab-${invType}`);
-  if (paneEl) paneEl.classList.add('active');
-
+  if (c.convCurrency) convEl.value = c.convCurrency;
   invAutoRate();
   updateInvCurLabels();
   recalcInvoice();
@@ -5066,56 +5024,322 @@ function openEditTimesheet(tsId) {
 
 function onTsModalClientChange(existingRows) {
   const clientIdx = document.getElementById('ts-modal-client')?.value||'';
-  if (!clientIdx) return;
+  if (!clientIdx) {
+    document.getElementById('ts-modal-profiles-area').innerHTML =
+      '<div style="font-size:13px;color:var(--muted);font-style:italic;padding:20px;text-align:center">Select a client to load profiles</div>';
+    return;
+  }
   const c = state.clients[parseInt(clientIdx)];
   if (!c) return;
+  const month = document.getElementById('ts-modal-month')?.value||'';
+  document.getElementById('ts-modal-title').textContent = _editingTsId ? 'Edit Timesheets' : 'New Timesheets — ' + c.name;
 
-  // If client has multiple billing profiles, show profile picker
-  const profiles = c.billingProfiles && c.billingProfiles.length > 0
+  const profiles = (c.billingProfiles && c.billingProfiles.length > 0)
     ? c.billingProfiles
     : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
          currency: c.currency||'AED', convCurrency: c.convCurrency||'',
          dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
-         vat: c.vat||5, sectionHeader: c.sectionHeader||'' }];
+         vat: c.vat||5, sectionHeader: c.sectionHeader||'',
+         employees: c.employees||[] }];
 
-  // Build profile selector if multiple profiles
-  const profileDiv = document.getElementById('ts-modal-profile-row');
-  if (profileDiv) {
-    if (profiles.length > 1) {
-      profileDiv.style.display = 'block';
-      const sel = document.getElementById('ts-modal-profile');
-      if (sel) {
-        sel.innerHTML = profiles.map((p,i)=>
-          `<option value="${i}">${p.name||'Profile '+(i+1)} — ${p.invoiceType} · ${p.currency}</option>`
-        ).join('');
-      }
+  const color = state.settings.template?.color||'#1a7f37';
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
+
+  // Build one panel per profile
+  const area = document.getElementById('ts-modal-profiles-area');
+
+  // Profile tab pills
+  const tabHtml = profiles.map((p,pi) =>
+    `<button id="ts-ptab-${pi}" onclick="tsSwitchProfileTab(${pi},${profiles.length})"
+      style="padding:7px 18px;border-radius:20px;border:2px solid;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;
+        ${pi===0?`background:${color};color:#fff;border-color:${color}`:`background:var(--white);color:var(--ink3);border-color:var(--border)`}">
+      ${p.name||'Profile '+(pi+1)}
+      ${month?_getTsStatusBadge(c.name, p.name, month):''}</button>`
+  ).join('');
+
+  // Build all profile panels (stacked, only active is visible)
+  const panelsHtml = profiles.map((p,pi) => {
+    const effectiveClient = {...c, ...p, employees: p.employees||c.employees||[]};
+    const existingTs = month ? state.timesheets.find(t => t.clientName===c.name && t.billingProfileName===p.name && t.month===month) : null;
+    const rows = existingTs ? existingTs.rows : null;
+    return `<div id="ts-ppanel-${pi}" style="display:${pi===0?'block':'none'};margin-top:0">
+      ${buildTsProfilePanel(effectiveClient, p, pi, rows, totalDays, totalHours, color)}
+    </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <!-- Profile tabs -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      ${tabHtml}
+    </div>
+    <!-- Profile panels -->
+    ${panelsHtml}`;
+}
+
+function _getTsStatusBadge(clientName, profileName, month) {
+  const ts = state.timesheets.find(t => t.clientName===clientName && t.billingProfileName===profileName && t.month===month);
+  if (!ts) return '';
+  const badges = {draft:'<span style="background:#fef9c3;color:#854d0e;border:1px solid #fde047;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px">draft</span>',
+    ready:'<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px">ready</span>',
+    invoiced:'<span style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px">invoiced</span>'};
+  return badges[ts.status]||'';
+}
+
+function tsSwitchProfileTab(activeIdx, total) {
+  for (let i=0; i<total; i++) {
+    const tab = document.getElementById('ts-ptab-'+i);
+    const panel = document.getElementById('ts-ppanel-'+i);
+    const color = state.settings.template?.color||'#1a7f37';
+    if (i===activeIdx) {
+      if (tab) { tab.style.background=color; tab.style.color='#fff'; tab.style.borderColor=color; }
+      if (panel) panel.style.display='block';
     } else {
-      profileDiv.style.display = 'none';
+      if (tab) { tab.style.background='var(--white)'; tab.style.color='var(--ink3)'; tab.style.borderColor='var(--border)'; }
+      if (panel) panel.style.display='none';
     }
   }
+}
 
-  // Get selected profile (default to first)
-  const profIdx = parseInt(document.getElementById('ts-modal-profile')?.value||'0')||0;
-  const prof = profiles[profIdx] || profiles[0];
+function buildTsProfilePanel(c, prof, profIdx, existingRows, totalDays, totalHours, color) {
+  const invType  = c.invoiceType||'mixed';
+  const sym      = invSymPlain(c.currency||'AED');
+  const vatPct   = c.vat||0;
 
-  // Merge profile into a pseudo-client object for buildTsModalTable
-  const effectiveClient = { ...c, ...prof };
-
-  // Show client info banner
-  const infoEl = document.getElementById('ts-modal-client-info');
-  if (infoEl) {
-    infoEl.style.display = 'block';
-    infoEl.innerHTML = `<strong>${c.name}</strong> &nbsp;·&nbsp;
-      <span style="color:var(--brand)"><strong>${prof.name||'Default'}</strong></span> &nbsp;·&nbsp;
-      ${prof.invoiceType} invoice &nbsp;·&nbsp;
-      Currency: <strong>${prof.currency||'AED'}</strong>
-      ${prof.convCurrency ? ` → ${prof.convCurrency}` : ''}
-      ${prof.sectionHeader ? ` &nbsp;·&nbsp; <em>"${prof.sectionHeader}"</em>` : ''}`;
+  // Build rows from profile employees if no existing rows
+  let rows = existingRows;
+  if (!rows) {
+    rows = (c.employees||[]).map(emp => buildDefaultRow(invType, emp.name, emp, c, totalDays, totalHours));
+    if (!rows.length) rows = [buildDefaultRow(invType, '', null, c, totalDays, totalHours)];
   }
 
-  buildTsModalTable(effectiveClient, existingRows||null);
-  document.getElementById('ts-modal-title').textContent =
-    `${_editingTsId?'Edit':'New'} Timesheet — ${c.name}${profiles.length>1?' ('+prof.name+')':''}`;
+  // Build thead
+  const thStyle = `background:${color};color:#fff;padding:7px 8px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px`;
+  const th = (txt,w='') => `<th style="${thStyle}${w?';width:'+w:''}">${txt}</th>`;
+  let theadHtml = '';
+  if (invType==='mixed')    theadHtml = `${th('Sr')}${th('Description')}${th('Offshore/Onsite')}${th('Days Worked')}${th('Hours Worked')}${th('VAT %')}${th('VAT Amt')}${th('Rate')}${th('Total')}${th('','32px')}`;
+  else if (invType==='day')  theadHtml = `${th('Sr')}${th('Resource')}${th('Offshore/Onsite')}${th('Days Worked')}${th('VAT %')}${th('VAT Amt')}${th('Day Rate')}${th('Total')}${th('','32px')}`;
+  else if (invType==='hour') theadHtml = `${th('Sr')}${th('Description')}${th('Offshore/Onsite')}${th('Total Hrs')}${th('Hrs Worked')}${th('VAT %')}${th('VAT Amt')}${th('Hourly Rate')}${th('Total')}${th('','32px')}`;
+  else if (invType==='fixed')theadHtml = `${th('Sr')}${th('Resource')}${th('Offshore/Onsite')}${th('Total Days')}${th('Days Worked')}${th('VAT %')}${th('VAT Amt')}${th('Monthly Rate')}${th('Total')}${th('','32px')}`;
+  else if (invType==='unit') theadHtml = `${th('Sr')}${th('Description')}${th('Unit Price')}${th('VAT %')}${th('VAT Amt')}${th('Total')}${th('','32px')}`;
+  else                       theadHtml = `${th('Sr')}${th('Description')}${th('Amount')}${th('VAT %')}${th('VAT Amt')}${th('Total')}${th('','32px')}`;
+
+  // Build tbody rows
+  const tbodyHtml = rows.map((r,ri) => buildTsTableRow(r, ri, invType, vatPct, sym, totalDays, totalHours, color, profIdx)).join('');
+
+  // Profile summary line
+  const profInfo = `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${color}10;border:1px solid ${color}30;border-radius:8px;margin-bottom:12px">
+    <span style="font-size:12px;font-weight:700;color:${color}">${prof.name||'Profile '+(profIdx+1)}</span>
+    <span style="font-size:11px;color:var(--muted)">${prof.invoiceType||'mixed'}</span>
+    <span style="font-size:11px;color:var(--muted)">${prof.currency||'AED'}${prof.convCurrency?' → '+prof.convCurrency:''}</span>
+    ${prof.sectionHeader?`<span style="font-size:11px;color:${color};font-style:italic">"${prof.sectionHeader}"</span>`:''}
+    <span style="font-size:11px;color:var(--muted);margin-left:auto">${(prof.employees||[]).length} employee(s)</span>
+  </div>`;
+
+  return `${profInfo}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="font-size:12px;font-weight:700;color:var(--ink3)">Resource Entries</div>
+    <button class="btn btn-secondary btn-sm" onclick="addTsProfileRow(${profIdx})">+ Add Row</button>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="data-table" id="ts-ptable-${profIdx}">
+      <thead><tr>${theadHtml}</tr></thead>
+      <tbody id="ts-ptbody-${profIdx}">${tbodyHtml}</tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn btn-secondary btn-sm" onclick="saveSingleTsProfile(${profIdx},'draft')">💾 Save Draft</button>
+    <button class="btn btn-primary btn-sm" onclick="saveSingleTsProfile(${profIdx},'ready')">✅ Mark Ready</button>
+    <button class="btn btn-ghost btn-sm" style="color:#16a34a;border-color:#86efac;font-weight:700" onclick="saveThenInvoice(${profIdx})">→ Invoice Now</button>
+  </div>`;
+}
+
+function buildTsTableRow(r, ri, invType, vatPct, sym, totalDays, totalHours, color, profIdx) {
+  const istr = i => `style="padding:5px 6px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none;font-family:var(--font-mono)" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'"`;
+  const td = (content, align='') => `<td style="padding:4px 6px${align?';'+align:''}">${content}</td>`;
+  const delBtn = `<td>${'<button onclick="this.closest(\'tr\').remove()" style="background:#fff1f0;border:1px solid #fdd;color:#dc2626;width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:12px">✕</button>'}</td>`;
+  const srTd = td(`<span style="font-size:11px;color:var(--muted)">${ri+1}</span>`, 'text-align:center');
+  const typeSel = `<select ${istr()} class="ts-offshore-type" style="padding:5px 4px;font-family:inherit">
+    <option ${(r.type||'Offshore')==='Offshore'?'selected':''}>Offshore</option>
+    <option ${r.type==='Onsite'?'selected':''}>Onsite</option></select>`;
+  const vatInput = `<input type="number" class="ts-vat" value="${r.vatPct!==undefined?r.vatPct:vatPct}" ${istr()} style="padding:5px 6px;width:60px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`;
+
+  if (invType==='mixed') return `<tr>
+    ${srTd}
+    ${td(`<input type="text" class="ts-desc" value="${r.desc||r.name||''}" placeholder="Resource name" ${istr()} style="font-weight:600;min-width:120px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none" />`)}
+    ${td(typeSel)}
+    ${td(`<input type="number" class="ts-days" value="${r.days||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(`<input type="number" class="ts-hours" value="${r.hours||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(vatInput)}
+    ${td(`<span style="font-size:11px;color:var(--muted)">—</span>`)}
+    ${td(`<input type="number" class="ts-rate" value="${r.rate||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:80px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(`<span class="ts-total" style="font-size:12px;font-weight:700;font-family:var(--font-mono)">${sym}${r.total?r.total.toFixed(2):'0.00'}</span>`)}
+    ${delBtn}</tr>`;
+  if (invType==='day') return `<tr>
+    ${srTd}
+    ${td(`<input type="text" class="ts-desc" value="${r.desc||r.name||''}" placeholder="Resource name" ${istr()} style="font-weight:600;min-width:120px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none" />`)}
+    ${td(typeSel)}
+    ${td(`<input type="number" class="ts-days" value="${r.days||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(vatInput)}
+    ${td(`<span style="font-size:11px;color:var(--muted)">—</span>`)}
+    ${td(`<input type="number" class="ts-rate" value="${r.rate||r.dayRate||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:80px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(`<span class="ts-total" style="font-size:12px;font-weight:700;font-family:var(--font-mono)">${sym}${r.total?r.total.toFixed(2):'0.00'}</span>`)}
+    ${delBtn}</tr>`;
+  if (invType==='hour') return `<tr>
+    ${srTd}
+    ${td(`<input type="text" class="ts-desc" value="${r.desc||r.name||''}" placeholder="Description" ${istr()} style="font-weight:600;min-width:120px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none" />`)}
+    ${td(typeSel)}
+    ${td(`<input type="number" class="ts-total-hours" value="${r.totalHours||totalHours}" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(`<input type="number" class="ts-hours" value="${r.hours||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(vatInput)}
+    ${td(`<span style="font-size:11px;color:var(--muted)">—</span>`)}
+    ${td(`<input type="number" class="ts-rate" value="${r.rate||r.hourRate||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:80px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(`<span class="ts-total" style="font-size:12px;font-weight:700;font-family:var(--font-mono)">${sym}${r.total?r.total.toFixed(2):'0.00'}</span>`)}
+    ${delBtn}</tr>`;
+  if (invType==='fixed') return `<tr>
+    ${srTd}
+    ${td(`<input type="text" class="ts-desc" value="${r.desc||r.name||''}" placeholder="Resource name" ${istr()} style="font-weight:600;min-width:120px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none" />`)}
+    ${td(typeSel)}
+    ${td(`<input type="number" class="ts-total-days" value="${r.totalDays||totalDays}" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(`<input type="number" class="ts-days" value="${r.days||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(vatInput)}
+    ${td(`<span style="font-size:11px;color:var(--muted)">—</span>`)}
+    ${td(`<input type="number" class="ts-rate" value="${r.rate||r.fixedRate||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:80px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(`<span class="ts-total" style="font-size:12px;font-weight:700;font-family:var(--font-mono)">${sym}${r.total?r.total.toFixed(2):'0.00'}</span>`)}
+    ${delBtn}</tr>`;
+  // unit / milestone
+  return `<tr>
+    ${srTd}
+    ${td(`<input type="text" class="ts-desc" value="${r.desc||r.name||''}" placeholder="Description" ${istr()} style="font-weight:600;min-width:150px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none" />`)}
+    ${td(`<input type="number" class="ts-rate" value="${r.rate||r.unitPrice||r.amount||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:100px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
+    ${td(vatInput)}
+    ${td(`<span style="font-size:11px;color:var(--muted)">—</span>`)}
+    ${td(`<span class="ts-total" style="font-size:12px;font-weight:700;font-family:var(--font-mono)">${sym}${r.total?r.total.toFixed(2):'0.00'}</span>`)}
+    ${delBtn}</tr>`;
+}
+
+function addTsProfileRow(profIdx) {
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  if (!clientIdx) return;
+  const c = state.clients[parseInt(clientIdx)];
+  const profiles = (c.billingProfiles&&c.billingProfiles.length>0) ? c.billingProfiles : [{invoiceType:c.invoiceType||'mixed',currency:c.currency||'AED',vat:c.vat||0,employees:[]}];
+  const prof = profiles[profIdx]||profiles[0];
+  const effectiveClient = {...c,...prof,employees:prof.employees||c.employees||[]};
+  const invType = effectiveClient.invoiceType||'mixed';
+  const vatPct  = effectiveClient.vat||0;
+  const sym     = invSymPlain(effectiveClient.currency||'AED');
+  const color   = state.settings.template?.color||'#1a7f37';
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
+  const tbody = document.getElementById('ts-ptbody-'+profIdx);
+  if (!tbody) return;
+  const ri = tbody.querySelectorAll('tr').length;
+  const div = document.createElement('tbody');
+  div.innerHTML = buildTsTableRow({}, ri, invType, vatPct, sym, totalDays, totalHours, color, profIdx);
+  tbody.appendChild(div.firstElementChild);
+}
+
+function _extractTsProfileRows(profIdx) {
+  const tbody = document.getElementById('ts-ptbody-'+profIdx);
+  if (!tbody) return [];
+  return Array.from(tbody.querySelectorAll('tr')).map((row,ri) => ({
+    desc:        row.querySelector('.ts-desc')?.value.trim()||'Item '+(ri+1),
+    name:        row.querySelector('.ts-desc')?.value.trim()||'Item '+(ri+1),
+    type:        row.querySelector('.ts-offshore-type')?.value||'Offshore',
+    days:        parseFloat(row.querySelector('.ts-days')?.value)||0,
+    hours:       parseFloat(row.querySelector('.ts-hours')?.value)||0,
+    totalHours:  parseFloat(row.querySelector('.ts-total-hours')?.value)||176,
+    totalDays:   parseFloat(row.querySelector('.ts-total-days')?.value)||22,
+    rate:        parseFloat(row.querySelector('.ts-rate')?.value)||0,
+    dayRate:     parseFloat(row.querySelector('.ts-rate')?.value)||0,
+    hourRate:    parseFloat(row.querySelector('.ts-rate')?.value)||0,
+    fixedRate:   parseFloat(row.querySelector('.ts-rate')?.value)||0,
+    vatPct:      parseFloat(row.querySelector('.ts-vat')?.value)||0,
+    unitPrice:   parseFloat(row.querySelector('.ts-rate')?.value)||0,
+    amount:      parseFloat(row.querySelector('.ts-rate')?.value)||0,
+  }));
+}
+
+function _computeTsRows(rawRows, invType, totalDays, totalHours) {
+  return rawRows.map(r => {
+    const vp = r.vatPct||0;
+    let sub = 0;
+    if      (invType==='mixed')   { const d=r.days||0,h=r.hours||0,rt=r.rate||0; sub = d>0 ? d*rt : h*rt; }
+    else if (invType==='day')     { sub = (r.days||0)*(r.rate||0); }
+    else if (invType==='hour')    { sub = (r.hours||0)*(r.rate||0); }
+    else if (invType==='fixed')   { const td2=r.totalDays||totalDays,dw=r.days||0,rt=r.rate||0; sub = td2>0 ? rt*dw/td2 : 0; }
+    else if (invType==='unit')    { sub = r.rate||0; }
+    else if (invType==='milestone'){ sub = r.rate||0; }
+    const vatAmt = sub*vp/100;
+    return {...r, subtotal:sub, vatAmt, total:sub+vatAmt};
+  });
+}
+
+function saveSingleTsProfile(profIdx, status) {
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  const month     = document.getElementById('ts-modal-month')?.value||'';
+  if (!clientIdx || !month) return showNotif('Select client and month first','error');
+  const c = state.clients[parseInt(clientIdx)];
+  const profiles = (c.billingProfiles&&c.billingProfiles.length>0) ? c.billingProfiles : [{name:'Default',invoiceType:c.invoiceType||'mixed',currency:c.currency||'AED',convCurrency:c.convCurrency||'',vat:c.vat||5,sectionHeader:c.sectionHeader||'',employees:c.employees||[]}];
+  const prof = profiles[profIdx]||profiles[0];
+  const invType    = prof.invoiceType||c.invoiceType||'mixed';
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
+  const rawRows    = _extractTsProfileRows(profIdx);
+  const processedRows = _computeTsRows(rawRows, invType, totalDays, totalHours);
+  const tsId = _editingTsId||(c.name+'_'+prof.name+'_'+month).replace(/\s+/g,'_')+'_'+Date.now();
+  const existing = state.timesheets.findIndex(t => t.clientName===c.name && t.billingProfileName===prof.name && t.month===month);
+  const ts = {
+    id:               existing>-1 ? state.timesheets[existing].id : uid(),
+    clientName:       c.name,
+    month,            totalDays, totalHours,
+    currency:         prof.currency      || c.currency      || 'AED',
+    convCurrency:     prof.convCurrency  || c.convCurrency  || '',
+    invoiceType:      invType,
+    billingProfileIdx: profIdx,
+    billingProfileName:prof.name || 'Default',
+    sectionHeader:    prof.sectionHeader || c.sectionHeader || '',
+    vat:              prof.vat !== undefined ? prof.vat : (c.vat||5),
+    rows:             processedRows,
+    status,
+    createdAt:        today(),
+    updatedAt:        today(),
+  };
+  if (existing>-1) state.timesheets[existing]=ts;
+  else state.timesheets.push(ts);
+  saveState();
+  // Refresh badge on tab pill
+  const clientName = c.name;
+  const tabBtn = document.getElementById('ts-ptab-'+profIdx);
+  if (tabBtn) {
+    const baseName = prof.name||'Profile '+(profIdx+1);
+    tabBtn.innerHTML = baseName + _getTsStatusBadge(clientName, prof.name, month);
+  }
+  showNotif(`${prof.name||'Profile '+(profIdx+1)} — ${status==='ready'?'Ready for invoice ✓':'Draft saved ✓'}`);
+}
+
+function saveAllTsProfiles(status) {
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  const month     = document.getElementById('ts-modal-month')?.value||'';
+  if (!clientIdx || !month) return showNotif('Select client and month first','error');
+  const c = state.clients[parseInt(clientIdx)];
+  const profiles = (c.billingProfiles&&c.billingProfiles.length>0) ? c.billingProfiles : [{name:'Default',invoiceType:c.invoiceType||'mixed',currency:c.currency||'AED',vat:c.vat||5,sectionHeader:c.sectionHeader||'',employees:c.employees||[]}];
+  profiles.forEach((_,pi) => saveSingleTsProfile(pi, status));
+  renderTimesheets(); renderTmsClients?.();
+  closeModal('modal-timesheet');
+  showNotif(`All ${profiles.length} profile timesheets ${status==='ready'?'marked ready':'saved as draft'} ✓`);
+}
+
+function saveThenInvoice(profIdx) {
+  saveSingleTsProfile(profIdx, 'ready');
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  const month     = document.getElementById('ts-modal-month')?.value||'';
+  if (!clientIdx || !month) return;
+  const c = state.clients[parseInt(clientIdx)];
+  const profiles = (c.billingProfiles&&c.billingProfiles.length>0) ? c.billingProfiles : [{name:'Default'}];
+  const prof = profiles[profIdx]||profiles[0];
+  const ts = state.timesheets.find(t => t.clientName===c.name && t.billingProfileName===prof.name && t.month===month);
+  if (ts) { closeModal('modal-timesheet'); tsToInvoice(ts.id); }
 }
 
 function buildTsModalTable(c, existingRows) {
@@ -5378,28 +5602,13 @@ function saveTsModal(status) {
     return {...r, subtotal:sub, vatAmt:sub*vp/100, total:sub+sub*vp/100};
   });
 
-  // ── Capture which billing profile was active when saving ──
-  const tsProfIdx = parseInt(document.getElementById('ts-modal-profile')?.value||'0')||0;
-  const tsProfiles = (c.billingProfiles && c.billingProfiles.length > 0)
-    ? c.billingProfiles
-    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
-         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
-         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
-         vat: c.vat||5, sectionHeader: c.sectionHeader||'' }];
-  const activeProf = tsProfiles[tsProfIdx] || tsProfiles[0];
-
   const ts = {
     id: _editingTsId||uid(),
     clientName: c.name,
     month, totalDays, totalHours,
-    currency:          activeProf.currency      || c.currency      || 'AED',
-    convCurrency:      activeProf.convCurrency  || c.convCurrency  || '',
-    invoiceType:       activeProf.invoiceType   || c.invoiceType   || 'mixed',
-    billingProfileIdx: tsProfIdx,
-    billingProfileName:activeProf.name || 'Default',
-    sectionHeader:     activeProf.sectionHeader || c.sectionHeader || '',
-    vat:               activeProf.vat           !== undefined ? activeProf.vat : (c.vat||5),
-    milestoneType: (activeProf.invoiceType||c.invoiceType)==='milestone'?(document.getElementById('inv-milestone-type')?.value||'detailed'):'',
+    currency: c.currency||'AED',
+    invoiceType: c.invoiceType||'mixed',
+    milestoneType: c.invoiceType==='milestone'?(document.getElementById('inv-milestone-type')?.value||'detailed'):'',
     rows: processedRows,
     status,
     createdAt: today(),
@@ -5460,32 +5669,19 @@ function tsToInvoice(tsId) {
   co.nextNum   = (co.nextNum || 1);
   const invNumber = prefix + String(co.nextNum).padStart(3, '0');
 
-  // ── Resolve billing profile used when timesheet was saved ──
-  const tsProfiles = (c.billingProfiles && c.billingProfiles.length > 0)
-    ? c.billingProfiles
-    : [{ name:'Default', invoiceType: c.invoiceType||'mixed',
-         currency: c.currency||'AED', convCurrency: c.convCurrency||'',
-         dayRate: c.dayRate||0, hourRate: c.hourRate||0, fixedRate: c.fixedRate||0,
-         vat: c.vat||5, sectionHeader: c.sectionHeader||'' }];
-  const profIdx  = ts.billingProfileIdx !== undefined ? ts.billingProfileIdx : 0;
-  const tsProf   = tsProfiles[profIdx] || tsProfiles[0];
-
-  // ── Build invoice data from timesheet + resolved profile ──
-  const invType    = ts.invoiceType   || tsProf.invoiceType  || c.invoiceType || 'mixed';
-  const invCur     = ts.currency      || tsProf.currency     || c.currency    || 'AED';
-  const invConvTo  = ts.convCurrency  || tsProf.convCurrency || c.convCurrency || '';
-  const invVatPct  = ts.vat !== undefined ? ts.vat : (tsProf.vat !== undefined ? tsProf.vat : (c.vat || 0));
-  const invSecHdr  = ts.sectionHeader || tsProf.sectionHeader|| c.sectionHeader || '';
-  const sym        = invSymPlain(invCur);
+  // ── Build invoice data directly from timesheet ──
+  const invType    = ts.invoiceType || c.invoiceType || 'mixed';
+  const sym        = invSymPlain(ts.currency || 'AED');
   const totalAmt   = (ts.rows || []).reduce((s,r) => s + (r.total||0), 0);
   const subTotal   = (ts.rows || []).reduce((s,r) => s + (r.subtotal||0), 0);
   const vatAmt     = (ts.rows || []).reduce((s,r) => s + (r.vatAmt||0), 0);
+  const vatPct     = ts.rows?.[0]?.vatPct || c.vat || 0;
   const convRate   = state.settings.exchangeRates?.[
-    (invCur==='USD'&&invConvTo==='AED') ? 'usdAed' :
-    (invCur==='GBP'&&invConvTo==='USD') ? 'gbpUsd' :
-    (invCur==='GBP'&&invConvTo==='AED') ? 'gbpAed' : ''
+    (c.currency==='USD'&&c.convCurrency==='AED') ? 'usdAed' :
+    (c.currency==='GBP'&&c.convCurrency==='USD') ? 'gbpUsd' :
+    (c.currency==='GBP'&&c.convCurrency==='AED') ? 'gbpAed' : ''
   ] || 0;
-  const convertedTotal = invConvTo && convRate ? Math.round(totalAmt * convRate * 100) / 100 : null;
+  const convertedTotal = c.convCurrency && convRate ? Math.round(totalAmt * convRate * 100) / 100 : null;
 
   const invData = {
     id:             uid(),
@@ -5500,18 +5696,18 @@ function tsToInvoice(tsId) {
     clientAddr:     c.address || '',
     clientEmail:    c.email || '',
     clientTax:      c.tax || '',
-    sectionHeader:  invSecHdr,
+    sectionHeader:  c.sectionHeader || '',
     poNumber:       '',
-    currency:       invCur,
-    convertTo:      invConvTo,
+    currency:       ts.currency || c.currency || 'AED',
+    convertTo:      c.convCurrency || '',
     convertRate:    convRate,
     convertedTotal: convertedTotal,
     billingType:    invType,
-    vatPct:         invVatPct,
+    vatPct:         vatPct,
     subtotal:       subTotal,
     vat:            vatAmt,
     total:          totalAmt,
-    amtWords:       numToWords(convertedTotal || totalAmt, invConvTo || invCur),
+    amtWords:       numToWords(convertedTotal || totalAmt, c.convCurrency || ts.currency || 'AED'),
     notes:          `Services rendered for ${monthLabel(ts.month)}`,
     bank:           co.bankAccounts?.[0]?.details || co.bank || '',
     bankLabel:      co.bankAccounts?.[0]?.label || '',
@@ -5519,7 +5715,6 @@ function tsToInvoice(tsId) {
     status:         'draft',
     fromTimesheet:  tsId,
     period:         ts.month,
-    billingProfileName: ts.billingProfileName || tsProf.name || 'Default',
   };
 
   // ── Save invoice immediately ──
@@ -5548,28 +5743,17 @@ function tsToInvoice(tsId) {
     if (c.sectionHeader) setEl('inv-section-header', c.sectionHeader);
     setEl('inv-notes', invData.notes);
 
-    // Set client dropdown — this triggers onInvClientChange which shows profile picker
+    // Set client dropdown
     const clientEl = document.getElementById('inv-client');
     const ci = state.clients.findIndex(cl=>cl.name===ts.clientName);
-    if (ci > -1 && clientEl) {
-      clientEl.value = String(ci);
-      onInvClientChange(); // populates address, email, profile picker etc.
-    }
+    if (ci > -1 && clientEl) { clientEl.value = String(ci); onInvClientChange(); }
 
-    // If client has multiple profiles, select the one used for this timesheet
-    const profPickerEl = document.getElementById('inv-billing-profile');
-    if (profPickerEl && ts.billingProfileIdx !== undefined) {
-      profPickerEl.value = String(ts.billingProfileIdx);
-    }
-
-    // Override currency + conversion from the resolved invoice data
+    // Set currency
     const curEl = document.getElementById('inv-currency');
     if (curEl) curEl.value = invData.currency;
-    const convEl = document.getElementById('inv-conv-to');
-    if (convEl) convEl.value = invData.convertTo || '';
-    if (invData.vatPct !== undefined) {
-      const vatEl = document.getElementById('inv-vat');
-      if (vatEl) vatEl.value = invData.vatPct;
+    if (c.convCurrency) {
+      const convEl = document.getElementById('inv-conv-currency');
+      if (convEl) convEl.value = c.convCurrency;
     }
 
     // Switch to correct invoice type tab
@@ -5579,7 +5763,6 @@ function tsToInvoice(tsId) {
     if (tabEl) tabEl.classList.add('active');
     const paneEl = document.getElementById(`inv-tab-${invType}`);
     if (paneEl) paneEl.classList.add('active');
-    invAutoRate(); updateInvCurLabels();
 
     // Populate invoice rows
     invRows[invType] = invData.rows;
@@ -5710,12 +5893,7 @@ function renderTmsClients() {
         <div style="width:44px;height:44px;background:${color};border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px">${ts.clientName.charAt(0)}</div>
         <div>
           <div style="font-family:var(--font-display);font-size:15px;font-weight:800">${ts.clientName}</div>
-          <div style="font-size:12px;color:var(--muted)">${monthLabel(ts.month)} · ${rowCount} row(s) · ${ts.currency||'AED'}${ts.convCurrency?' → '+ts.convCurrency:''}</div>
-          <div style="margin-top:3px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
-            <span style="background:${color}18;color:${color};border:1px solid ${color}40;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700">${ts.invoiceType||c?.invoiceType||'mixed'}</span>
-            ${ts.billingProfileName&&ts.billingProfileName!=='Default'?`<span style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:600">📋 ${ts.billingProfileName}</span>`:''}
-            ${ts.sectionHeader?`<span style="font-size:10px;color:var(--muted);font-style:italic">"${ts.sectionHeader}"</span>`:''}
-          </div>
+          <div style="font-size:12px;color:var(--muted)">${monthLabel(ts.month)} · ${rowCount} row(s) · ${ts.invoiceType||c?.invoiceType||'—'} · ${ts.currency||'AED'}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:16px">
