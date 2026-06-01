@@ -1682,7 +1682,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     </div>
 
     <!-- ── SECTION 2: Billing Settings ── -->
-    <div style="margin-bottom:28px;display:none">
+    <div style="margin-bottom:28px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">💰</div>
         <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px">Billing Settings</span>
@@ -1727,9 +1727,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         </div>
       </div>
 
-      <!-- VAT + Rates -->
+      <!-- VAT + TRN (client-level defaults, profiles can override) -->
       <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:18px 20px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:14px">Default Rates &amp; Tax</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px">Default VAT &amp; Tax Registration</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:14px">These are client-level defaults. Each billing profile can override the VAT %.</div>
 
         <!-- Row 1: VAT % and TRN side by side -->
         <div style="display:grid;grid-template-columns:140px 1fr;gap:14px;margin-bottom:14px">
@@ -1750,8 +1751,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           </div>
         </div>
 
-        <!-- Row 2: Day Rate, Hourly Rate, Fixed/Month -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+        <!-- Row 2: Day Rate, Hourly Rate, Fixed/Month — now live inside profiles -->
+        <div style="display:none">
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">Default Day Rate <span class="cl-cur-sym" style="color:var(--g500)">(AED)</span></label>
             <div style="position:relative">
@@ -1783,15 +1784,18 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       </div>
 
       <!-- Billing Profiles -->
-      <div style="margin-top:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div>
-            <div style="font-size:12px;font-weight:700;color:var(--ink2)">📋 Billing Profiles</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:1px">One client can have multiple profiles — e.g. Fixed Monthly + Hourly Rate</div>
-          </div>
+      <div style="margin-top:20px">
+        <!-- Section divider -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">📋</div>
+          <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px">Billing Profiles</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
           <button class="btn btn-primary btn-sm" onclick="addBillingProfile()">+ Add Profile</button>
         </div>
-        <div id="cl-billing-profiles" style="display:flex;flex-direction:column;gap:10px"></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:9px 14px;background:var(--g50);border:1px solid var(--g100);border-radius:8px">
+          💡 Each profile has its own invoice type, currency, rates, and employees. One client can have multiple profiles — e.g. SAP Fixed Monthly + IT Hourly Support.
+        </div>
+        <div id="cl-billing-profiles" style="display:flex;flex-direction:column;gap:12px"></div>
         <!-- Hidden single-profile compat fields -->
         <input type="hidden" id="cl-client-type" value="resource" />
         <input type="hidden" id="cl-invoice-type" value="mixed" />
@@ -2708,39 +2712,29 @@ function openClientModal(idx) {
   document.getElementById('client-modal-title').textContent = isEdit?'Edit Client':'Add Client';
   if (isEdit) {
     const c=state.clients[idx];
-    document.getElementById('cl-name').value=c.name||'';
-    document.getElementById('cl-contact').value=c.contact||'';
-    document.getElementById('cl-email').value=c.email||'';
-    document.getElementById('cl-address').value=c.address||'';
-    document.getElementById('cl-currency').value=c.currency||'AED';
-    document.getElementById('cl-conv-currency').value=c.convCurrency||'';
-    document.getElementById('cl-vat').value=c.vat!==undefined?c.vat:5;
-    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value=c.tax||'';
-    if(document.getElementById('cl-client-type')){ document.getElementById('cl-client-type').value=c.clientType||'resource'; }
-    if(document.getElementById('cl-invoice-type')){ document.getElementById('cl-invoice-type').value=c.invoiceType||'mixed'; }
-    if(document.getElementById('cl-entry-mode')){ document.getElementById('cl-entry-mode').value=c.entryMode||'simple'; }
-    if(document.getElementById('cl-section-header')){ document.getElementById('cl-section-header').value=c.sectionHeader||''; }
-    renderBillingProfiles(c.billingProfiles||[]);
-    onClientTypeChange();
-    document.getElementById('cl-day-rate').value=c.dayRate||'';
-    document.getElementById('cl-hour-rate').value=c.hourRate||'';
-    document.getElementById('cl-fixed-rate').value=c.fixedRate||'';
-    document.getElementById('cl-employees').innerHTML='';
-    (c.employees||[]).forEach(e=>addEmployeeRow(e));
+    document.getElementById('cl-name').value    = c.name||'';
+    document.getElementById('cl-contact').value = c.contact||'';
+    document.getElementById('cl-email').value   = c.email||'';
+    document.getElementById('cl-address').value = c.address||'';
+    // Client-level currency/VAT defaults
+    document.getElementById('cl-currency').value     = c.currency||'AED';
+    document.getElementById('cl-conv-currency').value= c.convCurrency||'';
+    document.getElementById('cl-vat').value           = c.vat!==undefined?c.vat:5;
+    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value = c.tax||'';
+    // Billing profiles (each profile has its own employees inside)
+    renderBillingProfiles(c.billingProfiles && c.billingProfiles.length ? c.billingProfiles : [{}]);
     renderClientServices(c.services||[]);
   } else {
-    ['cl-name','cl-contact','cl-email','cl-address','cl-day-rate','cl-hour-rate','cl-fixed-rate'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('cl-currency').value='AED';
-    document.getElementById('cl-conv-currency').value='';
-    document.getElementById('cl-vat').value=5;
-    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value='';
-    if(document.getElementById('cl-client-type')) document.getElementById('cl-client-type').value='resource';
-    if(document.getElementById('cl-invoice-type')) document.getElementById('cl-invoice-type').value='mixed';
-    if(document.getElementById('cl-entry-mode')) document.getElementById('cl-entry-mode').value='simple';
-    if(document.getElementById('cl-section-header')) document.getElementById('cl-section-header').value='';
-    renderBillingProfiles([]);
-    onClientTypeChange();
-    document.getElementById('cl-employees').innerHTML='';
+    document.getElementById('cl-name').value    = '';
+    document.getElementById('cl-contact').value = '';
+    document.getElementById('cl-email').value   = '';
+    document.getElementById('cl-address').value = '';
+    document.getElementById('cl-currency').value      = 'AED';
+    document.getElementById('cl-conv-currency').value = '';
+    document.getElementById('cl-vat').value            = 5;
+    if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value = '';
+    // Start with one empty profile
+    renderBillingProfiles([{}]);
     renderClientServices([]);
   }
   openModal('modal-client');
@@ -2884,38 +2878,58 @@ function updateClCurrSyms() {
 }
 
 function saveClient() {
-  const name=document.getElementById('cl-name').value.trim();
-  if(!name) return showNotif('Enter company name','error');
+  const name = document.getElementById('cl-name').value.trim();
+  if (!name) return showNotif('Enter company name', 'error');
+
+  // Client-level defaults (currency, VAT, TRN)
+  const clientCurrency    = document.getElementById('cl-currency').value     || 'AED';
+  const clientConvCur     = document.getElementById('cl-conv-currency').value|| '';
+  const clientVat         = parseFloat(document.getElementById('cl-vat').value) || 0;
+  const clientTax         = document.getElementById('cl-tax')?.value || '';
+
   const profiles = getBillingProfiles();
-  // Validate: each profile needs at least a name
+  if (!profiles.length) return showNotif('Add at least one billing profile', 'error');
   for (const p of profiles) {
-    if (!p.name.trim()) return showNotif('Each profile needs a name','error');
+    if (!p.name.trim()) return showNotif('Each profile needs a name', 'error');
   }
-  const c={
+
+  // Where a profile hasn't overridden currency/VAT, inherit from client level
+  const enrichedProfiles = profiles.map(p => ({
+    ...p,
+    currency:    p.currency     || clientCurrency,
+    convCurrency:p.convCurrency !== undefined ? p.convCurrency : clientConvCur,
+    vat:         p.vat          !== undefined ? p.vat          : clientVat,
+  }));
+
+  const c = {
     name,
-    contact: document.getElementById('cl-contact').value,
-    email:   document.getElementById('cl-email').value,
-    address: document.getElementById('cl-address').value,
-    // Legacy top-level fields (kept for compat) — real data lives in billingProfiles
-    currency:     profiles[0]?.currency     || 'AED',
-    convCurrency: profiles[0]?.convCurrency || '',
-    vat:          profiles[0]?.vat          || 0,
-    tax:          document.getElementById('cl-tax')?.value||'',
-    invoiceType:  profiles[0]?.invoiceType  || 'mixed',
-    sectionHeader:profiles[0]?.sectionHeader|| '',
-    dayRate:      profiles[0]?.dayRate      || 0,
-    hourRate:     profiles[0]?.hourRate     || 0,
-    fixedRate:    profiles[0]?.fixedRate    || 0,
-    // Employees now live inside each profile — aggregate for legacy compat
-    employees: profiles.flatMap(p => (p.employees||[]).map(e => ({...e, profileName: p.name}))),
-    billingProfiles: profiles,
-    services: getClientServices(),
+    contact:      document.getElementById('cl-contact').value,
+    email:        document.getElementById('cl-email').value,
+    address:      document.getElementById('cl-address').value,
+    // Client-level defaults — shown on all invoices / used as fallback
+    currency:     clientCurrency,
+    convCurrency: clientConvCur,
+    vat:          clientVat,
+    tax:          clientTax,
+    // Legacy compat fields from first profile
+    invoiceType:  enrichedProfiles[0]?.invoiceType   || 'mixed',
+    sectionHeader:enrichedProfiles[0]?.sectionHeader || '',
+    dayRate:      enrichedProfiles[0]?.dayRate        || 0,
+    hourRate:     enrichedProfiles[0]?.hourRate       || 0,
+    fixedRate:    enrichedProfiles[0]?.fixedRate      || 0,
+    // Employees aggregated from all profiles (for legacy compat)
+    employees: enrichedProfiles.flatMap(p => (p.employees||[]).map(e => ({...e, profileName: p.name}))),
+    billingProfiles: enrichedProfiles,
+    services:    getClientServices(),
     clientType: 'resource',
     entryMode:  'simple',
   };
-  if(editingClientIdx!==null) state.clients[editingClientIdx]=c;
+
+  if (editingClientIdx !== null) state.clients[editingClientIdx] = c;
   else state.clients.push(c);
-  saveState(); closeModal('modal-client'); renderClients();
+  saveState();
+  closeModal('modal-client');
+  renderClients();
   showNotif('Client saved ✓');
 }
 
