@@ -4963,11 +4963,11 @@ function buildTsRowDisplay(r, ts, c, i) {
   const td = v => `<td style="${bg};padding:7px 10px;font-size:12px">${v||''}</td>`;
   const mnd = v => `<td style="${bg};padding:7px 10px;font-size:12px;font-family:monospace">${v||''}</td>`;
   const ttd = v => `<td style="${bg};padding:7px 10px;font-size:12px;font-family:monospace;font-weight:700;color:var(--g600)">${v||''}</td>`;
-  if (invType==='day')   return `<tr>${td(r.name||r.desc)}${td(r.locType||'Offshore')}${mnd(r.days)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
-  if (invType==='hour')  return `<tr>${td(r.name||r.desc)}${td(r.locType||'Offshore')}${mnd(r.totalHours||'')}${mnd(r.hours)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
-  if (invType==='fixed') return `<tr>${td(r.name||r.desc)}${td(r.locType||'Offshore')}${mnd(r.totalDays||22)}${mnd(r.days)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
+  if (invType==='day')   return `<tr>${td(r.name||r.desc)}${td(r.locType||r.type||'Offshore')}${mnd(r.days)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
+  if (invType==='hour')  return `<tr>${td(r.name||r.desc)}${td(r.locType||r.type||'Offshore')}${mnd(r.totalHours||'')}${mnd(r.hours)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
+  if (invType==='fixed') return `<tr>${td(r.name||r.desc)}${td(r.locType||r.type||'Offshore')}${mnd(r.totalDays||22)}${mnd(r.days)}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
   if (invType==='unit')  return `<tr>${td(r.desc)}${mnd(sym+fmt(r.unitPrice))}${mnd((r.vatPct||0)+'%')}${ttd(sym+fmt(r.total))}</tr>`;
-  if (invType==='mixed') return `<tr>${td(r.desc||r.name)}${td(r.locType||'Offshore')}${mnd(r.days||'')}${mnd(r.hours||'')}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
+  if (invType==='mixed') return `<tr>${td(r.desc||r.name)}${td(r.locType||r.type||'Offshore')}${mnd(r.days||'')}${mnd(r.hours||'')}${mnd(sym+fmt(r.rate))}${ttd(sym+fmt(r.total))}</tr>`;
   return `<tr>${td(r.desc||r.name)}${ttd(sym+fmt(r.total))}</tr>`;
 }
 
@@ -5175,7 +5175,7 @@ function buildTsProfilePanel(c, prof, profIdx, existingRows, totalDays, totalHou
 }
 
 function buildTsTableRow(r, ri, invType, vatPct, sym, totalDays, totalHours, color, profIdx) {
-  const istr = i => `style="padding:5px 6px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none;font-family:var(--font-mono)" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'"`;
+  const istr = i => `oninput="recalcTsRow(this)" style="padding:5px 6px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none;font-family:var(--font-mono)" onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'"`;
   const td = (content, align='') => `<td style="padding:4px 6px${align?';'+align:''}">${content}</td>`;
   const delBtn = `<td>${'<button onclick="this.closest(\'tr\').remove()" style="background:#fff1f0;border:1px solid #fdd;color:#dc2626;width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:12px">✕</button>'}</td>`;
   const srTd = td(`<span style="font-size:11px;color:var(--muted)">${ri+1}</span>`, 'text-align:center');
@@ -5220,10 +5220,12 @@ function buildTsTableRow(r, ri, invType, vatPct, sym, totalDays, totalHours, col
     ${srTd}
     ${td(`<input type="text" class="ts-desc" value="${r.desc||r.name||''}" placeholder="Resource name" ${istr()} style="font-weight:600;min-width:120px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-size:12px;outline:none" />`)}
     ${td(typeSel)}
-    ${td(`<div style="text-align:center;padding:5px 0">
-      <div style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--ink)">${totalDays}</div>
-      <div style="font-size:9px;color:var(--muted)">auto</div>
-      <input type="hidden" class="ts-total-days" value="${totalDays}" />
+    ${td(`<div style="text-align:center">
+      <input type="number" class="ts-total-days" value="${r.totalDays||totalDays}"
+        oninput="recalcTsRow(this)"
+        style="width:60px;padding:5px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono);text-align:center"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+      <div style="font-size:9px;color:var(--muted);margin-top:1px">month total</div>
     </div>`)}
     ${td(`<input type="number" class="ts-days" value="${r.days||''}" placeholder="0" ${istr()} style="padding:5px 6px;width:70px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;outline:none;font-family:var(--font-mono)" />`)}
     ${td(vatInput)}
@@ -5240,6 +5242,46 @@ function buildTsTableRow(r, ri, invType, vatPct, sym, totalDays, totalHours, col
     ${td(`<span style="font-size:11px;color:var(--muted)">—</span>`)}
     ${td(`<span class="ts-total" style="font-size:12px;font-weight:700;font-family:var(--font-mono)">${sym}${r.total?r.total.toFixed(2):'0.00'}</span>`)}
     ${delBtn}</tr>`;
+}
+
+function recalcTsRow(input) {
+  const row   = input.closest('tr');
+  if (!row) return;
+  const table = input.closest('table');
+  const profIdx = table ? table.id.replace('ts-ptable-','') : null;
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  if (!clientIdx) return;
+  const c = state.clients[parseInt(clientIdx)];
+  const profiles = (c.billingProfiles&&c.billingProfiles.length>0) ? c.billingProfiles
+    : [{invoiceType:c.invoiceType||'mixed',vat:c.vat||0}];
+  const prof = profIdx!==null ? (profiles[parseInt(profIdx)]||profiles[0]) : profiles[0];
+  const invType = prof.invoiceType||c.invoiceType||'mixed';
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
+
+  const days       = parseFloat(row.querySelector('.ts-days')?.value)||0;
+  const hours      = parseFloat(row.querySelector('.ts-hours')?.value)||0;
+  const rate       = parseFloat(row.querySelector('.ts-rate')?.value)||0;
+  const vatPct     = parseFloat(row.querySelector('.ts-vat')?.value)||0;
+  const rowTotalDays  = parseFloat(row.querySelector('.ts-total-days')?.value)||totalDays;
+  const rowTotalHours = parseFloat(row.querySelector('.ts-total-hours')?.value)||totalHours;
+
+  let sub = 0;
+  if      (invType==='mixed')    { sub = days>0 ? days*rate : hours*rate; }
+  else if (invType==='day')      { sub = days*rate; }
+  else if (invType==='hour')     { sub = hours*rate; }
+  else if (invType==='fixed')    { sub = rowTotalDays>0 ? rate*days/rowTotalDays : 0; }
+  else if (invType==='unit')     { sub = rate; }
+  else if (invType==='milestone'){ sub = rate; }
+  const vat   = sub*vatPct/100;
+  const total = sub+vat;
+
+  // Find currency symbol
+  const sym = invSymPlain(prof.currency||c.currency||'AED');
+  const totalEl = row.querySelector('.ts-total');
+  if (totalEl) totalEl.textContent = sym + total.toFixed(2);
+  const vatAmtEl = row.querySelector('.ts-vat-amt');
+  if (vatAmtEl) vatAmtEl.textContent = sym + vat.toFixed(2);
 }
 
 function addTsProfileRow(profIdx) {
@@ -5266,22 +5308,30 @@ function addTsProfileRow(profIdx) {
 function _extractTsProfileRows(profIdx) {
   const tbody = document.getElementById('ts-ptbody-'+profIdx);
   if (!tbody) return [];
-  return Array.from(tbody.querySelectorAll('tr')).map((row,ri) => ({
-    desc:        row.querySelector('.ts-desc')?.value.trim()||'Item '+(ri+1),
-    name:        row.querySelector('.ts-desc')?.value.trim()||'Item '+(ri+1),
-    type:        row.querySelector('.ts-offshore-type')?.value||'Offshore',
-    days:        parseFloat(row.querySelector('.ts-days')?.value)||0,
-    hours:       parseFloat(row.querySelector('.ts-hours')?.value)||0,
-    totalHours:  parseFloat(row.querySelector('.ts-total-hours')?.value)||176,
-    totalDays:   parseFloat(row.querySelector('.ts-total-days')?.value)||22,
-    rate:        parseFloat(row.querySelector('.ts-rate')?.value)||0,
-    dayRate:     parseFloat(row.querySelector('.ts-rate')?.value)||0,
-    hourRate:    parseFloat(row.querySelector('.ts-rate')?.value)||0,
-    fixedRate:   parseFloat(row.querySelector('.ts-rate')?.value)||0,
-    vatPct:      parseFloat(row.querySelector('.ts-vat')?.value)||0,
-    unitPrice:   parseFloat(row.querySelector('.ts-rate')?.value)||0,
-    amount:      parseFloat(row.querySelector('.ts-rate')?.value)||0,
-  }));
+  return Array.from(tbody.querySelectorAll('tr')).map((row,ri) => {
+    const descVal = row.querySelector('.ts-desc')?.value.trim()||'Item '+(ri+1);
+    const typeVal = row.querySelector('.ts-offshore-type')?.value||'Offshore';
+    const rateVal = parseFloat(row.querySelector('.ts-rate')?.value)||0;
+    const totalDaysVal  = parseFloat(row.querySelector('.ts-total-days')?.value)||22;
+    const totalHoursVal = parseFloat(row.querySelector('.ts-total-hours')?.value)||176;
+    return {
+      desc:        descVal,
+      name:        descVal,
+      type:        typeVal,
+      locType:     typeVal,   // invoice PDF reads locType — keep in sync
+      days:        parseFloat(row.querySelector('.ts-days')?.value)||0,
+      hours:       parseFloat(row.querySelector('.ts-hours')?.value)||0,
+      totalHours:  totalHoursVal,
+      totalDays:   totalDaysVal,
+      rate:        rateVal,
+      dayRate:     rateVal,
+      hourRate:    rateVal,
+      fixedRate:   rateVal,
+      vatPct:      parseFloat(row.querySelector('.ts-vat')?.value)||0,
+      unitPrice:   rateVal,
+      amount:      rateVal,
+    };
+  });
 }
 
 function _computeTsRows(rawRows, invType, totalDays, totalHours) {
@@ -5720,7 +5770,7 @@ function tsToInvoice(tsId) {
     clientAddr:     c.address || '',
     clientEmail:    c.email || '',
     clientTax:      c.tax || '',
-    sectionHeader:  c.sectionHeader || '',
+    sectionHeader:  ts.sectionHeader || c.sectionHeader || '',
     poNumber:       '',
     currency:       ts.currency || c.currency || 'AED',
     convertTo:      c.convCurrency || '',
@@ -5735,7 +5785,13 @@ function tsToInvoice(tsId) {
     notes:          `Services rendered for ${monthLabel(ts.month)}`,
     bank:           co.bankAccounts?.[0]?.details || co.bank || '',
     bankLabel:      co.bankAccounts?.[0]?.label || '',
-    rows:           (ts.rows || []).map(r => ({...r, id: uid()})),
+    rows:           (ts.rows || []).map(r => ({
+      ...r,
+      id:      uid(),
+      locType: r.locType || r.type || 'Offshore',  // ensure invoice always has locType
+      name:    r.name    || r.desc || '',
+      desc:    r.desc    || r.name || '',
+    })),
     status:         'draft',
     fromTimesheet:  tsId,
     period:         ts.month,
