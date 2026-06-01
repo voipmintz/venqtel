@@ -5784,12 +5784,13 @@ function tsToInvoice(tsId) {
   const subTotal   = (ts.rows || []).reduce((s,r) => s + (r.subtotal||0), 0);
   const vatAmt     = (ts.rows || []).reduce((s,r) => s + (r.vatAmt||0), 0);
   const vatPct     = ts.rows?.[0]?.vatPct || c.vat || 0;
-  const convRate   = state.settings.exchangeRates?.[
-    (c.currency==='USD'&&c.convCurrency==='AED') ? 'usdAed' :
-    (c.currency==='GBP'&&c.convCurrency==='USD') ? 'gbpUsd' :
-    (c.currency==='GBP'&&c.convCurrency==='AED') ? 'gbpAed' : ''
-  ] || 0;
-  const convertedTotal = c.convCurrency && convRate ? Math.round(totalAmt * convRate * 100) / 100 : null;
+  // Universal 6-pair rate lookup
+  const _er0 = state.settings.exchangeRates||{};
+  const _br0 = {'GBP-USD':_er0.gbpUsd||1.3295,'USD-AED':_er0.usdAed||3.6725,'GBP-AED':_er0.gbpAed||4.8812};
+  _br0['USD-GBP']=1/_br0['GBP-USD']; _br0['AED-USD']=1/_br0['USD-AED']; _br0['AED-GBP']=1/_br0['GBP-AED'];
+  _br0['AED-AED']=1; _br0['USD-USD']=1; _br0['GBP-GBP']=1;
+  const convRate   = (invConvTo&&invConvTo!==invCur) ? (_br0[invCur+'-'+invConvTo]||0) : 0;
+  const convertedTotal = convRate>0 ? Math.round(totalAmt*convRate*100)/100 : null;
 
   const invData = {
     id:             uid(),
