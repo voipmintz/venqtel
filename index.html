@@ -4807,7 +4807,7 @@ function buildInvoiceHTML(d, forPDF) {
   const th = (txt,w='',align='left') => `<th style="${thStyle}${w?'width:'+w+';':''};text-align:${align};padding:7px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">${txt}</th>`;
 
   if (d.billingType==='mixed') {
-    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Offshore/Onsite','11%')}${th('Days','7%','right')}${th('Hours','7%','right')}${th('VAT%','5%','right')}${th('VAT Amt','10%','right')}${th('Rate','10%','right')}${th('Total','13%','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Offshore/Onsite','11%')}${th('Days','7%','right')}${th('Hours','7%','right')}${th('Rate','14%','right')}${th('Total','16%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4816,13 +4816,13 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="padding:7px">${r.locType||''}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${parseFloat(r.days)>0?r.days:''}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${parseFloat(r.hours)>0?r.hours:''}</td>
-        <td style="text-align:right;padding:7px">${r.vatPct}%</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
+        
+        
         <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${sym}${fmt(r.rate)}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='day') {
-    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of the Resource')}${th('Offshore/Onsite','11%')}${th('Days Worked','7%','right')}${th('VAT%','5%','right')}${th('VAT Amt','10%','right')}${th('Day Rate '+sym,'11%','right')}${th('Total','13%','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of the Resource')}${th('Offshore/Onsite','11%')}${th('Days Worked','7%','right')}${th('Day Rate '+sym,'16%','right')}${th('Total','16%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4830,13 +4830,13 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="padding:5px 8px;font-weight:600">${r.name||r.desc||'—'}</td>
         <td style="padding:7px">${r.locType||''}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${r.days||''}</td>
-        <td style="text-align:right;padding:7px">${r.vatPct>0?r.vatPct+'%':''}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${r.vatAmt>0?sym+fmt(r.vatAmt):''}</td>
+        
+        
         <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${sym}${fmt(r.rate)}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='hour') {
-    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Offshore/Onsite','11%')}${th('Total Hrs','7%','right')}${th('Hrs Worked','7%','right')}${th('VAT%','5%','right')}${th('VAT Amt','10%','right')}${th('Hourly Rate','11%','right')}${th('Total','13%','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Offshore/Onsite','11%')}${th('Total Hrs','7%','right')}${th('Hrs Worked','7%','right')}${th('Hourly Rate','16%','right')}${th('Total','16%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4845,13 +4845,13 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="padding:7px">${r.locType||''}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${r.totalHours||''}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${r.hours||''}</td>
-        <td style="text-align:right;padding:7px">${r.vatPct}%</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
+        
+        
         <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${sym}${fmt(r.rate)}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='fixed') {
-    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of Resource')}${th('Offshore/Onsite','11%')}${th('Month Days','6%','right')}${th('Days Worked','7%','right')}${th('VAT%','5%','right')}${th('VAT Amt','10%','right')}${th('Monthly Rate','11%','right')}${th('Total','13%','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of Resource')}${th('Offshore/Onsite','11%')}${th('Month Days','6%','right')}${th('Days Worked','7%','right')}${th('Monthly Rate','16%','right')}${th('Total','16%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4860,21 +4860,21 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="padding:7px">${r.locType||''}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${r.totalDays||d.fixedTotalDays}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${r.days||''}</td>
-        <td style="text-align:right;padding:7px">${r.vatPct}%</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
+        
+        
         <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${sym}${fmt(r.rate)}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='unit') {
-    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Unit Price','14%','right')}${th('VAT%','6%','right')}${th('VAT Amt','12%','right')}${th('Total','14%','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Unit Price','14%','right')}${th('Total','20%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
         <td style="text-align:center;padding:5px 8px">${r.index}</td>
         <td style="padding:5px 8px;font-weight:600">${r.desc||'—'}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.unitPrice)}</td>
-        <td style="text-align:right;padding:7px">${r.vatPct}%</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
+        
+        
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='milestone') {
