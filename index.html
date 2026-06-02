@@ -1136,7 +1136,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     <button class="btn btn-ghost" style="color:#16a34a;border-color:#86efac;font-weight:700" onclick="saveAndMarkSent()">📤 Save &amp; Mark Sent</button>
     <button class="btn btn-ghost" style="color:#0369a1;border-color:#7dd3fc;font-weight:700" onclick="saveAndMarkPaid()">✅ Save &amp; Mark Paid</button>
     <button class="btn btn-ghost" style="color:#25d366;border-color:#86efac" onclick="sendInvoiceWhatsApp()">💬 WhatsApp</button>
-    <button class="btn btn-ghost" style="color:#6366f1;border-color:#a5b4fc" onclick="sendInvoiceEmail()">✉ Email</button>
+    <button class="btn btn-ghost" style="color:#6366f1;border-color:#a5b4fc" onclick="openEmailModal()">✉ Email</button>
   </div>
 
   <div id="invoice-preview-wrap" style="display:none;margin-top:24px"></div>
@@ -1689,6 +1689,21 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       </div>
     </div>
 
+    <!-- ── Finance / Invoice Contacts ── -->
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:24px;height:24px;background:var(--g50);border:1.5px solid var(--g200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">✉</div>
+        <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.8px">Finance / Invoice Contacts</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <button type="button" onclick="addFinanceContact()"
+          style="background:var(--g600);color:#fff;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700">+ Add Contact</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;padding:8px 12px;background:var(--g50);border-radius:7px">
+        💡 These email addresses will be pre-filled when you email an invoice for this client.
+      </div>
+      <div id="cl-finance-contacts" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
     <!-- ── SECTION 2: Billing Settings ── -->
     <div style="margin-bottom:28px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
@@ -2099,7 +2114,21 @@ let state = {
   settings: {
     company: { name:'Venqtel', tagline:'Technology Services', address:'', phone:'', email:'', website:'', tax:'', bank:'', prefix:'VTL-', nextNum:1, defaultVat:5 },
     logoWidth: 140,
-    template: { style:'emerald', fontHeading:'Outfit', fontBody:'Plus Jakarta Sans', fontSize:13, color:'#1a7f37' }
+    template: { style:'emerald', fontHeading:'Outfit', fontBody:'Plus Jakarta Sans', fontSize:13, color:'#1a7f37' },
+    emailTemplates: [
+      {
+        id: 'tpl-1',
+        name: 'Standard Invoice',
+        subject: 'Invoice {{invoice_number}} — {{client_name}} — {{currency}}{{amount}}',
+        body: 'Dear {{client_name}},\n\nPlease find attached Invoice No. {{invoice_number}} dated {{date}} for {{currency}}{{amount}}.\n\n{{notes}}\n\nKindly process the payment within 30 days.\n\nKind regards,\n{{company_name}}'
+      },
+      {
+        id: 'tpl-2',
+        name: 'Follow-up Reminder',
+        subject: 'Payment Reminder — Invoice {{invoice_number}}',
+        body: 'Dear {{client_name}},\n\nThis is a gentle reminder that Invoice No. {{invoice_number}} for {{currency}}{{amount}} is due for payment.\n\nPlease let us know if you have any queries.\n\nKind regards,\n{{company_name}}'
+      }
+    ]
   }
 };
 
@@ -2731,6 +2760,7 @@ function openClientModal(idx) {
     if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value = c.tax||'';
     // Billing profiles (each profile has its own employees inside)
     renderBillingProfiles(c.billingProfiles && c.billingProfiles.length ? c.billingProfiles : [{}]);
+    renderFinanceContacts(c.financeContacts||[]);
     renderClientServices(c.services||[]);
   } else {
     document.getElementById('cl-name').value    = '';
@@ -2743,6 +2773,7 @@ function openClientModal(idx) {
     if(document.getElementById('cl-tax')) document.getElementById('cl-tax').value = '';
     // Start with one empty profile
     renderBillingProfiles([{}]);
+    renderFinanceContacts([]);
     renderClientServices([]);
   }
   openModal('modal-client');
@@ -2885,6 +2916,40 @@ function updateClCurrSyms() {
   }));
 }
 
+
+function addFinanceContact(contact) {
+  const container = document.getElementById('cl-finance-contacts');
+  if (!container) return;
+  const color = state.settings.template?.color||'#1a7f37';
+  const div = document.createElement('div');
+  div.className = 'fc-row';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 120px 32px;gap:8px;align-items:center';
+  div.innerHTML = `
+    <input type="email" class="fc-email" value="${contact?.email||''}" placeholder="accounts@company.com"
+      style="border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;outline:none;width:100%"
+      onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+    <input type="text" class="fc-label" value="${contact?.label||''}" placeholder="Role (e.g. Accounts)"
+      style="border:1.5px solid var(--border);border-radius:7px;padding:7px 8px;font-size:12px;outline:none;width:100%"
+      onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'" />
+    <button onclick="this.closest('.fc-row').remove()"
+      style="background:#fff1f0;border:1px solid #fdd;color:#dc2626;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:14px">✕</button>`;
+  container.appendChild(div);
+}
+
+function getFinanceContacts() {
+  return Array.from(document.querySelectorAll('#cl-finance-contacts .fc-row')).map(row => ({
+    email: row.querySelector('.fc-email')?.value.trim()||'',
+    label: row.querySelector('.fc-label')?.value.trim()||'',
+  })).filter(c => c.email);
+}
+
+function renderFinanceContacts(contacts) {
+  const container = document.getElementById('cl-finance-contacts');
+  if (!container) return;
+  container.innerHTML = '';
+  (contacts||[]).forEach(c => addFinanceContact(c));
+}
+
 function saveClient() {
   const name = document.getElementById('cl-name').value.trim();
   if (!name) return showNotif('Enter company name', 'error');
@@ -2914,6 +2979,7 @@ function saveClient() {
     contact:      document.getElementById('cl-contact').value,
     email:        document.getElementById('cl-email').value,
     address:      document.getElementById('cl-address').value,
+    financeContacts: getFinanceContacts(),
     // Client-level defaults — shown on all invoices / used as fallback
     currency:     clientCurrency,
     convCurrency: clientConvCur,
@@ -4398,6 +4464,142 @@ function sendInvoiceWhatsApp() {
   showNotif('WhatsApp opened — attach the PDF manually');
 }
 
+
+// ── Email Invoice Modal ──────────────────────────────────────
+
+let _emailRecipients = [];
+
+function openEmailModal() {
+  const d = getInvoiceData();
+  if (!d.clientName) return showNotif('Complete invoice first','error');
+
+  _emailRecipients = [];
+
+  // Pre-fill recipients from client finance contacts
+  const ci = state.clients.findIndex(c => c.name === d.clientName);
+  const client = ci > -1 ? state.clients[ci] : null;
+  const financeContacts = client?.financeContacts || [];
+
+  if (financeContacts.length) {
+    financeContacts.forEach(fc => addEmailRecipient(fc.email, fc.label));
+  } else if (d.clientEmail) {
+    addEmailRecipient(d.clientEmail);
+  }
+
+  // Populate template dropdown
+  const sel = document.getElementById('email-template-select');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Custom (no template) —</option>' +
+      (state.settings.emailTemplates||[]).map(t =>
+        `<option value="${t.id}">${t.name}</option>`
+      ).join('');
+  }
+
+  // Apply first template as default
+  const tpls = state.settings.emailTemplates||[];
+  if (tpls.length) {
+    if (sel) sel.value = tpls[0].id;
+    applyEmailTemplate();
+  } else {
+    // Fallback subject/body
+    const sym = invSymPlain(d.currency||'AED');
+    const fmt = n => (parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2});
+    document.getElementById('email-subject').value = `Invoice ${d.number} — ${d.clientName} — ${sym}${fmt(d.total)}`;
+    document.getElementById('email-body').value =
+      `Dear ${d.clientName},\n\nPlease find attached Invoice No. ${d.number} dated ${d.date} for ${sym}${fmt(d.total)}.\n\n${d.notes||''}\n\nKindly process the payment within 30 days.\n\nKind regards,\n${d.from||''}`;
+  }
+
+  openModal('modal-email-invoice');
+}
+
+function addEmailRecipient(email, label) {
+  email = (email||'').trim();
+  if (!email || _emailRecipients.includes(email)) return;
+  _emailRecipients.push(email);
+  const list = document.getElementById('email-to-list');
+  if (!list) return;
+  const tag = document.createElement('div');
+  tag.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:20px;padding:3px 10px;font-size:12px;color:#3730a3';
+  tag.innerHTML = `<span>${label?label+': ':''}${email}</span><button onclick="removeEmailRecipient(this,'${email}')" style="background:none;border:none;color:#6366f1;cursor:pointer;font-size:13px;padding:0;line-height:1">×</button>`;
+  list.appendChild(tag);
+}
+
+function removeEmailRecipient(btn, email) {
+  _emailRecipients = _emailRecipients.filter(e => e !== email);
+  btn.closest('div').remove();
+}
+
+function applyEmailTemplate() {
+  const sel = document.getElementById('email-template-select');
+  const tplId = sel?.value;
+  if (!tplId) return;
+  const tpl = (state.settings.emailTemplates||[]).find(t => t.id === tplId);
+  if (!tpl) return;
+  const d = getInvoiceData();
+  const sym = invSymPlain(d.currency||'AED');
+  const fmt = n => (parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2});
+  const vars = {
+    '{{invoice_number}}': d.number||'',
+    '{{client_name}}':    d.clientName||'',
+    '{{amount}}':         fmt(d.total),
+    '{{currency}}':       sym,
+    '{{date}}':           d.date||'',
+    '{{notes}}':          d.notes||'',
+    '{{company_name}}':   d.from||'',
+  };
+  const replace = str => Object.entries(vars).reduce((s,[k,v]) => s.replaceAll(k,v), str);
+  document.getElementById('email-subject').value = replace(tpl.subject||'');
+  document.getElementById('email-body').value    = replace(tpl.body||'');
+}
+
+function openSaveEmailTemplate() {
+  document.getElementById('save-template-row').style.display = 'block';
+  document.getElementById('new-template-name').focus();
+}
+
+function saveEmailTemplate() {
+  const name = document.getElementById('new-template-name')?.value.trim();
+  if (!name) return showNotif('Enter a template name','error');
+  const subject = document.getElementById('email-subject')?.value||'';
+  const body    = document.getElementById('email-body')?.value||'';
+  if (!state.settings.emailTemplates) state.settings.emailTemplates = [];
+  // Check if same name exists
+  const existing = state.settings.emailTemplates.findIndex(t => t.name === name);
+  const tpl = { id: existing > -1 ? state.settings.emailTemplates[existing].id : 'tpl-'+Date.now(), name, subject, body };
+  if (existing > -1) state.settings.emailTemplates[existing] = tpl;
+  else state.settings.emailTemplates.push(tpl);
+  saveState();
+  // Refresh dropdown
+  const sel = document.getElementById('email-template-select');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Custom (no template) —</option>' +
+      state.settings.emailTemplates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    sel.value = tpl.id;
+  }
+  document.getElementById('save-template-row').style.display = 'none';
+  document.getElementById('new-template-name').value = '';
+  showNotif(`Template "${name}" saved ✓`);
+}
+
+function executeEmailInvoice() {
+  if (!_emailRecipients.length) {
+    const custom = document.getElementById('email-to-custom')?.value.trim();
+    if (custom) addEmailRecipient(custom);
+    else return showNotif('Add at least one recipient','error');
+  }
+  // 1. Download PDF first
+  downloadInvoicePDF();
+  // 2. Build mailto with pre-filled subject + body
+  const subject = encodeURIComponent(document.getElementById('email-subject')?.value||'');
+  const body    = encodeURIComponent(document.getElementById('email-body')?.value||'');
+  const to      = _emailRecipients.join(',');
+  setTimeout(() => {
+    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+    closeModal('modal-email-invoice');
+    showNotif('PDF downloaded — attach it in Outlook before sending ✓');
+  }, 800); // slight delay so PDF download initiates first
+}
+
 function sendInvoiceEmail() {
   const d = getInvoiceData();
   if (!d.clientName) return showNotif('Complete invoice first', 'error');
@@ -4710,10 +4912,13 @@ function buildInvoiceHTML(d, forPDF) {
   // Build table based on billing type
   let thead='', tbody='';
   const thStyle = `background:${color};color:#fff;`;
-  const th = (txt,w='',align='left') => `<th style="${thStyle}${w?'width:'+w+';':''};text-align:${align};padding:7px 8px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${txt}</th>`;
+  // % widths — fluid, future-proof for 8-digit amounts
+  const th = (txt,w='',align='left') => `<th style="${thStyle}${w?'width:'+w+';':''};text-align:${align};padding:7px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">${txt}</th>`;
+  const td_style = (align='left',extra='') => `padding:6px 8px;text-align:${align};font-size:10.5px;${extra}`;
+  const td_num   = (extra='') => td_style('right', `font-family:monospace;white-space:nowrap;${extra}`);
 
   if (d.billingType==='mixed') {
-    thead = `<tr>${th('Sr.No','36px','center')}${th('Description')}${th('Offshore/ Onsite','100px')}${th('Days Worked','80px','right')}${th('Hours Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th('Rates','90px','right')}${th('Total','90px','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Offshore/Onsite','11%')}${th('Days','7%','right')}${th('Hours','7%','right')}${th('VAT%','5%','right')}${th('VAT Amt','9%','right')}${th('Rate','10%','right')}${th('Total','13%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4725,10 +4930,10 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:7px">${r.vatPct}%</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.rate)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='day') {
-    thead = `<tr>${th('Sr.No','36px','center')}${th('Name of the Resource')}${th('Offshore/ Onsite','100px')}${th('Days Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th(`Day Rates in ${sym}`,'100px','right')}${th('Total','110px','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of the Resource')}${th('Offshore/Onsite','11%')}${th('Days Worked','8%','right')}${th('VAT%','5%','right')}${th('VAT Amt','9%','right')}${th('Day Rate '+sym,'11%','right')}${th('Total','13%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4742,7 +4947,7 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='hour') {
-    thead = `<tr>${th('Sr.No','36px','center')}${th('Description')}${th('Offshore/ Onsite','100px')}${th('Total Hours','80px','right')}${th('Hours Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th('Hourly Rate','90px','right')}${th('Total','90px','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Offshore/Onsite','11%')}${th('Total Hrs','7%','right')}${th('Hrs Worked','8%','right')}${th('VAT%','5%','right')}${th('VAT Amt','9%','right')}${th('Hourly Rate','11%','right')}${th('Total','13%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4754,10 +4959,10 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:7px">${r.vatPct}%</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.rate)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='fixed') {
-    thead = `<tr>${th('Sr.No','36px','center')}${th('Name of Resource')}${th('Offshore/ Onsite','100px')}${th('Total Days','80px','right')}${th('Days Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th('Monthly Rate','100px','right')}${th('Total','90px','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of Resource')}${th('Offshore/Onsite','11%')}${th('Month Days','7%','right')}${th('Days Worked','8%','right')}${th('VAT%','5%','right')}${th('VAT Amt','9%','right')}${th('Monthly Rate','11%','right')}${th('Total','13%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4769,10 +4974,10 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:7px">${r.vatPct}%</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.rate)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='unit') {
-    thead = `<tr>${th('Sr.No','36px','center')}${th('Description')}${th('Unit Price','110px','right')}${th('VAT %','55px','right')}${th('VAT Amount','100px','right')}${th('Total','100px','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Unit Price','14%','right')}${th('VAT%','6%','right')}${th('VAT Amt','11%','right')}${th('Total','14%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4781,7 +4986,7 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.unitPrice)}</td>
         <td style="text-align:right;padding:7px">${r.vatPct}%</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.vatAmt)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='milestone') {
     if (d.milestoneType==='detailed') {
@@ -4906,7 +5111,87 @@ function downloadInvoicePDF() {
       <button onclick="window.print()" style="background:#29963a;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2)">🖨 Print / Save PDF</button>
       <button onclick="window.close()" style="background:#f1f5f9;border:none;padding:12px 18px;border-radius:10px;font-size:14px;cursor:pointer">✕ Close</button>
     </div>
-  </body></html>`);
+  
+<!-- ─── EMAIL INVOICE MODAL ─── -->
+<div class="modal-overlay" id="modal-email-invoice" style="z-index:1100">
+<div class="modal" style="max-width:680px;width:96vw;padding:0;overflow:hidden;border-radius:16px">
+  <div style="background:linear-gradient(135deg,#4f46e5,#6366f1);padding:18px 24px;display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;background:rgba(255,255,255,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px">✉</div>
+      <div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:800;color:#fff">Email Invoice</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7)">PDF will download first — attach it in Outlook</div>
+      </div>
+    </div>
+    <button onclick="closeModal('modal-email-invoice')" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:16px">✕</button>
+  </div>
+  <div style="padding:22px 24px;overflow-y:auto;max-height:calc(90vh - 120px)">
+
+    <!-- To: recipients -->
+    <div class="form-group">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">To</label>
+      <div id="email-to-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
+      <input type="email" id="email-to-custom" placeholder="Add email address + Enter"
+        style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none"
+        onkeydown="if(event.key==='Enter'){addEmailRecipient(this.value);this.value='';event.preventDefault()}"
+        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+
+    <!-- Template picker -->
+    <div class="form-group">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Email Template</label>
+      <div style="display:flex;gap:8px">
+        <select id="email-template-select" onchange="applyEmailTemplate()"
+          style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none">
+          <option value="">— Custom (no template) —</option>
+        </select>
+        <button onclick="openSaveEmailTemplate()" style="background:var(--g50);border:1.5px solid var(--g200);color:var(--g600);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">💾 Save as Template</button>
+      </div>
+    </div>
+
+    <!-- Subject -->
+    <div class="form-group">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Subject</label>
+      <input type="text" id="email-subject"
+        style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none"
+        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+
+    <!-- Body -->
+    <div class="form-group">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">
+        Message Body
+        <span style="font-size:9px;font-weight:400;text-transform:none;margin-left:6px;color:var(--muted)">Variables: {{invoice_number}} {{client_name}} {{amount}} {{date}} {{currency}} {{notes}} {{company_name}}</span>
+      </label>
+      <textarea id="email-body" rows="9"
+        style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.6;outline:none;font-family:inherit;resize:vertical"
+        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border)'"></textarea>
+    </div>
+
+    <!-- Save template name input (hidden until save clicked) -->
+    <div id="save-template-row" style="display:none;margin-bottom:14px">
+      <div style="display:flex;gap:8px;align-items:center;background:var(--g50);border:1.5px solid var(--g200);border-radius:8px;padding:10px 14px">
+        <input type="text" id="new-template-name" placeholder="Template name (e.g. Standard Invoice)"
+          style="flex:1;border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;outline:none" />
+        <button onclick="saveEmailTemplate()" style="background:var(--g600);color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">Save</button>
+        <button onclick="document.getElementById('save-template-row').style.display='none'" style="background:none;border:1px solid var(--border);padding:7px 10px;border-radius:6px;cursor:pointer;font-size:12px">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Info box -->
+    <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#3730a3;margin-bottom:4px">
+      ℹ️ Clicking "Download PDF &amp; Open Outlook" will first download the PDF, then open your email client pre-filled. Attach the downloaded PDF before sending.
+    </div>
+  </div>
+
+  <div style="padding:14px 24px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end">
+    <button onclick="closeModal('modal-email-invoice')" class="btn btn-ghost">Cancel</button>
+    <button onclick="executeEmailInvoice()" class="btn btn-primary" style="background:#4f46e5;border-color:#4f46e5">⬇ Download PDF &amp; Open Outlook</button>
+  </div>
+</div>
+</div>
+
+</body></html>`);
   win.document.close();
   showNotif('PDF window opened — click "Print / Save PDF" ✓');
 }
@@ -7313,5 +7598,85 @@ window.addEventListener('DOMContentLoaded', function() {
   initFirebase();
 });
 </script>
+
+<!-- ─── EMAIL INVOICE MODAL ─── -->
+<div class="modal-overlay" id="modal-email-invoice" style="z-index:1100">
+<div class="modal" style="max-width:680px;width:96vw;padding:0;overflow:hidden;border-radius:16px">
+  <div style="background:linear-gradient(135deg,#4f46e5,#6366f1);padding:18px 24px;display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;background:rgba(255,255,255,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px">✉</div>
+      <div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:800;color:#fff">Email Invoice</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7)">PDF will download first — attach it in Outlook</div>
+      </div>
+    </div>
+    <button onclick="closeModal('modal-email-invoice')" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:16px">✕</button>
+  </div>
+  <div style="padding:22px 24px;overflow-y:auto;max-height:calc(90vh - 120px)">
+
+    <!-- To: recipients -->
+    <div class="form-group">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">To</label>
+      <div id="email-to-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
+      <input type="email" id="email-to-custom" placeholder="Add email address + Enter"
+        style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none"
+        onkeydown="if(event.key==='Enter'){addEmailRecipient(this.value);this.value='';event.preventDefault()}"
+        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+
+    <!-- Template picker -->
+    <div class="form-group">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Email Template</label>
+      <div style="display:flex;gap:8px">
+        <select id="email-template-select" onchange="applyEmailTemplate()"
+          style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none">
+          <option value="">— Custom (no template) —</option>
+        </select>
+        <button onclick="openSaveEmailTemplate()" style="background:var(--g50);border:1.5px solid var(--g200);color:var(--g600);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">💾 Save as Template</button>
+      </div>
+    </div>
+
+    <!-- Subject -->
+    <div class="form-group">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Subject</label>
+      <input type="text" id="email-subject"
+        style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none"
+        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+
+    <!-- Body -->
+    <div class="form-group">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">
+        Message Body
+        <span style="font-size:9px;font-weight:400;text-transform:none;margin-left:6px;color:var(--muted)">Variables: {{invoice_number}} {{client_name}} {{amount}} {{date}} {{currency}} {{notes}} {{company_name}}</span>
+      </label>
+      <textarea id="email-body" rows="9"
+        style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.6;outline:none;font-family:inherit;resize:vertical"
+        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='var(--border)'"></textarea>
+    </div>
+
+    <!-- Save template name input (hidden until save clicked) -->
+    <div id="save-template-row" style="display:none;margin-bottom:14px">
+      <div style="display:flex;gap:8px;align-items:center;background:var(--g50);border:1.5px solid var(--g200);border-radius:8px;padding:10px 14px">
+        <input type="text" id="new-template-name" placeholder="Template name (e.g. Standard Invoice)"
+          style="flex:1;border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;outline:none" />
+        <button onclick="saveEmailTemplate()" style="background:var(--g600);color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">Save</button>
+        <button onclick="document.getElementById('save-template-row').style.display='none'" style="background:none;border:1px solid var(--border);padding:7px 10px;border-radius:6px;cursor:pointer;font-size:12px">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Info box -->
+    <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#3730a3;margin-bottom:4px">
+      ℹ️ Clicking "Download PDF &amp; Open Outlook" will first download the PDF, then open your email client pre-filled. Attach the downloaded PDF before sending.
+    </div>
+  </div>
+
+  <div style="padding:14px 24px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end">
+    <button onclick="closeModal('modal-email-invoice')" class="btn btn-ghost">Cancel</button>
+    <button onclick="executeEmailInvoice()" class="btn btn-primary" style="background:#4f46e5;border-color:#4f46e5">⬇ Download PDF &amp; Open Outlook</button>
+  </div>
+</div>
+</div>
+
 </body>
 </html>
