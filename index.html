@@ -1128,10 +1128,15 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   </div>
 
   <!-- Actions -->
-  <div class="actions-row">
+  <div class="actions-row" style="flex-wrap:wrap;gap:8px">
     <button class="btn btn-primary" onclick="generateInvoicePreview()">👁 Preview Invoice</button>
     <button class="btn btn-secondary" onclick="downloadInvoicePDF()">⬇ Download PDF</button>
     <button class="btn btn-ghost" onclick="saveInvoiceDraft()">💾 Save Draft</button>
+    <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+    <button class="btn btn-ghost" style="color:#16a34a;border-color:#86efac;font-weight:700" onclick="saveAndMarkSent()">📤 Save &amp; Mark Sent</button>
+    <button class="btn btn-ghost" style="color:#0369a1;border-color:#7dd3fc;font-weight:700" onclick="saveAndMarkPaid()">✅ Save &amp; Mark Paid</button>
+    <button class="btn btn-ghost" style="color:#25d366;border-color:#86efac" onclick="sendInvoiceWhatsApp()">💬 WhatsApp</button>
+    <button class="btn btn-ghost" style="color:#6366f1;border-color:#a5b4fc" onclick="sendInvoiceEmail()">✉ Email</button>
   </div>
 
   <div id="invoice-preview-wrap" style="display:none;margin-top:24px"></div>
@@ -4350,7 +4355,64 @@ function getInvoiceData() {
   };
 }
 
- function saveInvoiceDraft() {
+ 
+function saveAndMarkSent() {
+  const d = getInvoiceData();
+  if (!d.clientName) return showNotif('Complete invoice first', 'error');
+  d.status = 'sent';
+  _persistInvoice(d);
+  showNotif('Invoice saved and marked as Sent ✓');
+  renderHistory();
+}
+
+function saveAndMarkPaid() {
+  const d = getInvoiceData();
+  if (!d.clientName) return showNotif('Complete invoice first', 'error');
+  d.status = 'paid';
+  _persistInvoice(d);
+  showNotif('Invoice saved and marked as Paid ✓');
+  renderHistory();
+}
+
+function _persistInvoice(d) {
+  const existing = state.invoices.findIndex(inv => inv.id === d.id);
+  if (existing > -1) state.invoices[existing] = d;
+  else state.invoices.push(d);
+  // Mark timesheet invoiced if came from one
+  if (d.fromTimesheet) {
+    const ts = state.timesheets.find(t => t.id === d.fromTimesheet);
+    if (ts) ts.status = 'invoiced';
+  }
+  saveState();
+}
+
+function sendInvoiceWhatsApp() {
+  const d = getInvoiceData();
+  if (!d.clientName) return showNotif('Complete invoice first', 'error');
+  const sym  = invSymPlain(d.currency||'AED');
+  const fmt  = n => (parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2});
+  const text = encodeURIComponent(
+    `Dear ${d.clientName},\n\nPlease find attached Invoice No. ${d.number} dated ${d.date} for ${sym}${fmt(d.total)}.\n\n${d.notes||''}\n\nKind regards,\n${d.from||''}`
+  );
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+  showNotif('WhatsApp opened — attach the PDF manually');
+}
+
+function sendInvoiceEmail() {
+  const d = getInvoiceData();
+  if (!d.clientName) return showNotif('Complete invoice first', 'error');
+  const sym  = invSymPlain(d.currency||'AED');
+  const fmt  = n => (parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2});
+  const sub  = encodeURIComponent(`Invoice ${d.number} — ${d.clientName} — ${sym}${fmt(d.total)}`);
+  const body = encodeURIComponent(
+    `Dear ${d.clientName},\n\nPlease find attached Invoice No. ${d.number} dated ${d.date} for ${sym}${fmt(d.total)}.\n\n${d.notes||''}\n\nKind regards,\n${d.from||''}`
+  );
+  const email = d.clientEmail || '';
+  window.location.href = `mailto:${email}?subject=${sub}&body=${body}`;
+  showNotif('Email client opened — attach the PDF manually');
+}
+
+function saveInvoiceDraft() {
   const d = getInvoiceData();
   const invNum = document.getElementById('inv-number')?.value?.trim() || d.number;
   if (!invNum) return showNotif('Invoice number is missing','error');
@@ -4666,7 +4728,7 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='day') {
-    thead = `<tr>${th('Sr.No','36px','center')}${th('Name of the Resource')}${th('Offshore/ Onsite','100px')}${th('Days Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th(`Day Rates in ${sym}`,'100px','right')}${th('Total','90px','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','36px','center')}${th('Name of the Resource')}${th('Offshore/ Onsite','100px')}${th('Days Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th(`Day Rates in ${sym}`,'100px','right')}${th('Total','110px','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4677,7 +4739,7 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:7px">${r.vatPct>0?r.vatPct+'%':''}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${r.vatAmt>0?sym+fmt(r.vatAmt):''}</td>
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.rate)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='hour') {
     thead = `<tr>${th('Sr.No','36px','center')}${th('Description')}${th('Offshore/ Onsite','100px')}${th('Total Hours','80px','right')}${th('Hours Worked','80px','right')}${th('VAT %','55px','right')}${th('VAT Amount','90px','right')}${th('Hourly Rate','90px','right')}${th('Total','90px','right')}</tr>`;
@@ -5125,10 +5187,21 @@ function onTsModalClientChange(existingRows) {
 
   // Build all profile panels (stacked, only active is visible)
   const panelsHtml = profiles.map((p,pi) => {
-    // Employees for this profile: prefer prof.employees, else filter aggregated list by profileName
-    const profEmps = (p.employees && p.employees.length > 0)
-      ? p.employees
-      : (c.employees||[]).filter(e => !e.profileName || e.profileName === p.name);
+    // Employees for this profile: prefer prof.employees (new structure),
+    // else fall back to aggregated c.employees filtered by profileName (legacy),
+    // else if no profileName tags exist at all, show all employees for every profile
+    let profEmps = [];
+    if (p.employees && p.employees.length > 0) {
+      profEmps = p.employees;
+    } else {
+      const allEmps = c.employees||[];
+      const anyTagged = allEmps.some(e => e.profileName);
+      if (anyTagged) {
+        profEmps = allEmps.filter(e => !e.profileName || e.profileName === p.name);
+      } else {
+        profEmps = allEmps; // legacy: no profile tagging, show all
+      }
+    }
     const effectiveClient = {...c, ...p, employees: profEmps};
     const existingTs = month ? state.timesheets.find(t => t.clientName===c.name && t.billingProfileName===p.name && t.month===month) : null;
     const rows = existingTs ? existingTs.rows : null;
