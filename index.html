@@ -4587,17 +4587,21 @@ function executeEmailInvoice() {
     if (custom) addEmailRecipient(custom);
     else return showNotif('Add at least one recipient','error');
   }
-  // 1. Download PDF first
-  downloadInvoicePDF();
-  // 2. Build mailto with pre-filled subject + body
+  // Capture values BEFORE closing modal
   const subject = encodeURIComponent(document.getElementById('email-subject')?.value||'');
   const body    = encodeURIComponent(document.getElementById('email-body')?.value||'');
   const to      = _emailRecipients.join(',');
+  // 1. Close modal FIRST so it doesn't appear in PDF
+  closeModal('modal-email-invoice');
+  // 2. Small delay to let modal fully hide, then download PDF
   setTimeout(() => {
-    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
-    closeModal('modal-email-invoice');
-    showNotif('PDF downloaded — attach it in Outlook before sending ✓');
-  }, 800); // slight delay so PDF download initiates first
+    downloadInvoicePDF();
+    // 3. Then open mailto after PDF initiates
+    setTimeout(() => {
+      window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+      showNotif('PDF downloaded — attach it in Outlook before sending ✓');
+    }, 600);
+  }, 200);
 }
 
 function sendInvoiceEmail() {
@@ -4933,7 +4937,7 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='day') {
-    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of the Resource')}${th('Offshore/Onsite','11%')}${th('Days Worked','8%','right')}${th('VAT%','5%','right')}${th('VAT Amt','9%','right')}${th('Day Rate '+sym,'11%','right')}${th('Total','13%','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of the Resource')}${th('Offshore/Onsite','11%')}${th('Days Worked','7%','right')}${th('VAT%','5%','right')}${th('VAT Amt','11%','right')}${th('Day Rate '+sym,'11%','right')}${th('Total','13%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
@@ -4962,7 +4966,7 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='fixed') {
-    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of Resource')}${th('Offshore/Onsite','11%')}${th('Month Days','7%','right')}${th('Days Worked','8%','right')}${th('VAT%','5%','right')}${th('VAT Amt','9%','right')}${th('Monthly Rate','11%','right')}${th('Total','13%','right')}</tr>`;
+    thead = `<tr>${th('Sr.No','4%','center')}${th('Name of Resource')}${th('Offshore/Onsite','11%')}${th('Month Days','7%','right')}${th('Days Worked','8%','right')}${th('VAT%','5%','right')}${th('VAT Amt','11%','right')}${th('Monthly Rate','11%','right')}${th('Total','13%','right')}</tr>`;
     tbody = d.rows.map((r,i)=>{
       const bg=i%2===1?'#f9fafb':'#fff';
       return `<tr style="background:${bg}">
