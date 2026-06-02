@@ -4819,7 +4819,7 @@ function buildInvoiceHTML(d, forPDF) {
         
         
         <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${sym}${fmt(r.rate)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.subtotal||r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='day') {
     thead = `<tr>${th('Sr.No','4%','center')}${th('Name of the Resource')}${th('Offshore/Onsite','11%')}${th('Days Worked','7%','right')}${th('Day Rate '+sym,'16%','right')}${th('Total','16%','right')}</tr>`;
@@ -4833,7 +4833,7 @@ function buildInvoiceHTML(d, forPDF) {
         
         
         <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${sym}${fmt(r.rate)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.subtotal||r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='hour') {
     thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Offshore/Onsite','11%')}${th('Total Hrs','7%','right')}${th('Hrs Worked','7%','right')}${th('Hourly Rate','16%','right')}${th('Total','16%','right')}</tr>`;
@@ -4848,7 +4848,7 @@ function buildInvoiceHTML(d, forPDF) {
         
         
         <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${sym}${fmt(r.rate)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.subtotal||r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='fixed') {
     thead = `<tr>${th('Sr.No','4%','center')}${th('Name of Resource')}${th('Offshore/Onsite','11%')}${th('Month Days','6%','right')}${th('Days Worked','7%','right')}${th('Monthly Rate','16%','right')}${th('Total','16%','right')}</tr>`;
@@ -4863,7 +4863,7 @@ function buildInvoiceHTML(d, forPDF) {
         
         
         <td style="text-align:right;padding:5px 8px;font-family:monospace;white-space:nowrap">${sym}${fmt(r.rate)}</td>
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.subtotal||r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='unit') {
     thead = `<tr>${th('Sr.No','4%','center')}${th('Description')}${th('Unit Price','14%','right')}${th('Total','20%','right')}</tr>`;
@@ -4875,7 +4875,7 @@ function buildInvoiceHTML(d, forPDF) {
         <td style="text-align:right;padding:5px 8px;font-family:monospace">${sym}${fmt(r.unitPrice)}</td>
         
         
-        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.total)}</td>
+        <td style="text-align:right;padding:5px 8px;font-family:monospace;font-weight:700;white-space:nowrap">${sym}${fmt(r.subtotal||r.total)}</td>
       </tr>`;}).join('');
   } else if (d.billingType==='milestone') {
     if (d.milestoneType==='detailed') {
