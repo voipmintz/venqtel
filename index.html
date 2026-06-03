@@ -1129,12 +1129,17 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
   <!-- Actions -->
   <div class="actions-row" style="flex-wrap:wrap;gap:8px">
-    <button class="btn btn-primary" onclick="generateInvoicePreview()">👁 Preview Invoice</button>
-    <button class="btn btn-secondary" onclick="downloadInvoicePDF()">⬇ Download PDF</button>
+    <button id="ai-check-btn"
+      onclick="aiCheckInvoice(generateInvoicePreview)"
+      style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+      🔍 AI Check &amp; Preview
+    </button>
+    <button class="btn btn-primary" onclick="generateInvoicePreview()">👁 Preview</button>
+    <button class="btn btn-secondary" onclick="aiCheckInvoice(downloadInvoicePDF)">⬇ Check &amp; Download PDF</button>
     <button class="btn btn-ghost" onclick="saveInvoiceDraft()">💾 Save Draft</button>
     <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
-    <button class="btn btn-ghost" style="color:#16a34a;border-color:#86efac;font-weight:700" onclick="saveAndMarkSent()">📤 Save &amp; Mark Sent</button>
-    <button class="btn btn-ghost" style="color:#0369a1;border-color:#7dd3fc;font-weight:700" onclick="saveAndMarkPaid()">✅ Save &amp; Mark Paid</button>
+    <button class="btn btn-ghost" style="color:#16a34a;border-color:#86efac;font-weight:700" onclick="saveAndMarkSent()">📤 Mark Sent</button>
+    <button class="btn btn-ghost" style="color:#0369a1;border-color:#7dd3fc;font-weight:700" onclick="saveAndMarkPaid()">✅ Mark Paid</button>
     <button class="btn btn-ghost" style="color:#25d366;border-color:#86efac" onclick="sendInvoiceWhatsApp()">💬 WhatsApp</button>
     <button class="btn btn-ghost" style="color:#6366f1;border-color:#a5b4fc" onclick="openEmailModal()">✉ Email</button>
   </div>
@@ -4506,6 +4511,269 @@ function executeEmailInvoice() {
   }, 200);
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// AI FEATURE 1: Smart Timesheet Fill
+// Reads past timesheets for this client+profile → pre-fills rows
+// ═══════════════════════════════════════════════════════════════
+
+async function aiSmartFillTimesheet(profIdx) {
+  const clientIdx = document.getElementById('ts-modal-client')?.value||'';
+  const month     = document.getElementById('ts-modal-month')?.value||'';
+  if (!clientIdx || !month) return showNotif('Select client and month first','error');
+
+  const c = state.clients[parseInt(clientIdx)];
+  const profiles = (c.billingProfiles&&c.billingProfiles.length>0) ? c.billingProfiles
+    : [{name:'Default',invoiceType:c.invoiceType||'mixed',currency:c.currency||'AED',vat:c.vat||0,employees:c.employees||[]}];
+  const prof = profiles[profIdx]||profiles[0];
+
+  // Gather last 6 months of timesheets for this client+profile
+  const history = state.timesheets
+    .filter(t => t.clientName===c.name && t.billingProfileName===prof.name && t.month < month)
+    .sort((a,b) => b.month.localeCompare(a.month))
+    .slice(0,6);
+
+  const totalDays  = parseInt(document.getElementById('ts-modal-total-days')?.value||22);
+  const totalHours = parseInt(document.getElementById('ts-modal-total-hours')?.value||176);
+
+  // Build context for AI
+  const historyText = history.length
+    ? history.map(t =>
+        `Month: ${t.month}\n` +
+        (t.rows||[]).map(r => `  - ${r.name||r.desc}: ${r.days||0} days, ${r.hours||0} hrs, rate ${r.rate||0}, total ${r.subtotal||r.total||0}`).join('\n')
+      ).join('\n\n')
+    : 'No previous timesheets available.';
+
+  const employees = (prof.employees||[]).map(e =>
+    `${e.name} (${e.type||'Offshore'}) — day rate: ${e.dayRate||0}, hourly: ${e.hourRate||0}, fixed/mo: ${e.fixedRate||0}`
+  ).join('\n');
+
+  const prompt = `You are helping fill a timesheet for an invoice management app.
+
+Client: ${c.name}
+Billing Profile: ${prof.name}
+Invoice Type: ${prof.invoiceType||'mixed'}
+Month: ${month}
+Total working days this month: ${totalDays}
+Total working hours: ${totalHours}
+
+Employees in this profile:
+${employees||'(none listed)'}
+
+Previous timesheet history (most recent first):
+${historyText}
+
+Based on this history, suggest realistic days worked and hours worked for each employee for ${month}.
+If no history exists, use the full working days/hours as defaults.
+
+Respond ONLY with a JSON array, no markdown, no explanation:
+[
+  {"name": "Employee Name", "type": "Offshore", "days": 22, "hours": 176, "rate": 1000},
+  ...
+]
+Use the employee's appropriate rate (dayRate for day/fixed/mixed, hourRate for hour type).
+Invoice type is "${prof.invoiceType||'mixed'}" — set rate accordingly.`;
+
+  // Show loading state on the AI button
+  const btn = document.getElementById(`ai-fill-btn-${profIdx}`);
+  if (btn) { btn.textContent = '⏳ Thinking...'; btn.disabled = true; }
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    const text = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    let suggestions;
+    try { suggestions = JSON.parse(text); } catch(e) { throw new Error('AI returned invalid JSON'); }
+
+    if (!Array.isArray(suggestions) || !suggestions.length) throw new Error('No suggestions returned');
+
+    // Apply suggestions to the timesheet rows
+    const tbody = document.getElementById(`ts-ptbody-${profIdx}`);
+    if (!tbody) throw new Error('Timesheet table not found');
+
+    const rows = tbody.querySelectorAll('tr');
+
+    suggestions.forEach((sug, si) => {
+      const row = rows[si];
+      if (!row) return;
+      const daysInput  = row.querySelector('.ts-days');
+      const hoursInput = row.querySelector('.ts-hours');
+      const rateInput  = row.querySelector('.ts-rate');
+      const descInput  = row.querySelector('.ts-desc');
+      if (descInput && sug.name) descInput.value = sug.name;
+      if (daysInput  && sug.days  !== undefined) daysInput.value  = sug.days;
+      if (hoursInput && sug.hours !== undefined) hoursInput.value = sug.hours;
+      if (rateInput  && sug.rate  !== undefined) rateInput.value  = sug.rate;
+      // Trigger recalc
+      const anyInput = row.querySelector('input');
+      if (anyInput) recalcTsRow(anyInput);
+    });
+
+    showNotif(`✨ AI filled ${suggestions.length} row(s) based on ${history.length} month(s) of history`);
+  } catch(e) {
+    console.error('AI fill error:', e);
+    showNotif('AI fill failed: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.textContent = '✨ AI Fill'; btn.disabled = false; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI FEATURE 5: Anomaly & Error Detection
+// Checks invoice data before preview/save — flags issues
+// ═══════════════════════════════════════════════════════════════
+
+async function aiCheckInvoice(onPassCallback) {
+  const d = getInvoiceData();
+  if (!d.clientName) { showNotif('Complete invoice first','error'); return; }
+
+  // Gather context: last 3 invoices for this client
+  const prevInvoices = state.invoices
+    .filter(inv => inv.clientName === d.clientName && inv.id !== d.id)
+    .sort((a,b) => (b.number||'').localeCompare(a.number||''))
+    .slice(0,3);
+
+  const workingDays = parseInt(document.getElementById('ts-modal-total-days')?.value) ||
+    getWorkingDaysInMonth(d.period||'') || 22;
+
+  const rowSummary = (d.rows||[]).map((r,i) =>
+    `Row ${i+1}: ${r.name||r.desc||'?'} | days:${r.days||0} | hours:${r.hours||0} | rate:${r.rate||0} | subtotal:${r.subtotal||0} | vatPct:${r.vatPct||0}`
+  ).join('\n');
+
+  const prevSummary = prevInvoices.length
+    ? prevInvoices.map(inv =>
+        `Invoice ${inv.number} (${inv.period||inv.date}): total ${inv.total}, rows: ` +
+        (inv.rows||[]).map(r=>`${r.name||r.desc} rate=${r.rate} days=${r.days}`).join('; ')
+      ).join('\n')
+    : 'No previous invoices for this client.';
+
+  const prompt = `You are an invoice auditor checking for errors or anomalies before an invoice is sent.
+
+Current invoice:
+Client: ${d.clientName}
+Period: ${d.period||d.date}
+Billing type: ${d.billingType}
+Currency: ${d.currency}
+Working days this month: ${workingDays}
+Subtotal: ${d.subtotal}
+VAT: ${d.vat} (${d.rows?.[0]?.vatPct||0}%)
+Total: ${d.total}
+
+Invoice rows:
+${rowSummary}
+
+Previous invoices for this client:
+${prevSummary}
+
+Check for these issues:
+1. Days worked > working days in month (${workingDays})
+2. Rate changed significantly vs last invoice (>20% difference)
+3. VAT applied when it shouldn't be, or missing when it should be
+4. Zero days or zero rate on any row
+5. Total doesn't match subtotal + VAT
+6. Unusual patterns vs history
+
+Respond ONLY with JSON, no markdown:
+{
+  "status": "ok" | "warning" | "error",
+  "issues": [
+    {"severity": "error"|"warning"|"info", "message": "clear one-line description of the issue"}
+  ]
+}
+If no issues found, return {"status":"ok","issues":[]}.`;
+
+  // Show loading indicator on the check button
+  const checkBtn = document.getElementById('ai-check-btn');
+  if (checkBtn) { checkBtn.textContent = '⏳ Checking...'; checkBtn.disabled = true; }
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    const text = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    let result;
+    try { result = JSON.parse(text); } catch(e) { throw new Error('AI returned invalid response'); }
+
+    if (result.status === 'ok' || !result.issues?.length) {
+      showNotif('✅ AI check passed — no issues found');
+      if (onPassCallback) onPassCallback();
+      return;
+    }
+
+    // Show issues in a modal
+    _showAnomalyModal(result.issues, onPassCallback);
+
+  } catch(e) {
+    console.error('AI check error:', e);
+    showNotif('AI check failed: ' + e.message + ' — proceeding anyway', 'error');
+    if (onPassCallback) onPassCallback();
+  } finally {
+    if (checkBtn) { checkBtn.textContent = '🔍 AI Check'; checkBtn.disabled = false; }
+  }
+}
+
+function _showAnomalyModal(issues, onProceedCallback) {
+  // Remove existing if any
+  document.getElementById('modal-ai-anomaly')?.remove();
+
+  const colors = { error:'#dc2626', warning:'#d97706', info:'#2563eb' };
+  const icons  = { error:'⛔', warning:'⚠️', info:'ℹ️' };
+  const issueHTML = issues.map(iss => `
+    <div style="display:flex;gap:10px;padding:10px 12px;background:${colors[iss.severity]||colors.warning}0d;border:1px solid ${colors[iss.severity]||colors.warning}30;border-radius:8px;margin-bottom:8px">
+      <span style="font-size:16px;flex-shrink:0">${icons[iss.severity]||'⚠️'}</span>
+      <div>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${colors[iss.severity]||colors.warning}">${iss.severity}</span>
+        <div style="font-size:13px;color:var(--ink2);margin-top:2px">${iss.message}</div>
+      </div>
+    </div>`).join('');
+
+  const hasErrors = issues.some(i => i.severity==='error');
+  const modal = document.createElement('div');
+  modal.id = 'modal-ai-anomaly';
+  modal.className = 'modal-overlay';
+  modal.style.zIndex = '1200';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:520px;width:94vw;padding:0;overflow:hidden;border-radius:16px">
+      <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">🔍</span>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#fff">AI Invoice Check</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.75)">${issues.length} issue${issues.length>1?'s':''} found before sending</div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('modal-ai-anomaly').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:15px">✕</button>
+      </div>
+      <div style="padding:18px 20px">
+        ${issueHTML}
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+          <button onclick="document.getElementById('modal-ai-anomaly').remove()"
+            class="btn btn-secondary">← Go back &amp; fix</button>
+          ${!hasErrors && onProceedCallback ? `<button onclick="document.getElementById('modal-ai-anomaly').remove();(${onProceedCallback.toString()})()"
+            class="btn btn-primary" style="background:#d97706;border-color:#d97706">Proceed anyway →</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.classList.add('active');
+}
+
+
 function saveInvoiceDraft() {
   const d = getInvoiceData();
   const invNum = document.getElementById('inv-number')?.value?.trim() || d.number;
@@ -5372,7 +5640,13 @@ function buildTsProfilePanel(c, prof, profIdx, existingRows, totalDays, totalHou
       <tbody id="ts-ptbody-${profIdx}">${tbodyHtml}</tbody>
     </table>
   </div>
-  <div style="display:flex;gap:8px;margin-top:12px">
+  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
+    <button id="ai-fill-btn-${profIdx}"
+      onclick="aiSmartFillTimesheet(${profIdx})"
+      style="background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px">
+      ✨ AI Fill
+    </button>
+    <div style="width:1px;height:20px;background:var(--border)"></div>
     <button class="btn btn-secondary btn-sm" onclick="saveSingleTsProfile(${profIdx},'draft')">💾 Save Draft</button>
     <button class="btn btn-primary btn-sm" onclick="saveSingleTsProfile(${profIdx},'ready')">✅ Mark Ready</button>
     <button class="btn btn-ghost btn-sm" style="color:#16a34a;border-color:#86efac;font-weight:700" onclick="saveThenInvoice(${profIdx})">→ Invoice Now</button>
